@@ -1,10 +1,7 @@
 {
+  "editor.formatOnSave": true,
+  "prettier.ignorePath": ".prettierignore",
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "prettier.ignorePath": ".prettierignore",
-  "editor.formatOnSave": true,
-  "files.associations": {
-    "app/level/real-map.json": "jsonc"
   }
 }
