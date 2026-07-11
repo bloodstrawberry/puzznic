@@ -140,6 +140,8 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const [muted, setMuted] = useState<boolean>(false);
   const [grabbed, setGrabbed] = useState<boolean>(false);
   const [hasMovedFirstBlock, setHasMovedFirstBlock] = useState<boolean>(false);
+  const [flashingBlocks, setFlashingBlocks] = useState<Record<string, boolean>>({});
+
 
   const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
     const initialGrid = isEditorMode
@@ -201,19 +203,23 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         y: level.grid.length - 1,
       });
       setGrabbed(false);
+      setFlashingBlocks({});
       autoWallDirections.current = {};
       setHasMovedFirstBlock(false);
       updateBlockCounts(level.grid);
       playEngineSound("start", muted);
+
     },
     [muted, updateBlockCounts, setGrabbed]
   );
 
   const resetLevel = useCallback(() => {
     setGrabbed(false);
+    setFlashingBlocks({});
     autoWallDirections.current = {};
     setHasMovedFirstBlock(false);
     if (isEditorMode) {
+
       // Clear grid for editor
       setGrid(Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY)));
       setIsLevelCleared(false);
@@ -325,6 +331,21 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         }
 
         if (matchChanged) {
+          // Record flashing blocks
+          const nextFlashing: Record<string, boolean> = {};
+          for (let y = 0; y < currentGrid.length; y++) {
+            for (let x = 0; x < currentGrid[0].length; x++) {
+              if (toClear[y][x]) {
+                nextFlashing[`${y},${x}`] = true;
+              }
+            }
+          }
+          setFlashingBlocks(nextFlashing);
+          playEngineSound("match", muted);
+
+          await delay(600); // Wait for the flashing animation to complete
+
+          setFlashingBlocks({});
           for (let y = 0; y < currentGrid.length; y++) {
             for (let x = 0; x < currentGrid[0].length; x++) {
               if (toClear[y][x]) {
@@ -335,10 +356,9 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
           currentGrid = nextMatchGrid;
           setGrid(currentGrid);
           updateBlockCounts(currentGrid);
-          playEngineSound("match", muted);
-          await delay(250); // Matching explode animation duration
           continue; // Loop back to gravity check to drop blocks that were held
         }
+
 
         // Neither gravity nor matches occurred, physics is stable
         keepGoing = false;
@@ -535,13 +555,47 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     });
   }, [isEditorMode, updateBlockCounts]);
 
+  // Keep refs updated for the auto-wall timer to prevent resetting the interval
+  const stateRef = useRef({
+    grid,
+    cursor,
+    isProcessing,
+    isGameOver,
+    isLevelCleared,
+    hasMovedFirstBlock,
+    isEditorMode,
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      grid,
+      cursor,
+      isProcessing,
+      isGameOver,
+      isLevelCleared,
+      hasMovedFirstBlock,
+      isEditorMode,
+    };
+  }, [grid, cursor, isProcessing, isGameOver, isLevelCleared, hasMovedFirstBlock, isEditorMode]);
+
   // Interval timer for auto-moving walls (patrol slabs)
   useEffect(() => {
-    if (isEditorMode || isGameOver || isLevelCleared || isProcessing || !hasMovedFirstBlock) return;
+    if (isEditorMode || !hasMovedFirstBlock) return;
 
     const interval = setInterval(() => {
+      const {
+        grid: curGrid,
+        cursor: curCursor,
+        isProcessing: curProcessing,
+        isGameOver: curGameOver,
+        isLevelCleared: curLevelCleared,
+      } = stateRef.current;
+
+      // Skip this tick if the game is over, cleared, or currently resolving physics
+      if (curGameOver || curLevelCleared || curProcessing) return;
+
       let moved = false;
-      const nextGrid = grid.map((row) => [...row]);
+      const nextGrid = curGrid.map((row) => [...row]);
       const H = nextGrid.length;
       const W = nextGrid[0]?.length || 0;
 
@@ -553,7 +607,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         for (let x = 0; x < W; x++) {
           if (processed[y][x]) continue;
 
-          const cell = grid[y][x];
+          const cell = curGrid[y][x];
           if (cell === BLOCK_AUTO_WALL_H) {
             const dirKey = `${y},${x}`;
             let dx = nextDirections[dirKey] !== undefined ? nextDirections[dirKey] : -1;
@@ -622,13 +676,13 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
               // Adjust cursor selector if it was on a block in this stack
               let cursorIndex = -1;
               for (let i = 0; i < stack.length; i++) {
-                if (stack[i].x === cursor.x && stack[i].y === cursor.y) {
+                if (stack[i].x === curCursor.x && stack[i].y === curCursor.y) {
                   cursorIndex = i;
                   break;
                 }
               }
               if (cursorIndex !== -1) {
-                setCursor({ x: cursor.x + dx, y: cursor.y });
+                setCursor((prev) => ({ x: prev.x + dx, y: prev.y }));
               }
 
               delete nextDirections[dirKey];
@@ -705,13 +759,13 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
               // Adjust cursor selector if it was on a block in this stack
               let cursorIndex = -1;
               for (let i = 0; i < stack.length; i++) {
-                if (stack[i].x === cursor.x && stack[i].y === cursor.y) {
+                if (stack[i].x === curCursor.x && stack[i].y === curCursor.y) {
                   cursorIndex = i;
                   break;
                 }
               }
               if (cursorIndex !== -1) {
-                setCursor({ x: cursor.x, y: cursor.y + dy });
+                setCursor((prev) => ({ x: prev.x, y: prev.y + dy }));
               }
 
               delete nextDirections[dirKey];
@@ -734,14 +788,9 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     return () => clearInterval(interval);
   }, [
     isEditorMode,
-    isGameOver,
-    isLevelCleared,
-    isProcessing,
-    grid,
-    cursor,
+    hasMovedFirstBlock,
     runPhysicsLoop,
     setCursor,
-    hasMovedFirstBlock,
   ]);
 
   return {
@@ -771,5 +820,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     grabbed,
     setGrabbed,
     hasMovedFirstBlock,
+    flashingBlocks,
   };
+
 };

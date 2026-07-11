@@ -114,7 +114,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     setMuted,
     grabbed,
     setGrabbed,
+    flashingBlocks,
   } = useGameEngine(0, activeEditor);
+
 
   const [selectedPaint, setSelectedPaint] = useState<CellType | "eraser">(BLOCK_WALL);
   const [exportModalContent, setExportModalContent] = useState<string | null>(null);
@@ -199,8 +201,10 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       if (dx !== 0 || dy !== 0) {
         e.preventDefault();
         setCursor((prev) => {
-          const nx = Math.max(0, Math.min(7, prev.x + dx));
-          const ny = Math.max(0, Math.min(7, prev.y + dy));
+          const cols = grid[0]?.length || 8;
+          const rows = grid.length || 8;
+          const nx = Math.max(0, Math.min(cols - 1, prev.x + dx));
+          const ny = Math.max(0, Math.min(rows - 1, prev.y + dy));
           playSound("select", muted);
           return { x: nx, y: ny };
         });
@@ -245,7 +249,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       setPlayTestMode(false);
     } else {
       setPlayTestMode(true);
-      setCursor({ x: 3, y: 7 });
+      const cols = grid[0]?.length || 8;
+      const rows = grid.length || 8;
+      setCursor({ x: Math.floor(cols / 2), y: rows - 1 });
     }
     playSound("start", muted);
   };
@@ -449,10 +455,13 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
                           {/* Render grid cell elements */}
                           {cell !== BLOCK_EMPTY && (
-                            <div className="w-[88%] h-[88%] transform active:scale-95 transition-transform">
+                            <div className={`w-[88%] h-[88%] transform active:scale-95 transition-transform ${
+                              flashingBlocks[`${y},${x}`] ? "animate-match-flash pointer-events-none" : ""
+                            }`}>
                               <BlockRenderer id={cell} />
                             </div>
                           )}
+
 
                           {/* Render Cursor Selector outline (Pulsating gold if grabbed, red if free) */}
                           {isCursor && (
