@@ -6,6 +6,10 @@ import Link from "next/link";
 import BlockRenderer, {
   BLOCK_EMPTY,
   BLOCK_WALL,
+  BLOCK_WALL_V,
+  BLOCK_WALL_H,
+  BLOCK_AUTO_WALL_V,
+  BLOCK_AUTO_WALL_H,
   PUZZLE_BLOCK_TYPES,
 } from "../object";
 
@@ -125,7 +129,11 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       if (e.code === "Space" || e.key === " ") {
         e.preventDefault();
         const cell = grid[cursor.y][cursor.x];
-        const isPuzzleBlock = cell !== BLOCK_EMPTY && cell !== BLOCK_WALL;
+        const isPuzzleBlock =
+          cell !== BLOCK_EMPTY &&
+          cell !== BLOCK_WALL &&
+          cell !== BLOCK_AUTO_WALL_V &&
+          cell !== BLOCK_AUTO_WALL_H;
         if (grabbed) {
           setGrabbed(false);
           playSound("select", muted);
@@ -142,15 +150,29 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
       // 2. Grabbing slide actions
       if (grabbed) {
-        if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          moveBlock(cursor.x, cursor.y, -1);
-        } else if (e.key === "ArrowRight") {
-          e.preventDefault();
-          moveBlock(cursor.x, cursor.y, 1);
-        } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-          e.preventDefault();
-          playSound("error", muted);
+        const cell = grid[cursor.y][cursor.x];
+        if (cell === BLOCK_WALL_V) {
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            moveBlock(cursor.x, cursor.y, 0, -1);
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            moveBlock(cursor.x, cursor.y, 0, 1);
+          } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+            e.preventDefault();
+            playSound("error", muted);
+          }
+        } else {
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            moveBlock(cursor.x, cursor.y, -1, 0);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            moveBlock(cursor.x, cursor.y, 1, 0);
+          } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            playSound("error", muted);
+          }
         }
         return;
       }
@@ -412,6 +434,12 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                         <div
                           key={`${y}-${x}`}
                           onClick={() => handleCellClick(x, y)}
+                          onContextMenu={(e) => {
+                            if (activeEditor && !playTestMode) {
+                              e.preventDefault();
+                              editorPlaceBlock(x, y, BLOCK_EMPTY);
+                            }
+                          }}
                           className={`w-9 sm:w-11 aspect-square relative border border-zinc-900/30 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
                             activeEditor ? "hover:bg-zinc-800/40" : ""
                           }`}
@@ -549,6 +577,52 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                     <BlockRenderer id={type} />
                   </button>
                 ))}
+
+                {/* Moving slider walls */}
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_WALL_V)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_WALL_V
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Vertical Moving Wall"
+                >
+                  <BlockRenderer id={BLOCK_WALL_V} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_WALL_H)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_WALL_H
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Horizontal Moving Wall"
+                >
+                  <BlockRenderer id={BLOCK_WALL_H} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_AUTO_WALL_V)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_AUTO_WALL_V
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Vertical Auto-Moving Wall"
+                >
+                  <BlockRenderer id={BLOCK_AUTO_WALL_V} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_AUTO_WALL_H)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_AUTO_WALL_H
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Horizontal Auto-Moving Wall"
+                >
+                  <BlockRenderer id={BLOCK_AUTO_WALL_H} />
+                </button>
               </div>
 
               {/* Map actions */}

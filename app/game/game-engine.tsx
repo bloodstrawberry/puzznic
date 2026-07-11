@@ -1,12 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import realMap from "../level/real-map.json";
 
 import {
   BlockId,
   BLOCK_EMPTY,
   BLOCK_WALL,
+  BLOCK_WALL_V,
+  BLOCK_WALL_H,
+  BLOCK_AUTO_WALL_V,
+  BLOCK_AUTO_WALL_H,
 } from "../object/constants";
 
 export type CellType = BlockId;
@@ -110,6 +114,7 @@ const playEngineSound = (type: "coin" | "select" | "start" | "error" | "match" |
 
 export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const [levelIndex, setLevelIndex] = useState<number>(initialLevelIndex);
+  const autoWallDirections = useRef<Record<string, number>>({});
   const [grid, setGrid] = useState<CellType[][]>(() =>
     isEditorMode
       ? Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
@@ -134,6 +139,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [muted, setMuted] = useState<boolean>(false);
   const [grabbed, setGrabbed] = useState<boolean>(false);
+  const [hasMovedFirstBlock, setHasMovedFirstBlock] = useState<boolean>(false);
 
   const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
     const initialGrid = isEditorMode
@@ -142,7 +148,14 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     const counts: Record<string, number> = {};
     initialGrid.forEach((row) => {
       row.forEach((cell) => {
-        if (cell !== BLOCK_EMPTY && cell !== BLOCK_WALL) {
+        if (
+          cell !== BLOCK_EMPTY &&
+          cell !== BLOCK_WALL &&
+          cell !== BLOCK_WALL_V &&
+          cell !== BLOCK_WALL_H &&
+          cell !== BLOCK_AUTO_WALL_V &&
+          cell !== BLOCK_AUTO_WALL_H
+        ) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -155,7 +168,14 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     const counts: Record<string, number> = {};
     board.forEach((row) => {
       row.forEach((cell) => {
-        if (cell !== BLOCK_EMPTY && cell !== BLOCK_WALL) {
+        if (
+          cell !== BLOCK_EMPTY &&
+          cell !== BLOCK_WALL &&
+          cell !== BLOCK_WALL_V &&
+          cell !== BLOCK_WALL_H &&
+          cell !== BLOCK_AUTO_WALL_V &&
+          cell !== BLOCK_AUTO_WALL_H
+        ) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -181,6 +201,8 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         y: level.grid.length - 1,
       });
       setGrabbed(false);
+      autoWallDirections.current = {};
+      setHasMovedFirstBlock(false);
       updateBlockCounts(level.grid);
       playEngineSound("start", muted);
     },
@@ -189,6 +211,8 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
 
   const resetLevel = useCallback(() => {
     setGrabbed(false);
+    autoWallDirections.current = {};
+    setHasMovedFirstBlock(false);
     if (isEditorMode) {
       // Clear grid for editor
       setGrid(Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY)));
@@ -239,7 +263,14 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         for (let y = currentGrid.length - 2; y >= 0; y--) {
           for (let x = 0; x < currentGrid[y].length; x++) {
             const cell = nextGravityGrid[y][x];
-            if (cell !== BLOCK_EMPTY && cell !== BLOCK_WALL) {
+            if (
+              cell !== BLOCK_EMPTY &&
+              cell !== BLOCK_WALL &&
+              cell !== BLOCK_WALL_V &&
+              cell !== BLOCK_WALL_H &&
+              cell !== BLOCK_AUTO_WALL_V &&
+              cell !== BLOCK_AUTO_WALL_H
+            ) {
               if (nextGravityGrid[y + 1][x] === BLOCK_EMPTY) {
                 nextGravityGrid[y + 1][x] = cell;
                 nextGravityGrid[y][x] = BLOCK_EMPTY;
@@ -269,7 +300,14 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         for (let y = 0; y < currentGrid.length; y++) {
           for (let x = 0; x < currentGrid[y].length; x++) {
             const cell = currentGrid[y][x];
-            if (cell !== BLOCK_EMPTY && cell !== BLOCK_WALL) {
+            if (
+              cell !== BLOCK_EMPTY &&
+              cell !== BLOCK_WALL &&
+              cell !== BLOCK_WALL_V &&
+              cell !== BLOCK_WALL_H &&
+              cell !== BLOCK_AUTO_WALL_V &&
+              cell !== BLOCK_AUTO_WALL_H
+            ) {
               // Check neighbors
               for (let i = 0; i < 4; i++) {
                 const ny = y + dy[i];
@@ -331,9 +369,9 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     [isEditorMode, muted, updateBlockCounts, setGrabbed]
   );
 
-  // Move Block left or right
+  // Move Block left, right, up, or down
   const moveBlock = useCallback(
-    (x: number, y: number, direction: -1 | 1) => {
+    (x: number, y: number, dx: number, dy: number) => {
       if (isProcessing || isGameOver || isLevelCleared || isEditorMode) return;
 
       const block = grid[y][x];
@@ -342,28 +380,95 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         return;
       }
 
-      const tx = x + direction;
-      if (tx < 0 || tx >= grid[0].length) {
+      // Check restrictions for moving walls
+      if (block === BLOCK_WALL_H && dy !== 0) {
+        playEngineSound("error", muted);
+        return;
+      }
+      if (block === BLOCK_WALL_V && dx !== 0) {
+        playEngineSound("error", muted);
+        return;
+      }
+      // Standard match blocks can only slide horizontally
+      if (block !== BLOCK_WALL_H && block !== BLOCK_WALL_V && dy !== 0) {
         playEngineSound("error", muted);
         return;
       }
 
-      if (grid[y][tx] !== BLOCK_EMPTY) {
+      // Collect stack of blocks sitting on top (only if the block is a moving wall)
+      const isMovingWall =
+        block === BLOCK_WALL_H ||
+        block === BLOCK_WALL_V ||
+        block === BLOCK_AUTO_WALL_H ||
+        block === BLOCK_AUTO_WALL_V;
+
+      const coords: Position[] = [{ x, y }];
+      if (isMovingWall) {
+        let ky = y - 1;
+        while (ky >= 0) {
+          const aboveBlock = grid[ky][x];
+          if (aboveBlock === BLOCK_EMPTY || aboveBlock === BLOCK_WALL) {
+            break;
+          }
+          coords.push({ x, y: ky });
+          ky--;
+        }
+      }
+
+      // Verify all stack components can slide into targets
+      const W = grid[0].length;
+      const H = grid.length;
+      let blocked = false;
+      const targetCoords: Position[] = [];
+
+      for (const coord of coords) {
+        const tx = coord.x + dx;
+        const ty = coord.y + dy;
+
+        if (tx < 0 || tx >= W || ty < 0 || ty >= H) {
+          blocked = true;
+          break;
+        }
+
+        const destCell = grid[ty][tx];
+        // Dest cell must be empty OR part of the moving stack itself
+        const inStack = coords.some((c) => c.x === tx && c.y === ty);
+        if (destCell !== BLOCK_EMPTY && !inStack) {
+          blocked = true;
+          break;
+        }
+        targetCoords.push({ x: tx, y: ty });
+      }
+
+      if (blocked) {
         playEngineSound("error", muted);
-        return; // Destination blocked
+        return;
       }
 
       // Execute shift
       const nextGrid = grid.map((row) => [...row]);
-      nextGrid[y][tx] = block;
-      nextGrid[y][x] = BLOCK_EMPTY;
+      // First clear old positions
+      for (const coord of coords) {
+        nextGrid[coord.y][coord.x] = BLOCK_EMPTY;
+      }
+      // Write to new positions
+      for (let i = 0; i < coords.length; i++) {
+        const src = coords[i];
+        const dest = targetCoords[i];
+        nextGrid[dest.y][dest.x] = grid[src.y][src.x];
+      }
 
+      // Find new position for the primary cursor cell
+      const newCursorX = x + dx;
+      const newCursorY = y + dy;
+
+      setHasMovedFirstBlock(true);
       setGrid(nextGrid);
-      setCursor({ x: tx, y });
+      setCursor({ x: newCursorX, y: newCursorY });
       playEngineSound("select", muted);
 
       // Start physics solver
-      runPhysicsLoop(nextGrid, tx, y);
+      runPhysicsLoop(nextGrid, newCursorX, newCursorY);
     },
     [grid, isProcessing, isGameOver, isLevelCleared, isEditorMode, runPhysicsLoop, muted]
   );
@@ -430,6 +535,215 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     });
   }, [isEditorMode, updateBlockCounts]);
 
+  // Interval timer for auto-moving walls (patrol slabs)
+  useEffect(() => {
+    if (isEditorMode || isGameOver || isLevelCleared || isProcessing || !hasMovedFirstBlock) return;
+
+    const interval = setInterval(() => {
+      let moved = false;
+      const nextGrid = grid.map((row) => [...row]);
+      const H = nextGrid.length;
+      const W = nextGrid[0]?.length || 0;
+
+      // Track which cells have already been processed in this tick to avoid double moves
+      const processed = Array.from({ length: H }, () => Array(W).fill(false));
+      const nextDirections: Record<string, number> = { ...autoWallDirections.current };
+
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (processed[y][x]) continue;
+
+          const cell = grid[y][x];
+          if (cell === BLOCK_AUTO_WALL_H) {
+            const dirKey = `${y},${x}`;
+            let dx = nextDirections[dirKey] !== undefined ? nextDirections[dirKey] : -1;
+            
+            // Collect stack above this auto-wall
+            const stack: Position[] = [{ x, y }];
+            let ky = y - 1;
+            while (ky >= 0) {
+              const above = nextGrid[ky][x];
+              if (above === BLOCK_EMPTY || above === BLOCK_WALL) break;
+              stack.push({ x, y: ky });
+              ky--;
+            }
+
+            // Check if stack can move horizontally
+            let canMove = true;
+            for (const item of stack) {
+              const nx = item.x + dx;
+              const ny = item.y;
+              if (nx < 0 || nx >= W) {
+                canMove = false;
+                break;
+              }
+              const destCell = nextGrid[ny][nx];
+              const isSelf = stack.some((s) => s.x === nx && s.y === ny);
+              if (destCell !== BLOCK_EMPTY && !isSelf) {
+                canMove = false;
+                break;
+              }
+            }
+
+            if (!canMove) {
+              // Reverse direction and try again
+              dx = -dx;
+              canMove = true;
+              for (const item of stack) {
+                const nx = item.x + dx;
+                const ny = item.y;
+                if (nx < 0 || nx >= W) {
+                  canMove = false;
+                  break;
+                }
+                const destCell = nextGrid[ny][nx];
+                const isSelf = stack.some((s) => s.x === nx && s.y === ny);
+                if (destCell !== BLOCK_EMPTY && !isSelf) {
+                  canMove = false;
+                  break;
+                }
+              }
+            }
+
+            if (canMove) {
+              // Execute stack shift
+              const originalValues = stack.map((item) => nextGrid[item.y][item.x]);
+              // Clear old
+              for (const item of stack) {
+                nextGrid[item.y][item.x] = BLOCK_EMPTY;
+              }
+              // Write new
+              for (let i = 0; i < stack.length; i++) {
+                const item = stack[i];
+                nextGrid[item.y][item.x + dx] = originalValues[i];
+                processed[item.y][item.x + dx] = true;
+              }
+
+              // Adjust cursor selector if it was on a block in this stack
+              let cursorIndex = -1;
+              for (let i = 0; i < stack.length; i++) {
+                if (stack[i].x === cursor.x && stack[i].y === cursor.y) {
+                  cursorIndex = i;
+                  break;
+                }
+              }
+              if (cursorIndex !== -1) {
+                setCursor({ x: cursor.x + dx, y: cursor.y });
+              }
+
+              delete nextDirections[dirKey];
+              nextDirections[`${y},${x + dx}`] = dx;
+              moved = true;
+            } else {
+              nextDirections[dirKey] = dx;
+            }
+          } else if (cell === BLOCK_AUTO_WALL_V) {
+            const dirKey = `${y},${x}`;
+            let dy = nextDirections[dirKey] !== undefined ? nextDirections[dirKey] : -1;
+            
+            // Collect stack above this auto-wall
+            const stack: Position[] = [{ x, y }];
+            let ky = y - 1;
+            while (ky >= 0) {
+              const above = nextGrid[ky][x];
+              if (above === BLOCK_EMPTY || above === BLOCK_WALL) break;
+              stack.push({ x, y: ky });
+              ky--;
+            }
+
+            // Check if stack can move vertically
+            let canMove = true;
+            for (const item of stack) {
+              const nx = item.x;
+              const ny = item.y + dy;
+              if (ny < 0 || ny >= H) {
+                canMove = false;
+                break;
+              }
+              const destCell = nextGrid[ny][nx];
+              const isSelf = stack.some((s) => s.x === nx && s.y === ny);
+              if (destCell !== BLOCK_EMPTY && !isSelf) {
+                canMove = false;
+                break;
+              }
+            }
+
+            if (!canMove) {
+              // Reverse direction and try again
+              dy = -dy;
+              canMove = true;
+              for (const item of stack) {
+                const nx = item.x;
+                const ny = item.y + dy;
+                if (ny < 0 || ny >= H) {
+                  canMove = false;
+                  break;
+                }
+                const destCell = nextGrid[ny][nx];
+                const isSelf = stack.some((s) => s.x === nx && s.y === ny);
+                if (destCell !== BLOCK_EMPTY && !isSelf) {
+                  canMove = false;
+                  break;
+                }
+              }
+            }
+
+            if (canMove) {
+              // Execute stack shift
+              const originalValues = stack.map((item) => nextGrid[item.y][item.x]);
+              // Clear old
+              for (const item of stack) {
+                nextGrid[item.y][item.x] = BLOCK_EMPTY;
+              }
+              // Write new
+              for (let i = 0; i < stack.length; i++) {
+                const item = stack[i];
+                nextGrid[item.y + dy][item.x] = originalValues[i];
+                processed[item.y + dy][item.x] = true;
+              }
+
+              // Adjust cursor selector if it was on a block in this stack
+              let cursorIndex = -1;
+              for (let i = 0; i < stack.length; i++) {
+                if (stack[i].x === cursor.x && stack[i].y === cursor.y) {
+                  cursorIndex = i;
+                  break;
+                }
+              }
+              if (cursorIndex !== -1) {
+                setCursor({ x: cursor.x, y: cursor.y + dy });
+              }
+
+              delete nextDirections[dirKey];
+              nextDirections[`${y + dy},${x}`] = dy;
+              moved = true;
+            } else {
+              nextDirections[dirKey] = dy;
+            }
+          }
+        }
+      }
+
+      if (moved) {
+        autoWallDirections.current = nextDirections;
+        setGrid(nextGrid);
+        runPhysicsLoop(nextGrid);
+      }
+    }, 450);
+
+    return () => clearInterval(interval);
+  }, [
+    isEditorMode,
+    isGameOver,
+    isLevelCleared,
+    isProcessing,
+    grid,
+    cursor,
+    runPhysicsLoop,
+    setCursor,
+    hasMovedFirstBlock,
+  ]);
+
   return {
     grid,
     setGrid,
@@ -456,5 +770,6 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     setMuted,
     grabbed,
     setGrabbed,
+    hasMovedFirstBlock,
   };
 };
