@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
+import realMap from "../level/real-map.json";
 
-export type CellType =
-  | "empty"
-  | "wall"
-  | "sphere"
-  | "diamond"
-  | "cube"
-  | "cone"
-  | "star"
-  | "cylinder"
-  | "triangle_down";
+import {
+  BlockId,
+  BLOCK_EMPTY,
+  BLOCK_WALL,
+} from "../object/constants";
+
+export type CellType = BlockId;
 
 export interface Position {
   x: number;
@@ -25,54 +23,9 @@ export interface LevelData {
   retries: number;
 }
 
-// Built-in level templates matching classic Puzznic layouts
-export const BUILTIN_LEVELS: LevelData[] = [
-  {
-    name: "LEVEL 1-1",
-    timeLimit: 60,
-    retries: 2,
-    grid: [
-      ["wall", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
-      ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
-      ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
-      ["empty", "empty", "empty", "empty", "empty", "empty", "sphere", "empty"],
-      ["empty", "empty", "empty", "empty", "empty", "diamond", "star", "empty"],
-      ["empty", "empty", "empty", "empty", "cube", "cone", "cylinder", "empty"],
-      ["empty", "empty", "empty", "diamond", "cone", "cylinder", "triangle_down", "empty"],
-      ["empty", "empty", "sphere", "cube", "star", "triangle_down", "empty", "empty"],
-    ],
-  },
-  {
-    name: "LEVEL 1-2",
-    timeLimit: 90,
-    retries: 3,
-    grid: [
-      ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
-      ["empty", "empty", "empty", "wall", "wall", "empty", "empty", "empty"],
-      ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
-      ["empty", "sphere", "sphere", "empty", "empty", "diamond", "diamond", "empty"],
-      ["empty", "wall", "wall", "cube", "cube", "wall", "wall", "empty"],
-      ["empty", "empty", "empty", "empty", "empty", "empty", "empty", "empty"],
-      ["empty", "star", "cylinder", "cone", "cone", "cylinder", "star", "empty"],
-      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
-    ],
-  },
-  {
-    name: "LEVEL 1-3",
-    timeLimit: 120,
-    retries: 3,
-    grid: [
-      ["wall", "empty", "empty", "empty", "empty", "empty", "empty", "wall"],
-      ["wall", "empty", "sphere", "empty", "empty", "sphere", "empty", "wall"],
-      ["wall", "empty", "wall", "diamond", "diamond", "wall", "empty", "wall"],
-      ["wall", "empty", "empty", "empty", "empty", "empty", "empty", "wall"],
-      ["wall", "wall", "empty", "cube", "cube", "empty", "wall", "wall"],
-      ["wall", "empty", "empty", "empty", "empty", "empty", "empty", "wall"],
-      ["wall", "star", "cone", "cylinder", "cylinder", "cone", "star", "wall"],
-      ["wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall"],
-    ],
-  },
-];
+// Load level templates from JSON file
+export const BUILTIN_LEVELS: LevelData[] = realMap as LevelData[];
+
 
 // Sound player proxy matching the main application sound synthesis
 const playEngineSound = (type: "coin" | "select" | "start" | "error" | "match" | "fall", muted: boolean) => {
@@ -158,26 +111,51 @@ const playEngineSound = (type: "coin" | "select" | "start" | "error" | "match" |
 export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const [levelIndex, setLevelIndex] = useState<number>(initialLevelIndex);
   const [grid, setGrid] = useState<CellType[][]>(() =>
-    JSON.parse(JSON.stringify(BUILTIN_LEVELS[initialLevelIndex].grid))
+    isEditorMode
+      ? Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
+      : JSON.parse(JSON.stringify(BUILTIN_LEVELS[initialLevelIndex].grid))
   );
-  const [cursor, setCursor] = useState<Position>({ x: 3, y: 7 });
-  const [timeLeft, setTimeLeft] = useState<number>(BUILTIN_LEVELS[initialLevelIndex].timeLimit);
-  const [retries, setRetries] = useState<number>(BUILTIN_LEVELS[initialLevelIndex].retries);
+  const [cursor, setCursor] = useState<Position>(() =>
+    isEditorMode
+      ? { x: 3, y: 7 }
+      : {
+          x: Math.floor(BUILTIN_LEVELS[initialLevelIndex].grid[0].length / 2),
+          y: BUILTIN_LEVELS[initialLevelIndex].grid.length - 1,
+        }
+  );
+  const [timeLeft, setTimeLeft] = useState<number>(() =>
+    isEditorMode ? 90 : BUILTIN_LEVELS[initialLevelIndex].timeLimit
+  );
+  const [retries, setRetries] = useState<number>(() =>
+    isEditorMode ? 3 : BUILTIN_LEVELS[initialLevelIndex].retries
+  );
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [isLevelCleared, setIsLevelCleared] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [blockCounts, setBlockCounts] = useState<Record<string, number>>({});
   const [muted, setMuted] = useState<boolean>(false);
+  const [grabbed, setGrabbed] = useState<boolean>(false);
 
-  const processingRef = useRef(isProcessing);
-  processingRef.current = isProcessing;
+  const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
+    const initialGrid = isEditorMode
+      ? Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
+      : BUILTIN_LEVELS[initialLevelIndex].grid;
+    const counts: Record<string, number> = {};
+    initialGrid.forEach((row) => {
+      row.forEach((cell) => {
+        if (cell !== BLOCK_EMPTY && cell !== BLOCK_WALL) {
+          counts[cell] = (counts[cell] || 0) + 1;
+        }
+      });
+    });
+    return counts;
+  });
 
   // Calculate remaining target blocks on the grid
   const updateBlockCounts = useCallback((board: CellType[][]) => {
     const counts: Record<string, number> = {};
     board.forEach((row) => {
       row.forEach((cell) => {
-        if (cell !== "empty" && cell !== "wall") {
+        if (cell !== BLOCK_EMPTY && cell !== BLOCK_WALL) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -198,17 +176,22 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       setIsGameOver(false);
       setIsLevelCleared(false);
       setIsProcessing(false);
-      setCursor({ x: 3, y: 7 });
+      setCursor({
+        x: Math.floor(level.grid[0].length / 2),
+        y: level.grid.length - 1,
+      });
+      setGrabbed(false);
       updateBlockCounts(level.grid);
       playEngineSound("start", muted);
     },
-    [muted, updateBlockCounts]
+    [muted, updateBlockCounts, setGrabbed]
   );
 
   const resetLevel = useCallback(() => {
+    setGrabbed(false);
     if (isEditorMode) {
       // Clear grid for editor
-      setGrid(Array.from({ length: 8 }, () => Array(8).fill("empty")));
+      setGrid(Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY)));
       setIsLevelCleared(false);
       setIsGameOver(false);
       setIsProcessing(false);
@@ -216,17 +199,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     } else {
       loadLevel(levelIndex);
     }
-  }, [isEditorMode, levelIndex, loadLevel]);
-
-  // Initial load
-  useEffect(() => {
-    if (!isEditorMode) {
-      loadLevel(initialLevelIndex);
-    } else {
-      // Empty grid for level editing
-      setGrid(Array.from({ length: 8 }, () => Array(8).fill("empty")));
-    }
-  }, [initialLevelIndex, isEditorMode, loadLevel]);
+  }, [isEditorMode, levelIndex, loadLevel, setBlockCounts, setGrabbed]);
 
   // Main countdown timer (Game mode only)
   useEffect(() => {
@@ -249,7 +222,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
 
   // Physics step resolution logic (runs sequentially for animations)
   const runPhysicsLoop = useCallback(
-    async (startGrid: CellType[][]) => {
+    async (startGrid: CellType[][], checkX?: number, checkY?: number) => {
       setIsProcessing(true);
       let currentGrid = startGrid.map((row) => [...row]);
       let keepGoing = true;
@@ -263,13 +236,13 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         const nextGravityGrid = currentGrid.map((row) => [...row]);
 
         // Process from bottom to top so multiple blocks can drop simultaneously
-        for (let y = grid.length - 2; y >= 0; y--) {
-          for (let x = 0; x < grid[y].length; x++) {
+        for (let y = currentGrid.length - 2; y >= 0; y--) {
+          for (let x = 0; x < currentGrid[y].length; x++) {
             const cell = nextGravityGrid[y][x];
-            if (cell !== "empty" && cell !== "wall") {
-              if (nextGravityGrid[y + 1][x] === "empty") {
+            if (cell !== BLOCK_EMPTY && cell !== BLOCK_WALL) {
+              if (nextGravityGrid[y + 1][x] === BLOCK_EMPTY) {
                 nextGravityGrid[y + 1][x] = cell;
-                nextGravityGrid[y][x] = "empty";
+                nextGravityGrid[y][x] = BLOCK_EMPTY;
                 gravityChanged = true;
               }
             }
@@ -288,20 +261,20 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         // 2. Match Phase (2 or more adjacent identical blocks touch)
         let matchChanged = false;
         const nextMatchGrid = currentGrid.map((row) => [...row]);
-        const toClear = Array.from({ length: grid.length }, () => Array(grid[0].length).fill(false));
+        const toClear = Array.from({ length: currentGrid.length }, () => Array(currentGrid[0].length).fill(false));
 
         const dy = [-1, 1, 0, 0];
         const dx = [0, 0, -1, 1];
 
-        for (let y = 0; y < grid.length; y++) {
-          for (let x = 0; x < grid[y].length; x++) {
+        for (let y = 0; y < currentGrid.length; y++) {
+          for (let x = 0; x < currentGrid[y].length; x++) {
             const cell = currentGrid[y][x];
-            if (cell !== "empty" && cell !== "wall") {
+            if (cell !== BLOCK_EMPTY && cell !== BLOCK_WALL) {
               // Check neighbors
               for (let i = 0; i < 4; i++) {
                 const ny = y + dy[i];
                 const nx = x + dx[i];
-                if (ny >= 0 && ny < grid.length && nx >= 0 && nx < grid[0].length) {
+                if (ny >= 0 && ny < currentGrid.length && nx >= 0 && nx < currentGrid[0].length) {
                   if (currentGrid[ny][nx] === cell) {
                     toClear[y][x] = true;
                     toClear[ny][nx] = true;
@@ -314,10 +287,10 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         }
 
         if (matchChanged) {
-          for (let y = 0; y < grid.length; y++) {
-            for (let x = 0; x < grid[0].length; x++) {
+          for (let y = 0; y < currentGrid.length; y++) {
+            for (let x = 0; x < currentGrid[0].length; x++) {
               if (toClear[y][x]) {
-                nextMatchGrid[y][x] = "empty";
+                nextMatchGrid[y][x] = BLOCK_EMPTY;
               }
             }
           }
@@ -345,9 +318,17 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         // In this implementation, we allow the user to retry if they get stuck.
       }
 
+      // Maintain lock state after move settles, but release if block is gone (e.g. matched or fell)
+      if (checkX !== undefined && checkY !== undefined) {
+        const cell = currentGrid[checkY][checkX];
+        if (cell === BLOCK_EMPTY || cell === BLOCK_WALL) {
+          setGrabbed(false);
+        }
+      }
+
       setIsProcessing(false);
     },
-    [grid.length, isEditorMode, muted, updateBlockCounts]
+    [isEditorMode, muted, updateBlockCounts, setGrabbed]
   );
 
   // Move Block left or right
@@ -356,7 +337,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       if (isProcessing || isGameOver || isLevelCleared || isEditorMode) return;
 
       const block = grid[y][x];
-      if (block === "empty" || block === "wall") {
+      if (block === BLOCK_EMPTY || block === BLOCK_WALL) {
         playEngineSound("error", muted);
         return;
       }
@@ -367,7 +348,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         return;
       }
 
-      if (grid[y][tx] !== "empty") {
+      if (grid[y][tx] !== BLOCK_EMPTY) {
         playEngineSound("error", muted);
         return; // Destination blocked
       }
@@ -375,14 +356,14 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       // Execute shift
       const nextGrid = grid.map((row) => [...row]);
       nextGrid[y][tx] = block;
-      nextGrid[y][x] = "empty";
+      nextGrid[y][x] = BLOCK_EMPTY;
 
       setGrid(nextGrid);
       setCursor({ x: tx, y });
       playEngineSound("select", muted);
 
       // Start physics solver
-      runPhysicsLoop(nextGrid);
+      runPhysicsLoop(nextGrid, tx, y);
     },
     [grid, isProcessing, isGameOver, isLevelCleared, isEditorMode, runPhysicsLoop, muted]
   );
@@ -402,11 +383,52 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
 
   const editorClearGrid = useCallback(() => {
     if (!isEditorMode) return;
-    const newGrid = Array.from({ length: 8 }, () => Array(8).fill("empty"));
+    setGrabbed(false);
+    const newGrid = Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY));
     setGrid(newGrid);
     setBlockCounts({});
     playEngineSound("error", muted);
-  }, [isEditorMode, muted]);
+  }, [isEditorMode, muted, setBlockCounts, setGrabbed]);
+
+  const editorResizeGrid = useCallback((newRows: number, newCols: number) => {
+    if (!isEditorMode) return;
+    const rows = Math.max(4, Math.min(12, newRows));
+    const cols = Math.max(4, Math.min(16, newCols));
+
+    setGrid((prevGrid) => {
+      const currentRows = prevGrid.length;
+      const currentCols = prevGrid[0]?.length || 0;
+
+      let nextGrid = prevGrid.map((row) => [...row]);
+
+      // Resize rows
+      if (rows > currentRows) {
+        for (let i = currentRows; i < rows; i++) {
+          nextGrid.push(Array(currentCols).fill(BLOCK_EMPTY));
+        }
+      } else if (rows < currentRows) {
+        nextGrid = nextGrid.slice(0, rows);
+      }
+
+      // Resize columns
+      nextGrid = nextGrid.map((row) => {
+        if (cols > currentCols) {
+          return [...row, ...Array(cols - currentCols).fill(BLOCK_EMPTY)];
+        } else {
+          return row.slice(0, cols);
+        }
+      });
+
+      // Clamp cursor position
+      setCursor((prev) => ({
+        x: Math.max(0, Math.min(cols - 1, prev.x)),
+        y: Math.max(0, Math.min(rows - 1, prev.y)),
+      }));
+
+      updateBlockCounts(nextGrid);
+      return nextGrid;
+    });
+  }, [isEditorMode, updateBlockCounts]);
 
   return {
     grid,
@@ -429,7 +451,10 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     moveBlock,
     editorPlaceBlock,
     editorClearGrid,
+    editorResizeGrid,
     muted,
     setMuted,
+    grabbed,
+    setGrabbed,
   };
 };

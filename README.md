@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Puzznic (퍼즈닉) - Classic Arcade Puzzle Game
 
-## Getting Started
+1989년 타이토(Taito)의 명작 고전 오락실 퍼즐 게임 **Puzznic (퍼즈닉)**을 현대적인 Next.js (App Router) 및 Tailwind CSS로 복각한 웹 애플리케이션 프로젝트입니다.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🎮 게임 소개 & 핵심 규칙
+
+**퍼즈닉(Puzznic)**은 제한된 시간 안에 화면 안의 모든 퍼즐 블록을 매칭하여 없애는 전략 퍼즐 게임입니다.
+
+1. **블록 이동 및 중력:** 
+   - 사용자는 원하는 블록을 선택하여 좌/우로 1칸씩 밀 수 있습니다.
+   - 아래가 비어 있는 블록은 중력에 의해 아래로 떨어집니다. (벽은 고정되어 움직이지 않습니다.)
+2. **매칭 규칙:**
+   - **동일한 모양의 블록이 가로나 세로로 2개 이상 인접하여 닿는 즉시** 매칭되어 소멸합니다.
+   - 블록 소멸 후 위에 쌓여 있던 블록들이 아래로 차례로 무너져 내리며 추가적인 연쇄 반응이 일어날 수 있습니다.
+3. **클리어 조건:**
+   - 제한 시간(Time Limit) 내에 맵 내의 모든 색상 퍼즐 블록을 제거하면 스테이지가 클리어됩니다.
+   - 시간이 다 되거나 더 이상 블록을 매칭할 수 없는 상태가 되면 게임 오버가 되며 스테이지를 다시 도전할 수 있습니다.
+
+---
+
+## 🛠️ 프로젝트 아키텍처 및 핵심 파일 구조
+
+프로젝트는 핵심 로직(엔진)과 화면 렌더링(뷰)이 완전히 분리된 클린 코드로 구성되어 있습니다.
+
+```
+app/
+├── layout.tsx         # 전역 레트로 폰트 (Press Start 2P, VT323) 정의
+├── globals.css        # CRT 화면 필터, 연쇄 블록 애니메이션, 레트로 벽돌 배경 패턴 정의
+├── page.tsx           # 접속 시 /home 으로 자동 리다이렉트 처리
+├── home/
+│   ├── page.tsx       # 홈 라우터 설정 (SEO 메타데이터 포함)
+│   └── home-view.tsx  # 1989 오락실 캐비닛 복각 테마의 타이틀 화면 (코인 삽입 기능 포함)
+├── game/
+│   ├── page.tsx       # 게임 플레이 라우터 설정 (SEO 메타데이터 포함)
+│   ├── game-engine.tsx # 핵심 물리 루프(중력, 매칭 연쇄 연산), 빌트인 레벨 데이터
+│   └── game-view.tsx  # 게임 플레이용 8x8 아케이드 CRT 디스플레이 화면
+└── editor/
+    ├── page.tsx       # 맵 에디터 라우터 설정
+    └── editor-view.tsx # game-view.tsx를 에디터 모드로 호출하는 래퍼 컴포넌트
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 1. 게임 엔진 ([game-engine.tsx](file:///d:/github/puzznic/app/game/game-engine.tsx))
+- **상태 관리**: 보드 레이아웃(2D Grid), 현재 커서 위치, 남은 시간, 리트라이 횟수, 잔여 블록 집계(HUD 동기화용)를 추적합니다.
+- **물리 루프 (`runPhysicsLoop`)**:
+  - 블록 이동 시 비동기 단계별(Step-by-step) 루프로 진입하여 **중력 낙하 ➔ 매칭 체크 ➔ 추가 블록 낙하 ➔ 2차 매칭**의 연쇄 반응을 프레임 딜레이와 함께 순차적으로 연산합니다. 덕분에 낙하와 터지는 애니메이션을 자연스럽게 시뮬레이션합니다.
+  - 맵 에디팅을 위한 실시간 블록 배치(`editorPlaceBlock`) 및 초기화 함수를 포함합니다.
+- **클래식 사운드 신시사이저 (`playEngineSound`)**:
+  - 브라우저 기본 내장 Web Audio API를 사용하여 8비트 오락실 음원(코인 사운드, 매칭음, 낙하음, 오프닝 팡파르)을 실시간 합성음(Oscillator)으로 주파수 재생합니다. 별도의 오디오 파일 리소스 다운로드가 필요 없습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 2. 게임 뷰 ([game-view.tsx](file:///d:/github/puzznic/app/game/game-view.tsx))
+- **HUD 디스플레이**: 타이토 원작의 배치인 `PLAYER-1` 점수판, `PROBLEM` 레벨 정보, 황색 `TIME` 바, `RETRY` 라이프 카운터, 그리고 현재 남아있는 블록의 개수를 이중 테두리 패널 속에 3D SVG 아이콘과 함께 직관적으로 렌더링합니다.
+- **사용자 컨트롤**: 마우스/터치를 통한 선택 및 방향 지시 화살표 조작과 **키보드 단독 조작**을 동시에 지원합니다.
+  - 키보드 조작: `방향키`로 커서 이동 / `Space + 방향키` 또는 `A, D` 키로 블록 밀기 / `R` 키로 스테이지 재시작.
+- **맵 에디터 (Map Editor)**:
+  - 하단의 **에디터 팔레트 (Palette)**를 제공하여 지우개, 콘크리트 벽돌(`wall`), 7종의 퍼즐 블록들을 마우스 클릭만으로 8x8 격자에 실시간 드로잉할 수 있습니다.
+  - **테스트 레벨 (▶ TEST LEVEL)**: 제작 중인 맵을 게임으로 즉시 변환하여 플레이 테스트할 수 있고, 원클릭으로 다시 에디팅으로 돌아올 수 있습니다.
+  - **맵 데이터 가져오기 / 보내기 (IMPORT / EXPORT JSON)**: 텍스트 형태로 맵 구조 데이터를 복사 및 공유하여 다른 사람이 만든 레벨을 바로 불러와 플레이할 수 있습니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🚀 로컬 실행 방법
 
-To learn more about Next.js, take a look at the following resources:
+1. 의존성 패키지를 설치합니다:
+   ```bash
+   npm install
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. 개발용 Next.js 서버를 구동합니다:
+   ```bash
+   npm run dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. 브라우저에서 `http://localhost:3000`으로 접속하면 자동으로 복각 아케이드 캐비닛 화면으로 연결됩니다.
+   - 키보드의 `C` 키를 누르거나 화면 하단의 코인 투입 버튼을 클릭해 크레딧을 채운 후, `PLAY GAME`으로 넘어가 퍼즐을 즐길 수 있습니다.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🎨 테마 디자인 요소
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **CSS 벽돌 그라데이션**: 90도와 0도 리니어 그라데이션의 오프셋 간격을 조절하여 80년대 타이토 특유의 퍼플블루 타일형 오락실 입체 벽면을 연출했습니다.
+- **CRT 스캔라인 모니터**: 격자 주사선 효과, 방전 튜브 특유의 비네트 그라데이션, 미세한 플리커 광원 효과를 CSS 애니메이션으로 결합하여 빛바랜 브라운관 감성을 재현했습니다.
+- **3D 입체 블록**: 구체, 황금 다이아몬드, 원통, 삼각뿔, 실버 별 등 오리지널 퍼즈닉 블록을 입체 광원 처리가 가미된 고해상도 벡터 그래픽(SVG)으로 리디자인했습니다.
