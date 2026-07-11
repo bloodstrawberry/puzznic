@@ -10,6 +10,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-press-start: var(--font-press-start-2p);
+  --font-vt323: var(--font-vt323);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,3 +26,99 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Retro bricks pattern matching Taito's Puzznic background */
+.retro-bricks {
+  background: 
+    linear-gradient(90deg, #121540 4px, transparent 4px) 0 0,
+    linear-gradient(90deg, #121540 4px, transparent 4px) 30px 15px,
+    linear-gradient(0deg, #121540 4px, transparent 4px) 0 0,
+    linear-gradient(0deg, #7c83ed 2px, transparent 2px) 2px 2px,
+    linear-gradient(0deg, #7c83ed 2px, transparent 2px) 32px 17px,
+    #4348b6;
+  background-size: 60px 30px;
+}
+
+/* CRT Screen scanline and curvature effects */
+.crt-screen {
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 0, 0, 0.8);
+}
+
+.crt-screen::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 10;
+  background-size: 100% 4px, 6px 100%;
+  pointer-events: none;
+}
+
+.crt-screen::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.4) 100%);
+  z-index: 11;
+  pointer-events: none;
+}
+
+@keyframes crt-glow {
+  0% { opacity: 0.95; }
+  50% { opacity: 1; }
+  100% { opacity: 0.95; }
+}
+
+.crt-glow-effect {
+  animation: crt-glow 0.15s infinite;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.retro-blink {
+  animation: blink 1s infinite;
+}
+
+/* Floating retro blocks in background */
+@keyframes float-up {
+  0% {
+    transform: translateY(105vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.4;
+  }
+  90% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-10vh) translateX(50px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.animate-float-up {
+  animation: float-up 12s linear infinite;
+}
+
+@keyframes retro-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-retro-bounce {
+  animation: retro-bounce 2s infinite ease-in-out;
+}
+
+
