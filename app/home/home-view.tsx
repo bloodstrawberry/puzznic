@@ -303,14 +303,14 @@ export default function HomeView() {
       </div>
 
       {/* Main Arcade Cabinet Body */}
-      <div className="relative z-10 w-full max-w-2xl flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-3xl flex flex-col items-center">
         {/* Cabinet Marquee / Header */}
         <div className="w-[94%] bg-zinc-900 border-4 border-b-0 border-zinc-800 rounded-t-2xl px-6 py-4 flex items-center justify-between shadow-[inset_0_4px_10px_rgba(255,255,255,0.15)] relative overflow-hidden select-none">
           {/* Backlight effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-yellow-500/20 to-cyan-500/10 animate-pulse pointer-events-none" />
-          <div className="text-[10px] text-zinc-400 tracking-wider">TAITO 1989 CLASSIC</div>
+          <div className="text-[10px] text-zinc-400 tracking-wider">BLOODSTRAWBERRY</div>
           <div className="text-yellow-400 text-xs animate-pulse font-bold tracking-widest">★ INSERT COIN OR PRESS START ★</div>
-          
+
           {/* Mute Button */}
           <button
             onClick={() => setMuted(!muted)}
@@ -324,7 +324,7 @@ export default function HomeView() {
         <div className="w-full bg-zinc-900 border-[14px] border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8),_inset_0_4px_10px_rgba(255,255,255,0.1)] p-4 relative">
           {/* CRT Screen inside Bezel */}
           <div className="crt-screen crt-glow-effect bg-[#05050f] w-full aspect-[4/3] rounded-lg border-[6px] border-black flex flex-col justify-between p-4 md:p-6 text-white text-[11px] relative overflow-hidden select-none">
-            
+
             {/* Top Scoreboard HUD */}
             <div className="flex justify-between w-full text-zinc-300 uppercase leading-relaxed text-xs">
               <div className="flex flex-col gap-1">
@@ -413,7 +413,7 @@ export default function HomeView() {
 
             {/* Bottom Credits & Info Bar */}
             <div className="flex justify-between w-full text-zinc-400 text-[9px] border-t border-zinc-900 pt-2 select-none uppercase">
-              <div>© TAITO 1989 / 2026</div>
+              <div>© BLOODSTRAWBERRY / 2026</div>
               <div className="flex gap-2">
                 <span className="text-red-500">CREDIT</span>
                 <span className={credits > 0 ? "text-yellow-400 animate-pulse font-bold" : "text-zinc-500"}>
@@ -456,7 +456,7 @@ export default function HomeView() {
       {showHowToPlay && (
         <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border-4 border-zinc-700 max-w-lg w-full rounded-xl p-6 shadow-2xl relative text-zinc-300 font-sans select-none flex flex-col gap-4">
-            
+
             {/* Modal title in retro style */}
             <div className="text-center border-b-2 border-zinc-800 pb-3">
               <h2 className="text-xl font-bold font-press-start text-yellow-400 tracking-wide">HOW TO PLAY</h2>
@@ -468,7 +468,7 @@ export default function HomeView() {
               <p className="text-zinc-300">
                 Puzznic is an arcade puzzle match game where you move blocks to align matching shapes.
               </p>
-              
+
               <ul className="list-disc pl-5 text-zinc-400 flex flex-col gap-2">
                 <li>
                   <strong className="text-white">Goal:</strong> Clear all blocks from the game arena.

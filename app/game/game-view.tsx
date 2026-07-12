@@ -11,6 +11,7 @@ import BlockRenderer, {
   BLOCK_AUTO_WALL_V,
   BLOCK_AUTO_WALL_H,
   PUZZLE_BLOCK_TYPES,
+  BLOCK_BOMB,
 } from "../object";
 
 // Retro sound synthesizer proxy
@@ -586,6 +587,19 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                     <BlockRenderer id={type} />
                   </button>
                 ))}
+
+                {/* Bomb block */}
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_BOMB)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_BOMB
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Bomb Block"
+                >
+                  <BlockRenderer id={BLOCK_BOMB} />
+                </button>
 
                 {/* Moving slider walls */}
                 <button

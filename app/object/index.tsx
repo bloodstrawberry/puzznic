@@ -15,6 +15,7 @@ import {
   BLOCK_WALL_H,
   BLOCK_AUTO_WALL_V,
   BLOCK_AUTO_WALL_H,
+  BLOCK_BOMB,
 } from "./constants";
 import Wall from "./wall";
 import Sphere from "./sphere";
@@ -31,6 +32,7 @@ import WallV from "./wall-v";
 import WallH from "./wall-h";
 import WallAutoV from "./wall-auto-v";
 import WallAutoH from "./wall-auto-h";
+import Bomb from "./bomb";
 
 export { default as Wall } from "./wall";
 export { default as Sphere } from "./sphere";
@@ -47,6 +49,7 @@ export { default as WallV } from "./wall-v";
 export { default as WallH } from "./wall-h";
 export { default as WallAutoV } from "./wall-auto-v";
 export { default as WallAutoH } from "./wall-auto-h";
+export { default as Bomb } from "./bomb";
 export * from "./constants";
 
 interface BlockRendererProps {
@@ -85,6 +88,8 @@ export default function BlockRenderer({ id }: BlockRendererProps) {
       return <WallAutoV />;
     case BLOCK_AUTO_WALL_H:
       return <WallAutoH />;
+    case BLOCK_BOMB:
+      return <Bomb />;
     default:
       return null;
   }

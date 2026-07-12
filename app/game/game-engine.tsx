@@ -11,6 +11,7 @@ import {
   BLOCK_WALL_H,
   BLOCK_AUTO_WALL_V,
   BLOCK_AUTO_WALL_H,
+  BLOCK_BOMB,
 } from "../object/constants";
 
 export type CellType = BlockId;
@@ -112,6 +113,17 @@ const playEngineSound = (type: "coin" | "select" | "start" | "error" | "match" |
   }
 };
 
+const isNonWallBlock = (id: BlockId): boolean => {
+  return (
+    id !== BLOCK_EMPTY &&
+    id !== BLOCK_WALL &&
+    id !== BLOCK_WALL_V &&
+    id !== BLOCK_WALL_H &&
+    id !== BLOCK_AUTO_WALL_V &&
+    id !== BLOCK_AUTO_WALL_H
+  );
+};
+
 export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const [levelIndex, setLevelIndex] = useState<number>(initialLevelIndex);
   const autoWallDirections = useRef<Record<string, number>>({});
@@ -142,6 +154,8 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const [hasMovedFirstBlock, setHasMovedFirstBlock] = useState<boolean>(false);
   const [flashingBlocks, setFlashingBlocks] = useState<Record<string, boolean>>({});
 
+  const editorSavedGrid = useRef<CellType[][] | null>(null);
+
 
   const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
     const initialGrid = isEditorMode
@@ -150,14 +164,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     const counts: Record<string, number> = {};
     initialGrid.forEach((row) => {
       row.forEach((cell) => {
-        if (
-          cell !== BLOCK_EMPTY &&
-          cell !== BLOCK_WALL &&
-          cell !== BLOCK_WALL_V &&
-          cell !== BLOCK_WALL_H &&
-          cell !== BLOCK_AUTO_WALL_V &&
-          cell !== BLOCK_AUTO_WALL_H
-        ) {
+        if (isNonWallBlock(cell)) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -170,14 +177,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     const counts: Record<string, number> = {};
     board.forEach((row) => {
       row.forEach((cell) => {
-        if (
-          cell !== BLOCK_EMPTY &&
-          cell !== BLOCK_WALL &&
-          cell !== BLOCK_WALL_V &&
-          cell !== BLOCK_WALL_H &&
-          cell !== BLOCK_AUTO_WALL_V &&
-          cell !== BLOCK_AUTO_WALL_H
-        ) {
+        if (isNonWallBlock(cell)) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -185,6 +185,21 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     setBlockCounts(counts);
     return counts;
   }, []);
+
+  // Keep editor original grid in sync when in editor mode
+  useEffect(() => {
+    if (isEditorMode) {
+      editorSavedGrid.current = grid.map((row) => [...row]);
+    }
+  }, [grid, isEditorMode]);
+
+  // Restore editor original grid when entering editor mode
+  useEffect(() => {
+    if (isEditorMode && editorSavedGrid.current) {
+      setGrid(editorSavedGrid.current.map((row) => [...row]));
+      updateBlockCounts(editorSavedGrid.current);
+    }
+  }, [isEditorMode, updateBlockCounts]);
 
   // Initialize and Reset levels
   const loadLevel = useCallback(
@@ -219,17 +234,25 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     autoWallDirections.current = {};
     setHasMovedFirstBlock(false);
     if (isEditorMode) {
-
       // Clear grid for editor
-      setGrid(Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY)));
+      const emptyGrid = Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY));
+      setGrid(emptyGrid);
+      editorSavedGrid.current = emptyGrid;
       setIsLevelCleared(false);
       setIsGameOver(false);
       setIsProcessing(false);
       setBlockCounts({});
+    } else if (editorSavedGrid.current) {
+      // We are in playtest mode (isEditorMode is false, but editorSavedGrid exists)
+      setGrid(editorSavedGrid.current.map((row) => [...row]));
+      setIsLevelCleared(false);
+      setIsGameOver(false);
+      setIsProcessing(false);
+      updateBlockCounts(editorSavedGrid.current);
     } else {
       loadLevel(levelIndex);
     }
-  }, [isEditorMode, levelIndex, loadLevel, setBlockCounts, setGrabbed]);
+  }, [isEditorMode, levelIndex, loadLevel, setBlockCounts, setGrabbed, updateBlockCounts]);
 
   // Main countdown timer (Game mode only)
   useEffect(() => {
@@ -269,14 +292,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         for (let y = currentGrid.length - 2; y >= 0; y--) {
           for (let x = 0; x < currentGrid[y].length; x++) {
             const cell = nextGravityGrid[y][x];
-            if (
-              cell !== BLOCK_EMPTY &&
-              cell !== BLOCK_WALL &&
-              cell !== BLOCK_WALL_V &&
-              cell !== BLOCK_WALL_H &&
-              cell !== BLOCK_AUTO_WALL_V &&
-              cell !== BLOCK_AUTO_WALL_H
-            ) {
+            if (isNonWallBlock(cell)) {
               if (nextGravityGrid[y + 1][x] === BLOCK_EMPTY) {
                 nextGravityGrid[y + 1][x] = cell;
                 nextGravityGrid[y][x] = BLOCK_EMPTY;
@@ -306,23 +322,19 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         for (let y = 0; y < currentGrid.length; y++) {
           for (let x = 0; x < currentGrid[y].length; x++) {
             const cell = currentGrid[y][x];
-            if (
-              cell !== BLOCK_EMPTY &&
-              cell !== BLOCK_WALL &&
-              cell !== BLOCK_WALL_V &&
-              cell !== BLOCK_WALL_H &&
-              cell !== BLOCK_AUTO_WALL_V &&
-              cell !== BLOCK_AUTO_WALL_H
-            ) {
+            if (isNonWallBlock(cell)) {
               // Check neighbors
               for (let i = 0; i < 4; i++) {
                 const ny = y + dy[i];
                 const nx = x + dx[i];
                 if (ny >= 0 && ny < currentGrid.length && nx >= 0 && nx < currentGrid[0].length) {
-                  if (currentGrid[ny][nx] === cell) {
-                    toClear[y][x] = true;
-                    toClear[ny][nx] = true;
-                    matchChanged = true;
+                  const neighbor = currentGrid[ny][nx];
+                  if (isNonWallBlock(neighbor)) {
+                    if (cell === neighbor || cell === BLOCK_BOMB || neighbor === BLOCK_BOMB) {
+                      toClear[y][x] = true;
+                      toClear[ny][nx] = true;
+                      matchChanged = true;
+                    }
                   }
                 }
               }
