@@ -218,58 +218,119 @@ export default function GameView({ isEditor = false }: GameViewProps) {
   );
   const [importText, setImportText] = useState<string>("");
 
+  const gameViewRef = useRef({
+    grid,
+    cursor,
+    grabbed,
+    isProcessing,
+    isGameOver,
+    isLevelCleared,
+    activeEditor,
+    muted,
+    moveBlock,
+    resetLevel,
+    setCursor,
+    setGrabbed,
+  });
+
+  useEffect(() => {
+    gameViewRef.current = {
+      grid,
+      cursor,
+      grabbed,
+      isProcessing,
+      isGameOver,
+      isLevelCleared,
+      activeEditor,
+      muted,
+      moveBlock,
+      resetLevel,
+      setCursor,
+      setGrabbed,
+    };
+  }, [
+    grid,
+    cursor,
+    grabbed,
+    isProcessing,
+    isGameOver,
+    isLevelCleared,
+    activeEditor,
+    muted,
+    moveBlock,
+    resetLevel,
+    setCursor,
+    setGrabbed,
+  ]);
+
   // Keyboard navigation inside grid for Puzznic game
   useEffect(() => {
-    if (activeEditor || isGameOver || isLevelCleared || isProcessing) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
+      const {
+        grid: curGrid,
+        cursor: curCursor,
+        grabbed: curGrabbed,
+        isProcessing: curProcessing,
+        isGameOver: curGameOver,
+        isLevelCleared: curLevelCleared,
+        activeEditor: curActiveEditor,
+        muted: curMuted,
+        moveBlock: curMoveBlock,
+        resetLevel: curResetLevel,
+        setCursor: curSetCursor,
+        setGrabbed: curSetGrabbed,
+      } = gameViewRef.current;
+
+      if (curActiveEditor || curGameOver || curLevelCleared || curProcessing) return;
+
       // 1. Grab/Deselect action with Space
       if (e.code === "Space" || e.key === " ") {
         e.preventDefault();
-        const cell = grid[cursor.y][cursor.x];
+        const cell = curGrid[curCursor.y]?.[curCursor.x];
         const isPuzzleBlock =
+          cell !== undefined &&
           cell !== BLOCK_EMPTY &&
           cell !== BLOCK_WALL &&
           cell !== BLOCK_AUTO_WALL_V &&
           cell !== BLOCK_AUTO_WALL_H;
-        if (grabbed) {
-          setGrabbed(false);
-          playSound("select", muted);
+        if (curGrabbed) {
+          curSetGrabbed(false);
+          playSound("select", curMuted);
         } else {
           if (isPuzzleBlock) {
-            setGrabbed(true);
-            playSound("select", muted);
+            curSetGrabbed(true);
+            playSound("select", curMuted);
           } else {
-            playSound("error", muted);
+            playSound("error", curMuted);
           }
         }
         return;
       }
 
       // 2. Grabbing slide actions
-      if (grabbed) {
-        const cell = grid[cursor.y][cursor.x];
+      if (curGrabbed) {
+        const cell = curGrid[curCursor.y]?.[curCursor.x];
         if (cell === BLOCK_WALL_V) {
           if (e.key === "ArrowUp") {
             e.preventDefault();
-            moveBlock(cursor.x, cursor.y, 0, -1);
+            curMoveBlock(curCursor.x, curCursor.y, 0, -1);
           } else if (e.key === "ArrowDown") {
             e.preventDefault();
-            moveBlock(cursor.x, cursor.y, 0, 1);
+            curMoveBlock(curCursor.x, curCursor.y, 0, 1);
           } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
             e.preventDefault();
-            playSound("error", muted);
+            playSound("error", curMuted);
           }
         } else {
           if (e.key === "ArrowLeft") {
             e.preventDefault();
-            moveBlock(cursor.x, cursor.y, -1, 0);
+            curMoveBlock(curCursor.x, curCursor.y, -1, 0);
           } else if (e.key === "ArrowRight") {
             e.preventDefault();
-            moveBlock(cursor.x, cursor.y, 1, 0);
+            curMoveBlock(curCursor.x, curCursor.y, 1, 0);
           } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
             e.preventDefault();
-            playSound("error", muted);
+            playSound("error", curMuted);
           }
         }
         return;
@@ -289,19 +350,19 @@ export default function GameView({ isEditor = false }: GameViewProps) {
         dy = 1;
       } else if (e.key === "r" || e.key === "R") {
         e.preventDefault();
-        setGrabbed(false);
-        resetLevel();
+        curSetGrabbed(false);
+        curResetLevel();
         return;
       }
 
       if (dx !== 0 || dy !== 0) {
         e.preventDefault();
-        setCursor((prev) => {
-          const cols = grid[0]?.length || 8;
-          const rows = grid.length || 8;
+        curSetCursor((prev) => {
+          const cols = curGrid[0]?.length || 8;
+          const rows = curGrid.length || 8;
           const nx = Math.max(0, Math.min(cols - 1, prev.x + dx));
           const ny = Math.max(0, Math.min(rows - 1, prev.y + dy));
-          playSound("select", muted);
+          playSound("select", curMuted);
           return { x: nx, y: ny };
         });
       }
@@ -309,20 +370,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    activeEditor,
-    cursor,
-    isGameOver,
-    isLevelCleared,
-    isProcessing,
-    muted,
-    moveBlock,
-    resetLevel,
-    setCursor,
-    grid,
-    grabbed,
-    setGrabbed,
-  ]);
+  }, []);
 
   // Drawing states using refs for instant synchronous check during rapid mouse movement
   const isDrawingRef = useRef<boolean>(false);

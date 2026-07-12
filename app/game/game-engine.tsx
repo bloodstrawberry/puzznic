@@ -215,6 +215,69 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const firedOnceRef = useRef<Record<string, boolean>>({});
   const cooldownsRef = useRef<Record<string, number>>({});
 
+  const triggerShotRef = useRef<
+    (
+      x: number,
+      y: number,
+      dirX: number,
+      curGrid: CellType[][],
+      curMuted: boolean,
+    ) => void
+  >(() => {});
+
+  const stateRef = useRef<{
+    grid: CellType[][];
+    cursor: Position;
+    isProcessing: boolean;
+    isGameOver: boolean;
+    isLevelCleared: boolean;
+    hasMovedFirstBlock: boolean;
+    isEditorMode: boolean;
+    muted: boolean;
+    triggerShot: (
+      x: number,
+      y: number,
+      dirX: number,
+      curGrid: CellType[][],
+      curMuted: boolean,
+    ) => void;
+  }>({
+    grid: [],
+    cursor: { x: 0, y: 0 },
+    isProcessing: false,
+    isGameOver: false,
+    isLevelCleared: false,
+    hasMovedFirstBlock: false,
+    isEditorMode: false,
+    muted: false,
+    triggerShot: (x, y, dirX, curGrid, curMuted) =>
+      triggerShotRef.current(x, y, dirX, curGrid, curMuted),
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      grid,
+      cursor,
+      isProcessing,
+      isGameOver,
+      isLevelCleared,
+      hasMovedFirstBlock,
+      isEditorMode,
+      muted,
+      triggerShot: (x, y, dirX, curGrid, curMuted) =>
+        triggerShotRef.current(x, y, dirX, curGrid, curMuted),
+    };
+  }, [
+    grid,
+    cursor,
+    isProcessing,
+    isGameOver,
+    isLevelCleared,
+    hasMovedFirstBlock,
+    isEditorMode,
+    muted,
+  ]);
+
   const editorSavedGrid = useRef<CellType[][] | null>(null);
 
   const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
@@ -365,7 +428,9 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const runPhysicsLoop = useCallback(
     async (startGrid: CellType[][], checkX?: number, checkY?: number) => {
       setIsProcessing(true);
+      if (stateRef.current) stateRef.current.isProcessing = true;
       let currentGrid = startGrid.map((row) => [...row]);
+      if (stateRef.current) stateRef.current.grid = currentGrid;
       let keepGoing = true;
 
       // Auxiliary delay helper for animation frames
@@ -394,15 +459,18 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         if (gravityChanged) {
           currentGrid = nextGravityGrid;
           setGrid(currentGrid);
+          if (stateRef.current) stateRef.current.grid = currentGrid;
           updateBlockCounts(currentGrid);
           playEngineSound("fall", muted);
           await delay(200); // falling animation duration
+          if (stateRef.current?.grid) {
+            currentGrid = stateRef.current.grid.map((row) => [...row]);
+          }
           continue; // Re-evaluate gravity until stable
         }
 
         // 2. Match Phase (2 or more adjacent identical blocks touch)
         let matchChanged = false;
-        const nextMatchGrid = currentGrid.map((row) => [...row]);
         const toClear = Array.from({ length: currentGrid.length }, () =>
           Array(currentGrid[0].length).fill(false),
         );
@@ -458,15 +526,18 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
           await delay(600); // Wait for the flashing animation to complete
 
           setFlashingBlocks({});
-          for (let y = 0; y < currentGrid.length; y++) {
-            for (let x = 0; x < currentGrid[0].length; x++) {
-              if (toClear[y][x]) {
+          const baseGrid = stateRef.current?.grid ? stateRef.current.grid : currentGrid;
+          const nextMatchGrid = baseGrid.map((row) => [...row]);
+          for (let y = 0; y < baseGrid.length; y++) {
+            for (let x = 0; x < baseGrid[0].length; x++) {
+              if (toClear[y] && toClear[y][x]) {
                 nextMatchGrid[y][x] = BLOCK_EMPTY;
               }
             }
           }
           currentGrid = nextMatchGrid;
           setGrid(currentGrid);
+          if (stateRef.current) stateRef.current.grid = currentGrid;
           updateBlockCounts(currentGrid);
           continue; // Loop back to gravity check to drop blocks that were held
         }
@@ -499,6 +570,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       }
 
       setIsProcessing(false);
+      if (stateRef.current) stateRef.current.isProcessing = false;
     },
     [isEditorMode, muted, updateBlockCounts, setGrabbed],
   );
@@ -506,10 +578,29 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   // Move Block left, right, up, or down
   const moveBlock = useCallback(
     (x: number, y: number, dx: number, dy: number) => {
-      if (isProcessing || isGameOver || isLevelCleared || isEditorMode) return;
+      const curState = stateRef.current || {
+        grid,
+        isProcessing,
+        isGameOver,
+        isLevelCleared,
+        isEditorMode,
+      };
 
-      const block = grid[y][x];
-      if (block === BLOCK_EMPTY || block === BLOCK_WALL) {
+      if (
+        curState.isProcessing ||
+        isProcessing ||
+        curState.isGameOver ||
+        isGameOver ||
+        curState.isLevelCleared ||
+        isLevelCleared ||
+        curState.isEditorMode ||
+        isEditorMode
+      )
+        return;
+
+      const currentGrid = curState.grid || grid;
+      const block = currentGrid[y]?.[x];
+      if (block === undefined || block === BLOCK_EMPTY || block === BLOCK_WALL) {
         playEngineSound("error", muted);
         return;
       }
@@ -540,7 +631,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       if (isMovingWall) {
         let ky = y - 1;
         while (ky >= 0) {
-          const aboveBlock = grid[ky][x];
+          const aboveBlock = currentGrid[ky][x];
           if (aboveBlock === BLOCK_EMPTY || aboveBlock === BLOCK_WALL) {
             break;
           }
@@ -550,8 +641,8 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       }
 
       // Verify all stack components can slide into targets
-      const W = grid[0].length;
-      const H = grid.length;
+      const W = currentGrid[0].length;
+      const H = currentGrid.length;
       let blocked = false;
       const targetCoords: Position[] = [];
 
@@ -564,7 +655,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
           break;
         }
 
-        const destCell = grid[ty][tx];
+        const destCell = currentGrid[ty][tx];
         // Dest cell must be empty OR part of the moving stack itself
         const inStack = coords.some((c) => c.x === tx && c.y === ty);
         if (destCell !== BLOCK_EMPTY && !inStack) {
@@ -580,7 +671,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       }
 
       // Execute shift
-      const nextGrid = grid.map((row) => [...row]);
+      const nextGrid = currentGrid.map((row) => [...row]);
       // First clear old positions
       for (const coord of coords) {
         nextGrid[coord.y][coord.x] = BLOCK_EMPTY;
@@ -589,7 +680,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       for (let i = 0; i < coords.length; i++) {
         const src = coords[i];
         const dest = targetCoords[i];
-        nextGrid[dest.y][dest.x] = grid[src.y][src.x];
+        nextGrid[dest.y][dest.x] = currentGrid[src.y][src.x];
       }
 
       // Find new position for the primary cursor cell
@@ -598,6 +689,11 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
 
       setHasMovedFirstBlock(true);
       setGrid(nextGrid);
+      if (stateRef.current) {
+        stateRef.current.grid = nextGrid;
+        stateRef.current.hasMovedFirstBlock = true;
+        stateRef.current.cursor = { x: newCursorX, y: newCursorY };
+      }
       setCursor({ x: newCursorX, y: newCursorY });
       playEngineSound("select", muted);
 
@@ -712,7 +808,6 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         dir: dirX,
       };
 
-      setIsProcessing(true);
       setBullets((prev) => [...prev, newBullet]);
 
       setTimeout(() => {
@@ -720,20 +815,28 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
 
         setGrid((prevGrid) => {
           const currentW = prevGrid[0]?.length || 8;
-          let wasDestroyed = false;
-          if (tx >= 0 && tx < currentW) {
-            const currentCell = prevGrid[y][tx];
+          let hitX = x + dirX;
+          while (hitX >= 0 && hitX < currentW) {
+            if (hitX === tx || prevGrid[y][hitX] !== BLOCK_EMPTY) {
+              break;
+            }
+            hitX += dirX;
+          }
+
+          if (hitX >= 0 && hitX < currentW) {
+            const currentCell = prevGrid[y][hitX];
             if (isNonWallBlock(currentCell)) {
-              wasDestroyed = true;
               const nextGrid = prevGrid.map((row) => [...row]);
-              nextGrid[y][tx] = BLOCK_EMPTY;
+              nextGrid[y][hitX] = BLOCK_EMPTY;
+              if (stateRef.current) {
+                stateRef.current.grid = nextGrid;
+              }
               playEngineSound("break", curMuted);
-              runPhysicsLoop(nextGrid);
+              if (!stateRef.current?.isProcessing) {
+                runPhysicsLoop(nextGrid);
+              }
               return nextGrid;
             }
-          }
-          if (!wasDestroyed) {
-            setIsProcessing(false);
           }
           return prevGrid;
         });
@@ -742,42 +845,9 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     [runPhysicsLoop],
   );
 
-  // Keep refs updated for the auto-wall timer to prevent resetting the interval
-  const stateRef = useRef({
-    grid,
-    cursor,
-    isProcessing,
-    isGameOver,
-    isLevelCleared,
-    hasMovedFirstBlock,
-    isEditorMode,
-    muted,
-    triggerShot,
-  });
-
   useEffect(() => {
-    stateRef.current = {
-      grid,
-      cursor,
-      isProcessing,
-      isGameOver,
-      isLevelCleared,
-      hasMovedFirstBlock,
-      isEditorMode,
-      muted,
-      triggerShot,
-    };
-  }, [
-    grid,
-    cursor,
-    isProcessing,
-    isGameOver,
-    isLevelCleared,
-    hasMovedFirstBlock,
-    isEditorMode,
-    muted,
-    triggerShot,
-  ]);
+    triggerShotRef.current = triggerShot;
+  }, [triggerShot]);
 
   // Interval timer for auto-moving walls (patrol slabs)
   useEffect(() => {
