@@ -36,6 +36,25 @@ export interface LevelData {
 export const BUILTIN_LEVELS: LevelData[] = realMap as LevelData[];
 
 // Sound player proxy matching the main application sound synthesis
+let sharedAudioContext: AudioContext | null = null;
+const getAudioContext = (): AudioContext | null => {
+  if (typeof window === "undefined") return null;
+  if (!sharedAudioContext) {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (AudioContextClass) {
+      sharedAudioContext = new AudioContextClass();
+    }
+  }
+  return sharedAudioContext;
+};
+
+const copyGrid = (src: CellType[][]): CellType[][] => {
+  return src.map((row) => [...row]);
+};
+
 const playEngineSound = (
   type:
     | "coin"
@@ -50,12 +69,11 @@ const playEngineSound = (
 ) => {
   if (muted || typeof window === "undefined") return;
   try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as Window & { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
 
     if (type === "match") {
       // Direct high pitched matching bubble sound
@@ -186,7 +204,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   const [grid, setGrid] = useState<CellType[][]>(() =>
     isEditorMode
       ? Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
-      : JSON.parse(JSON.stringify(BUILTIN_LEVELS[initialLevelIndex].grid)),
+      : copyGrid(BUILTIN_LEVELS[initialLevelIndex].grid),
   );
   const [cursor, setCursor] = useState<Position>(() =>
     isEditorMode
@@ -315,7 +333,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   useEffect(() => {
     if (isEditorMode) {
       if (wasEditorModeRef.current) {
-        editorSavedGrid.current = grid.map((row) => [...row]);
+        editorSavedGrid.current = copyGrid(grid);
       }
     }
     wasEditorModeRef.current = isEditorMode;
@@ -325,7 +343,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   useEffect(() => {
     if (isEditorMode) {
       if (editorSavedGrid.current) {
-        setGrid(editorSavedGrid.current.map((row) => [...row]));
+        setGrid(copyGrid(editorSavedGrid.current));
         updateBlockCounts(editorSavedGrid.current);
       }
       setIsGameOver(false);
@@ -344,7 +362,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       if (levelIdx < 0 || levelIdx >= BUILTIN_LEVELS.length) return;
       const level = BUILTIN_LEVELS[levelIdx];
       setLevelIndex(levelIdx);
-      setGrid(JSON.parse(JSON.stringify(level.grid)));
+      setGrid(copyGrid(level.grid));
       setTimeLeft(level.timeLimit);
       setRetries(level.retries);
       setIsGameOver(false);
@@ -388,7 +406,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       setBlockCounts({});
     } else if (editorSavedGrid.current) {
       // We are in playtest mode (isEditorMode is false, but editorSavedGrid exists)
-      setGrid(editorSavedGrid.current.map((row) => [...row]));
+      setGrid(copyGrid(editorSavedGrid.current));
       setIsLevelCleared(false);
       setIsGameOver(false);
       setIsProcessing(false);
@@ -429,7 +447,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     async (startGrid: CellType[][], checkX?: number, checkY?: number) => {
       setIsProcessing(true);
       if (stateRef.current) stateRef.current.isProcessing = true;
-      let currentGrid = startGrid.map((row) => [...row]);
+      let currentGrid = copyGrid(startGrid);
       if (stateRef.current) stateRef.current.grid = currentGrid;
       let keepGoing = true;
 
@@ -440,7 +458,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       while (keepGoing) {
         // 1. Gravity phase
         let gravityChanged = false;
-        const nextGravityGrid = currentGrid.map((row) => [...row]);
+        const nextGravityGrid = copyGrid(currentGrid);
 
         // Process from bottom to top so multiple blocks can drop simultaneously
         for (let y = currentGrid.length - 2; y >= 0; y--) {
@@ -464,16 +482,14 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
           playEngineSound("fall", muted);
           await delay(200); // falling animation duration
           if (stateRef.current?.grid) {
-            currentGrid = stateRef.current.grid.map((row) => [...row]);
+            currentGrid = copyGrid(stateRef.current.grid);
           }
           continue; // Re-evaluate gravity until stable
         }
 
         // 2. Match Phase (2 or more adjacent identical blocks touch)
         let matchChanged = false;
-        const toClear = Array.from({ length: currentGrid.length }, () =>
-          Array(currentGrid[0].length).fill(false),
-        );
+        const toClearKeys = new Set<string>();
 
         const dy = [-1, 1, 0, 0];
         const dx = [0, 0, -1, 1];
@@ -499,8 +515,8 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
                       cell === BLOCK_BOMB ||
                       neighbor === BLOCK_BOMB
                     ) {
-                      toClear[y][x] = true;
-                      toClear[ny][nx] = true;
+                      toClearKeys.add(`${y},${x}`);
+                      toClearKeys.add(`${ny},${nx}`);
                       matchChanged = true;
                     }
                   }
@@ -513,13 +529,9 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         if (matchChanged) {
           // Record flashing blocks
           const nextFlashing: Record<string, boolean> = {};
-          for (let y = 0; y < currentGrid.length; y++) {
-            for (let x = 0; x < currentGrid[0].length; x++) {
-              if (toClear[y][x]) {
-                nextFlashing[`${y},${x}`] = true;
-              }
-            }
-          }
+          toClearKeys.forEach((key) => {
+            nextFlashing[key] = true;
+          });
           setFlashingBlocks(nextFlashing);
           playEngineSound("match", muted);
 
@@ -527,14 +539,13 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
 
           setFlashingBlocks({});
           const baseGrid = stateRef.current?.grid ? stateRef.current.grid : currentGrid;
-          const nextMatchGrid = baseGrid.map((row) => [...row]);
-          for (let y = 0; y < baseGrid.length; y++) {
-            for (let x = 0; x < baseGrid[0].length; x++) {
-              if (toClear[y] && toClear[y][x]) {
-                nextMatchGrid[y][x] = BLOCK_EMPTY;
-              }
-            }
-          }
+          const nextMatchGrid = copyGrid(baseGrid);
+          toClearKeys.forEach((key) => {
+            const [yStr, xStr] = key.split(",");
+            const y = parseInt(yStr, 10);
+            const x = parseInt(xStr, 10);
+            nextMatchGrid[y][x] = BLOCK_EMPTY;
+          });
           currentGrid = nextMatchGrid;
           setGrid(currentGrid);
           if (stateRef.current) stateRef.current.grid = currentGrid;
@@ -578,45 +589,35 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
   // Move Block left, right, up, or down
   const moveBlock = useCallback(
     (x: number, y: number, dx: number, dy: number) => {
-      const curState = stateRef.current || {
-        grid,
-        isProcessing,
-        isGameOver,
-        isLevelCleared,
-        isEditorMode,
-      };
+      const curState = stateRef.current;
 
       if (
         curState.isProcessing ||
-        isProcessing ||
         curState.isGameOver ||
-        isGameOver ||
         curState.isLevelCleared ||
-        isLevelCleared ||
-        curState.isEditorMode ||
-        isEditorMode
+        curState.isEditorMode
       )
         return;
 
-      const currentGrid = curState.grid || grid;
+      const currentGrid = curState.grid;
       const block = currentGrid[y]?.[x];
       if (block === undefined || block === BLOCK_EMPTY || block === BLOCK_WALL) {
-        playEngineSound("error", muted);
+        playEngineSound("error", curState.muted);
         return;
       }
 
       // Check restrictions for moving walls
       if (block === BLOCK_WALL_H && dy !== 0) {
-        playEngineSound("error", muted);
+        playEngineSound("error", curState.muted);
         return;
       }
       if (block === BLOCK_WALL_V && dx !== 0) {
-        playEngineSound("error", muted);
+        playEngineSound("error", curState.muted);
         return;
       }
       // Standard match blocks can only slide horizontally
       if (block !== BLOCK_WALL_H && block !== BLOCK_WALL_V && dy !== 0) {
-        playEngineSound("error", muted);
+        playEngineSound("error", curState.muted);
         return;
       }
 
@@ -666,12 +667,12 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       }
 
       if (blocked) {
-        playEngineSound("error", muted);
+        playEngineSound("error", curState.muted);
         return;
       }
 
       // Execute shift
-      const nextGrid = currentGrid.map((row) => [...row]);
+      const nextGrid = copyGrid(currentGrid);
       // First clear old positions
       for (const coord of coords) {
         nextGrid[coord.y][coord.x] = BLOCK_EMPTY;
@@ -695,20 +696,12 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         stateRef.current.cursor = { x: newCursorX, y: newCursorY };
       }
       setCursor({ x: newCursorX, y: newCursorY });
-      playEngineSound("select", muted);
+      playEngineSound("select", curState.muted);
 
       // Start physics solver
       runPhysicsLoop(nextGrid, newCursorX, newCursorY);
     },
-    [
-      grid,
-      isProcessing,
-      isGameOver,
-      isLevelCleared,
-      isEditorMode,
-      runPhysicsLoop,
-      muted,
-    ],
+    [runPhysicsLoop],
   );
 
   // Level Editor Grid modification methods
@@ -826,7 +819,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
           if (hitX >= 0 && hitX < currentW) {
             const currentCell = prevGrid[y][hitX];
             if (isNonWallBlock(currentCell)) {
-              const nextGrid = prevGrid.map((row) => [...row]);
+              const nextGrid = copyGrid(prevGrid);
               nextGrid[y][hitX] = BLOCK_EMPTY;
               if (stateRef.current) {
                 stateRef.current.grid = nextGrid;
@@ -866,7 +859,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       if (curGameOver || curLevelCleared || curProcessing) return;
 
       let moved = false;
-      const nextGrid = curGrid.map((row) => [...row]);
+      const nextGrid = copyGrid(curGrid);
       const H = nextGrid.length;
       const W = nextGrid[0]?.length || 0;
 
@@ -1088,16 +1081,7 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       // Skip this tick if the game is over, cleared, or currently resolving physics
       if (curGameOver || curLevelCleared || curProcessing) return;
 
-      // 1. Tick down repeating shooter cooldowns
-      const newCooldowns = { ...cooldownsRef.current };
-      for (const key in newCooldowns) {
-        if (newCooldowns[key] > 0) {
-          newCooldowns[key] = Math.max(0, newCooldowns[key] - 100);
-        }
-      }
-      cooldownsRef.current = newCooldowns;
-
-      // 2. Scan grid for shooters and trigger shooting if button is pressed
+      // Scan grid for shooters and trigger shooting if button is pressed
       const H = curGrid.length;
       const W = curGrid[0]?.length || 0;
 
@@ -1117,11 +1101,11 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
 
           if (hasBlockOnTop) {
             if (cell === BLOCK_SHOOTER_L || cell === BLOCK_SHOOTER_R) {
-              const cd = cooldownsRef.current[key] || 0;
-              if (cd <= 0) {
+              const lastFired = cooldownsRef.current[key] || 0;
+              if (Date.now() - lastFired >= SHOOTER_INTERVAL) {
                 const dirX = cell === BLOCK_SHOOTER_L ? -1 : 1;
                 curTriggerShot(x, y, dirX, curGrid, curMuted);
-                cooldownsRef.current[key] = SHOOTER_INTERVAL;
+                cooldownsRef.current[key] = Date.now();
               }
             } else {
               const fired = firedOnceRef.current[key] || false;
