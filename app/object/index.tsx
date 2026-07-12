@@ -16,6 +16,10 @@ import {
   BLOCK_AUTO_WALL_V,
   BLOCK_AUTO_WALL_H,
   BLOCK_BOMB,
+  BLOCK_SHOOTER_L,
+  BLOCK_SHOOTER_R,
+  BLOCK_SHOOTER_L_ONCE,
+  BLOCK_SHOOTER_R_ONCE,
 } from "./constants";
 import Wall from "./wall";
 import Sphere from "./sphere";
@@ -33,6 +37,7 @@ import WallH from "./wall-h";
 import WallAutoV from "./wall-auto-v";
 import WallAutoH from "./wall-auto-h";
 import Bomb from "./bomb";
+import Shooter from "./shooter";
 
 export { default as Wall } from "./wall";
 export { default as Sphere } from "./sphere";
@@ -50,13 +55,25 @@ export { default as WallH } from "./wall-h";
 export { default as WallAutoV } from "./wall-auto-v";
 export { default as WallAutoH } from "./wall-auto-h";
 export { default as Bomb } from "./bomb";
+export { default as Shooter } from "./shooter";
 export * from "./constants";
 
 interface BlockRendererProps {
   id: number;
+  x?: number;
+  y?: number;
+  grid?: number[][];
 }
 
-export default function BlockRenderer({ id }: BlockRendererProps) {
+export default function BlockRenderer({ id, x, y, grid }: BlockRendererProps) {
+  const isPressed =
+    grid !== undefined &&
+    y !== undefined &&
+    x !== undefined &&
+    y > 0 &&
+    grid[y - 1]?.[x] !== undefined &&
+    grid[y - 1][x] !== 0; // BLOCK_EMPTY = 0
+
   switch (id) {
     case BLOCK_WALL:
       return <Wall />;
@@ -90,6 +107,14 @@ export default function BlockRenderer({ id }: BlockRendererProps) {
       return <WallAutoH />;
     case BLOCK_BOMB:
       return <Bomb />;
+    case BLOCK_SHOOTER_L:
+      return <Shooter direction="left" mode="repeated" isPressed={isPressed} />;
+    case BLOCK_SHOOTER_R:
+      return <Shooter direction="right" mode="repeated" isPressed={isPressed} />;
+    case BLOCK_SHOOTER_L_ONCE:
+      return <Shooter direction="left" mode="once" isPressed={isPressed} />;
+    case BLOCK_SHOOTER_R_ONCE:
+      return <Shooter direction="right" mode="once" isPressed={isPressed} />;
     default:
       return null;
   }

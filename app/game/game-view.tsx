@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useGameEngine, CellType, BUILTIN_LEVELS } from "./game-engine";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  useGameEngine,
+  CellType,
+  BUILTIN_LEVELS,
+  type Bullet,
+} from "./game-engine";
 import Link from "next/link";
 import BlockRenderer, {
   BLOCK_EMPTY,
@@ -12,13 +17,31 @@ import BlockRenderer, {
   BLOCK_AUTO_WALL_H,
   PUZZLE_BLOCK_TYPES,
   BLOCK_BOMB,
+  BLOCK_SHOOTER_L,
+  BLOCK_SHOOTER_R,
+  BLOCK_SHOOTER_L_ONCE,
+  BLOCK_SHOOTER_R_ONCE,
 } from "../object";
 
 // Retro sound synthesizer proxy
-const playSound = (type: "coin" | "select" | "start" | "error" | "match" | "fall", muted: boolean) => {
+const playSound = (
+  type:
+    | "coin"
+    | "select"
+    | "start"
+    | "error"
+    | "match"
+    | "fall"
+    | "shoot"
+    | "break",
+  muted: boolean,
+) => {
   if (muted || typeof window === "undefined") return;
   try {
-    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
 
@@ -67,7 +90,7 @@ const playSound = (type: "coin" | "select" | "start" | "error" | "match" | "fall
       playTone(523.25, now, 0.08);
       playTone(659.25, now + 0.08, 0.08);
       playTone(783.99, now + 0.16, 0.08);
-      playTone(1046.50, now + 0.24, 0.35);
+      playTone(1046.5, now + 0.24, 0.35);
     } else if (type === "error") {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -79,11 +102,79 @@ const playSound = (type: "coin" | "select" | "start" | "error" | "match" | "fall
       gain.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 0.2);
+    } else if (type === "shoot") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } else if (type === "break") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(40, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
     }
   } catch (e) {
     console.warn("AudioContext failed:", e);
   }
 };
+
+function Bullet({ bullet, W, H }: { bullet: Bullet; W: number; H: number }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 20);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const startLeft = ((bullet.startX + 0.5) / W) * 100;
+  const targetLeft = ((bullet.targetX + 0.5) / W) * 100;
+  const currentLeft = mounted ? targetLeft : startLeft;
+  const top = ((bullet.startY + 0.5) / H) * 100;
+
+  return (
+    <div
+      className="absolute z-30 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center"
+      style={{
+        left: `${currentLeft}%`,
+        top: `${top}%`,
+        transition: "left 300ms linear",
+        width: "24px",
+        height: "12px",
+      }}
+    >
+      <svg
+        className={`w-full h-full ${bullet.dir === -1 ? "rotate-180" : ""}`}
+        viewBox="0 0 24 12"
+      >
+        <defs>
+          <linearGradient id="bulletGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="rgba(251, 191, 36, 0)" />
+            <stop offset="50%" stopColor="#ef4444" />
+            <stop offset="100%" stopColor="#fbbf24" />
+          </linearGradient>
+        </defs>
+        <path d="M 0 6 L 16 2 L 20 6 L 16 10 Z" fill="url(#bulletGrad)" />
+        <circle cx="20" cy="6" r="3" fill="#ffffff" />
+      </svg>
+    </div>
+  );
+}
 
 interface GameViewProps {
   isEditor?: boolean;
@@ -116,11 +207,15 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     grabbed,
     setGrabbed,
     flashingBlocks,
+    bullets,
   } = useGameEngine(0, activeEditor);
 
-
-  const [selectedPaint, setSelectedPaint] = useState<CellType | "eraser">(BLOCK_WALL);
-  const [exportModalContent, setExportModalContent] = useState<string | null>(null);
+  const [selectedPaint, setSelectedPaint] = useState<CellType | "eraser">(
+    BLOCK_WALL,
+  );
+  const [exportModalContent, setExportModalContent] = useState<string | null>(
+    null,
+  );
   const [importText, setImportText] = useState<string>("");
 
   // Keyboard navigation inside grid for Puzznic game
@@ -229,18 +324,48 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     setGrabbed,
   ]);
 
+  // Drawing states using refs for instant synchronous check during rapid mouse movement
+  const isDrawingRef = useRef<boolean>(false);
+  const drawingToolRef = useRef<CellType>(BLOCK_EMPTY);
 
+  // Global mouseup and blur listener to stop drawing
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      isDrawingRef.current = false;
+    };
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    window.addEventListener("blur", handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+      window.removeEventListener("blur", handleGlobalMouseUp);
+    };
+  }, []);
+
+  const handleMouseDown = (e: React.MouseEvent, x: number, y: number) => {
+    if (!activeEditor) return;
+    if (e.button !== 0 && e.button !== 2) return; // Left or Right click only
+
+    e.preventDefault(); // Stop text/block drag selection
+
+    isDrawingRef.current = true;
+    const isErase = e.button === 2 || selectedPaint === "eraser";
+    const tool = isErase ? BLOCK_EMPTY : (selectedPaint as CellType);
+    drawingToolRef.current = tool;
+
+    editorPlaceBlock(x, y, tool);
+  };
+
+  const handleMouseEnter = (x: number, y: number) => {
+    if (!activeEditor || !isDrawingRef.current) return;
+    editorPlaceBlock(x, y, drawingToolRef.current);
+  };
 
   // Click handler on cells
   const handleCellClick = (x: number, y: number) => {
-    if (activeEditor) {
-      const tool: CellType = selectedPaint === "eraser" ? BLOCK_EMPTY : selectedPaint;
-      editorPlaceBlock(x, y, tool);
-    } else {
-      setGrabbed(false);
-      setCursor({ x, y });
-      playSound("select", muted);
-    }
+    if (activeEditor) return;
+    setGrabbed(false);
+    setCursor({ x, y });
+    playSound("select", muted);
   };
 
   // Switch to Play Test Mode using editor grid
@@ -292,7 +417,6 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
       {/* Main Container */}
       <div className="relative z-10 w-full max-w-6xl flex flex-col items-center">
-        
         {/* Navigation Bar */}
         <div className="w-[96%] bg-zinc-900 border-4 border-b-0 border-zinc-800 rounded-t-2xl px-6 py-4 flex items-center justify-between shadow-[inset_0_4px_10px_rgba(255,255,255,0.15)] select-none">
           <div className="flex gap-4 items-center">
@@ -305,7 +429,11 @@ export default function GameView({ isEditor = false }: GameViewProps) {
             </Link>
             <span className="text-[10px] text-zinc-500">|</span>
             <span className="text-zinc-300 text-[10px] uppercase">
-              {isEditor ? (playTestMode ? "EDIT MODE (TESTING)" : "MAP EDITOR MODE") : "ARCADE STAGE"}
+              {isEditor
+                ? playTestMode
+                  ? "EDIT MODE (TESTING)"
+                  : "MAP EDITOR MODE"
+                : "ARCADE STAGE"}
             </span>
           </div>
 
@@ -333,20 +461,17 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
         {/* CRT cabinet Bezel */}
         <div className="w-full bg-zinc-900 border-[14px] border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-4 relative">
-          
           {/* CRT Screen wrapper */}
           <div className="crt-screen crt-glow-effect bg-[#050511] w-full min-h-[480px] rounded-lg border-[6px] border-black flex flex-col md:flex-row p-4 md:p-6 text-white relative">
-            
             {/* LEFT COLUMN: STATS AND HUD */}
             <div className="w-full md:w-[260px] flex flex-col justify-between pr-4 border-b md:border-b-0 md:border-r border-zinc-900 pb-4 md:pb-0 md:mr-6">
-              
               {/* Retro HUD stats */}
               <div className="flex flex-col gap-4 text-[10px] text-zinc-400">
                 <div className="flex flex-col gap-1.5">
                   <span className="text-yellow-400">PLAYER-1</span>
                   <span className="text-white text-xs tracking-widest">0</span>
                 </div>
-                
+
                 <div className="flex flex-col gap-1.5">
                   <span className="text-white font-bold">PROBLEM</span>
                   <span className="text-cyan-400 text-xs uppercase">
@@ -360,12 +485,16 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <div className="flex flex-col gap-1.5">
                   <span className="text-cyan-400">TIME</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-yellow-400 text-xs font-bold">{timeLeft}s</span>
+                    <span className="text-yellow-400 text-xs font-bold">
+                      {timeLeft}s
+                    </span>
                     {/* Time limit progress bar */}
                     <div className="flex-1 h-2 bg-zinc-950 border border-zinc-800 rounded overflow-hidden">
                       <div
                         className={`h-full transition-all duration-1000 ${
-                          timeLeft > 20 ? "bg-emerald-500" : "bg-red-500 animate-pulse"
+                          timeLeft > 20
+                            ? "bg-emerald-500"
+                            : "bg-red-500 animate-pulse"
                         }`}
                         style={{
                           width: `${(timeLeft / (BUILTIN_LEVELS[levelIndex]?.timeLimit || 90)) * 100}%`,
@@ -377,7 +506,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
                 <div className="flex justify-between items-center bg-black/40 border border-zinc-900 p-2 rounded">
                   <span className="text-cyan-400">RETRY</span>
-                  <span className="text-emerald-400 font-bold text-xs">{retries}</span>
+                  <span className="text-emerald-400 font-bold text-xs">
+                    {retries}
+                  </span>
                 </div>
               </div>
 
@@ -387,7 +518,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                   <div className="text-[7.5px] text-zinc-500 text-center mb-2 uppercase tracking-wider border-b border-zinc-900 pb-1.5">
                     BLOCKS TO MATCH
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-x-2 gap-y-3.5 mt-1 overflow-y-auto max-h-[160px] pr-1">
                     {Object.keys(blockCounts).length === 0 ? (
                       <div className="col-span-2 text-center text-[7.5px] text-zinc-600 mt-6 uppercase">
@@ -419,7 +550,6 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
             {/* CENTER/RIGHT COLUMN: PLAY BOARD GRID */}
             <div className="flex-1 flex flex-col items-center justify-center mt-6 md:mt-0 relative">
-              
               {/* Visual Stone outer border block framework */}
               <div className="relative p-3 bg-zinc-950 border-[6px] border-zinc-800 rounded-lg shadow-2xl flex items-center justify-center">
                 {/* Board grid inner shadow backdrop */}
@@ -435,16 +565,18 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 >
                   {grid.map((row, y) =>
                     row.map((cell, x) => {
-                      const isCursor = cursor.x === x && cursor.y === y && !activeEditor;
-                      
+                      const isCursor =
+                        cursor.x === x && cursor.y === y && !activeEditor;
+
                       return (
                         <div
                           key={`${y}-${x}`}
+                          onMouseDown={(e) => handleMouseDown(e, x, y)}
+                          onMouseEnter={() => handleMouseEnter(x, y)}
                           onClick={() => handleCellClick(x, y)}
                           onContextMenu={(e) => {
                             if (activeEditor && !playTestMode) {
                               e.preventDefault();
-                              editorPlaceBlock(x, y, BLOCK_EMPTY);
                             }
                           }}
                           className={`w-9 sm:w-11 aspect-square relative border border-zinc-900/30 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
@@ -456,13 +588,21 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
                           {/* Render grid cell elements */}
                           {cell !== BLOCK_EMPTY && (
-                            <div className={`w-[88%] h-[88%] transform active:scale-95 transition-transform ${
-                              flashingBlocks[`${y},${x}`] ? "animate-match-flash pointer-events-none" : ""
-                            }`}>
-                              <BlockRenderer id={cell} />
+                            <div
+                              className={`w-[88%] h-[88%] transform active:scale-95 transition-transform ${
+                                flashingBlocks[`${y},${x}`]
+                                  ? "animate-match-flash pointer-events-none"
+                                  : ""
+                              }`}
+                            >
+                              <BlockRenderer
+                                id={cell}
+                                x={x}
+                                y={y}
+                                grid={grid}
+                              />
                             </div>
                           )}
-
 
                           {/* Render Cursor Selector outline (Pulsating gold if grabbed, red if free) */}
                           {isCursor && (
@@ -474,16 +614,34 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                               }`}
                             >
                               {/* Glowing corner anchors */}
-                              <span className={`absolute top-0 left-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                              <span className={`absolute top-0 right-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                              <span className={`absolute bottom-0 left-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                              <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
+                              <span
+                                className={`absolute top-0 left-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`}
+                              />
+                              <span
+                                className={`absolute top-0 right-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`}
+                              />
+                              <span
+                                className={`absolute bottom-0 left-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`}
+                              />
+                              <span
+                                className={`absolute bottom-0 right-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`}
+                              />
                             </div>
                           )}
                         </div>
                       );
-                    })
+                    }),
                   )}
+
+                  {/* Render flying bullets */}
+                  {bullets.map((bullet) => (
+                    <Bullet
+                      key={bullet.id}
+                      bullet={bullet}
+                      W={grid[0]?.length || 8}
+                      H={grid.length || 8}
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -495,14 +653,18 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                       <h2 className="text-xl text-yellow-400 animate-bounce tracking-widest">
                         STAGE CLEARED!
                       </h2>
-                      <p className="text-[8px] text-zinc-500 uppercase">Excellent Puzzle Solving</p>
+                      <p className="text-[8px] text-zinc-500 uppercase">
+                        Excellent Puzzle Solving
+                      </p>
                     </>
                   ) : (
                     <>
                       <h2 className="text-xl text-red-500 tracking-widest animate-pulse">
                         GAME OVER
                       </h2>
-                      <p className="text-[8px] text-zinc-500 uppercase">Time has run out!</p>
+                      <p className="text-[8px] text-zinc-500 uppercase">
+                        Time has run out!
+                      </p>
                     </>
                   )}
 
@@ -511,7 +673,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                       onClick={() => {
                         setGrabbed(false);
                         if (!isEditor) {
-                          const nextIdx = (levelIndex + 1) % BUILTIN_LEVELS.length;
+                          const nextIdx =
+                            (levelIndex + 1) % BUILTIN_LEVELS.length;
                           loadLevel(nextIdx);
                         } else {
                           resetLevel();
@@ -543,7 +706,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
             // Editor Toolbar
             <div className="flex flex-col gap-3">
               <div className="text-[8px] text-zinc-400 border-b border-zinc-700 pb-2 flex justify-between items-center uppercase">
-                <span>SELECT PAINT TOOL AND CLICK THE GRID CELLS TO DRAW</span>
+                <span>
+                  SELECT PAINT TOOL AND CLICK OR DRAG THE GRID CELLS TO DRAW
+                </span>
                 <span className="text-yellow-400">EDITOR PALETTE</span>
               </div>
 
@@ -646,46 +811,109 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 >
                   <BlockRenderer id={BLOCK_AUTO_WALL_H} />
                 </button>
+
+                {/* Shooter blocks */}
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_SHOOTER_L)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SHOOTER_L
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Shooter Left (Repeated)"
+                >
+                  <BlockRenderer id={BLOCK_SHOOTER_L} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_SHOOTER_R)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SHOOTER_R
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Shooter Right (Repeated)"
+                >
+                  <BlockRenderer id={BLOCK_SHOOTER_R} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_SHOOTER_L_ONCE)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SHOOTER_L_ONCE
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Shooter Left (Once)"
+                >
+                  <BlockRenderer id={BLOCK_SHOOTER_L_ONCE} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_SHOOTER_R_ONCE)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SHOOTER_R_ONCE
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Shooter Right (Once)"
+                >
+                  <BlockRenderer id={BLOCK_SHOOTER_R_ONCE} />
+                </button>
               </div>
 
               {/* Map actions */}
               <div className="flex flex-wrap justify-between items-center gap-2 mt-2 pt-2 border-t border-zinc-700">
                 <div className="text-[7.5px] text-zinc-500 max-w-[280px] uppercase leading-relaxed">
-                  Tip: Paint wall blocks to design grids and constraints, then select puzzle shapes. Click test level to test your map!
+                  Tip: Paint wall blocks to design grids and constraints, then
+                  select puzzle shapes. Click test level to test your map!
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Rows / Cols control */}
                   <div className="flex items-center gap-2 bg-zinc-950 px-2 py-1 rounded border border-zinc-800 text-white select-none">
-                    <span className="text-[7px] text-zinc-500 font-bold">ROWS</span>
+                    <span className="text-[7px] text-zinc-500 font-bold">
+                      ROWS
+                    </span>
                     <button
-                      onClick={() => editorResizeGrid(grid.length - 1, grid[0].length)}
+                      onClick={() =>
+                        editorResizeGrid(grid.length - 1, grid[0].length)
+                      }
                       disabled={grid.length <= 4}
                       className="w-4 h-4 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-[8px] text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
                     >
                       -
                     </button>
-                    <span className="text-[8px] text-yellow-400 font-bold w-3 text-center">{grid.length}</span>
+                    <span className="text-[8px] text-yellow-400 font-bold w-3 text-center">
+                      {grid.length}
+                    </span>
                     <button
-                      onClick={() => editorResizeGrid(grid.length + 1, grid[0].length)}
+                      onClick={() =>
+                        editorResizeGrid(grid.length + 1, grid[0].length)
+                      }
                       disabled={grid.length >= 12}
                       className="w-4 h-4 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-[8px] text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
                     >
                       +
                     </button>
-                    
+
                     <span className="text-zinc-800">|</span>
 
-                    <span className="text-[7px] text-zinc-500 font-bold">COLS</span>
+                    <span className="text-[7px] text-zinc-500 font-bold">
+                      COLS
+                    </span>
                     <button
-                      onClick={() => editorResizeGrid(grid.length, grid[0].length - 1)}
+                      onClick={() =>
+                        editorResizeGrid(grid.length, grid[0].length - 1)
+                      }
                       disabled={grid[0].length <= 4}
                       className="w-4 h-4 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-[8px] text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
                     >
                       -
                     </button>
-                    <span className="text-[8px] text-yellow-400 font-bold w-3 text-center">{grid[0].length}</span>
+                    <span className="text-[8px] text-yellow-400 font-bold w-3 text-center">
+                      {grid[0].length}
+                    </span>
                     <button
-                      onClick={() => editorResizeGrid(grid.length, grid[0].length + 1)}
+                      onClick={() =>
+                        editorResizeGrid(grid.length, grid[0].length + 1)
+                      }
                       disabled={grid[0].length >= 16}
                       className="w-4 h-4 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-[8px] text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
                     >
@@ -720,11 +948,13 @@ export default function GameView({ isEditor = false }: GameViewProps) {
               <div className="text-[7.5px] text-zinc-400 leading-relaxed uppercase max-w-[320px] text-center sm:text-left">
                 {playTestMode ? (
                   <span className="text-yellow-400 font-bold">
-                    [PLAYTESTING MODE] Move selection: [Arrows] | Grab block: [Space] | Slide: [Left/Right].
+                    [PLAYTESTING MODE] Move selection: [Arrows] | Grab block:
+                    [Space] | Slide: [Left/Right].
                   </span>
                 ) : (
                   <span>
-                    MOVE SELECTION: [Arrow keys] | Grab Block: [Space] | Slide block: [Arrow Left/Right]. Restart stage: [R]
+                    MOVE SELECTION: [Arrow keys] | Grab Block: [Space] | Slide
+                    block: [Arrow Left/Right]. Restart stage: [R]
                   </span>
                 )}
               </div>
@@ -732,7 +962,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
               {/* Level select list */}
               {!playTestMode && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[8px] text-zinc-500 uppercase">SELECT STAGE:</span>
+                  <span className="text-[8px] text-zinc-500 uppercase">
+                    SELECT STAGE:
+                  </span>
                   <div className="flex gap-1.5">
                     {BUILTIN_LEVELS.map((_, idx) => (
                       <button
@@ -762,10 +994,11 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       {exportModalContent !== null && (
         <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border-4 border-zinc-700 max-w-lg w-full rounded-xl p-6 shadow-2xl relative text-zinc-300 font-sans flex flex-col gap-4">
-            
             <div className="text-center border-b border-zinc-800 pb-2">
               <h2 className="text-md font-bold font-press-start text-yellow-400 tracking-wide">
-                {exportModalContent.length > 0 ? "EXPORT LEVEL DATA" : "IMPORT LEVEL DATA"}
+                {exportModalContent.length > 0
+                  ? "EXPORT LEVEL DATA"
+                  : "IMPORT LEVEL DATA"}
               </h2>
             </div>
 
@@ -777,7 +1010,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
             <textarea
               readOnly={exportModalContent.length > 0}
-              value={exportModalContent.length > 0 ? exportModalContent : importText}
+              value={
+                exportModalContent.length > 0 ? exportModalContent : importText
+              }
               onChange={(e) => {
                 if (exportModalContent.length === 0) {
                   setImportText(e.target.value);
@@ -798,7 +1033,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
               >
                 CANCEL
               </button>
-              
+
               {exportModalContent.length > 0 ? (
                 <button
                   onClick={() => {

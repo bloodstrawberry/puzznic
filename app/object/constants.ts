@@ -15,6 +15,10 @@ export const BLOCK_WALL_H = 21;
 export const BLOCK_AUTO_WALL_V = 22;
 export const BLOCK_AUTO_WALL_H = 23;
 export const BLOCK_BOMB = 30;
+export const BLOCK_SHOOTER_L = 31;
+export const BLOCK_SHOOTER_R = 32;
+export const BLOCK_SHOOTER_L_ONCE = 33;
+export const BLOCK_SHOOTER_R_ONCE = 34;
 
 export type BlockId = number;
 
