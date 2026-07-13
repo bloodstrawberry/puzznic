@@ -284,6 +284,7 @@ export const useGameEngine = (
     hasMovedFirstBlock: boolean;
     isEditorMode: boolean;
     muted: boolean;
+    flashingBlocks: Record<string, boolean>;
     triggerShot: (
       x: number,
       y: number,
@@ -300,6 +301,7 @@ export const useGameEngine = (
     hasMovedFirstBlock: false,
     isEditorMode: false,
     muted: false,
+    flashingBlocks: {},
     triggerShot: (x, y, dirX, curGrid, curMuted) =>
       triggerShotRef.current(x, y, dirX, curGrid, curMuted),
   });
@@ -314,6 +316,7 @@ export const useGameEngine = (
       hasMovedFirstBlock,
       isEditorMode,
       muted,
+      flashingBlocks,
       triggerShot: (x, y, dirX, curGrid, curMuted) =>
         triggerShotRef.current(x, y, dirX, curGrid, curMuted),
     };
@@ -326,6 +329,7 @@ export const useGameEngine = (
     hasMovedFirstBlock,
     isEditorMode,
     muted,
+    flashingBlocks,
   ]);
 
   const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
@@ -521,6 +525,7 @@ export const useGameEngine = (
     setIsProcessing(false);
     setBullets([]);
     setFlashingBlocks({});
+    if (stateRef.current) stateRef.current.flashingBlocks = {};
     setHasMovedFirstBlock(false);
     setGrabbed(false);
   }, [editorActiveIndex, editorLevels, updateBlockCounts, setGrabbed]);
@@ -542,6 +547,7 @@ export const useGameEngine = (
       });
       setGrabbed(false);
       setFlashingBlocks({});
+      if (stateRef.current) stateRef.current.flashingBlocks = {};
       setBullets([]);
       firedOnceRef.current = {};
       cooldownsRef.current = {};
@@ -556,6 +562,7 @@ export const useGameEngine = (
   const resetLevel = useCallback(() => {
     setGrabbed(false);
     setFlashingBlocks({});
+    if (stateRef.current) stateRef.current.flashingBlocks = {};
     setBullets([]);
     firedOnceRef.current = {};
     cooldownsRef.current = {};
@@ -736,11 +743,13 @@ export const useGameEngine = (
             nextFlashing[key] = true;
           });
           setFlashingBlocks(nextFlashing);
+          if (stateRef.current) stateRef.current.flashingBlocks = nextFlashing;
           playEngineSound("match", muted);
 
           await delay(600); // Wait for the flashing animation to complete
 
           setFlashingBlocks({});
+          if (stateRef.current) stateRef.current.flashingBlocks = {};
           const baseGrid = stateRef.current?.grid ? stateRef.current.grid : currentGrid;
           const nextMatchGrid = copyGrid(baseGrid);
           toClearKeys.forEach((key) => {
@@ -1074,10 +1083,11 @@ export const useGameEngine = (
         isProcessing: curProcessing,
         isGameOver: curGameOver,
         isLevelCleared: curLevelCleared,
+        flashingBlocks: curFlashingBlocks = {},
       } = stateRef.current;
 
-      // Skip this tick if the game is over, cleared, or currently resolving physics
-      if (curGameOver || curLevelCleared || curProcessing) return;
+      // Skip this tick if the game is over or cleared
+      if (curGameOver || curLevelCleared) return;
 
       let moved = false;
       const nextGrid = copyGrid(curGrid);
@@ -1119,6 +1129,9 @@ export const useGameEngine = (
               stack.push({ x, y: ky });
               ky--;
             }
+
+            const hasFlashing = stack.some((item) => curFlashingBlocks[`${item.y},${item.x}`]);
+            if (hasFlashing) continue;
 
             // Check if stack can move horizontally
             let canMove = true;
@@ -1216,6 +1229,9 @@ export const useGameEngine = (
               ky--;
             }
 
+            const hasFlashing = stack.some((item) => curFlashingBlocks[`${item.y},${item.x}`]);
+            if (hasFlashing) continue;
+
             // Check if stack can move vertically
             let canMove = true;
             for (const item of stack) {
@@ -1293,8 +1309,11 @@ export const useGameEngine = (
 
       if (moved) {
         autoWallDirections.current = nextDirections;
+        if (stateRef.current) stateRef.current.grid = nextGrid;
         setGrid(nextGrid);
-        runPhysicsLoop(nextGrid);
+        if (!curProcessing) {
+          runPhysicsLoop(nextGrid);
+        }
       }
     }, 450);
 
