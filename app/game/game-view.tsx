@@ -5,8 +5,8 @@ import {
   useGameEngine,
   CellType,
   BUILTIN_LEVELS,
-  type Bullet,
 } from "./game-engine";
+import GameStageView from "./game-stage-view";
 import Link from "next/link";
 import { useEditorHotkeys, ALL_PAINT_TOOLS } from "./hot-key";
 import BlockRenderer, {
@@ -137,49 +137,7 @@ const playSound = (
   }
 };
 
-function Bullet({ bullet, W, H }: { bullet: Bullet; W: number; H: number }) {
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true);
-    }, 20);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const startLeft = ((bullet.startX + 0.5) / W) * 100;
-  const targetLeft = ((bullet.targetX + 0.5) / W) * 100;
-  const currentLeft = mounted ? targetLeft : startLeft;
-  const top = ((bullet.startY + 0.5) / H) * 100;
-
-  return (
-    <div
-      className="absolute z-30 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center"
-      style={{
-        left: `${currentLeft}%`,
-        top: `${top}%`,
-        transition: "left 300ms linear",
-        width: "24px",
-        height: "12px",
-      }}
-    >
-      <svg
-        className={`w-full h-full ${bullet.dir === -1 ? "rotate-180" : ""}`}
-        viewBox="0 0 24 12"
-      >
-        <defs>
-          <linearGradient id="bulletGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="rgba(251, 191, 36, 0)" />
-            <stop offset="50%" stopColor="#ef4444" />
-            <stop offset="100%" stopColor="#fbbf24" />
-          </linearGradient>
-        </defs>
-        <path d="M 0 6 L 16 2 L 20 6 L 16 10 Z" fill="url(#bulletGrad)" />
-        <circle cx="20" cy="6" r="3" fill="#ffffff" />
-      </svg>
-    </div>
-  );
-}
 
 // Always return 0 for SSR/hydration consistency.
 // The actual stage from URL params is loaded via useEffect after mount.
@@ -239,6 +197,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     null,
   );
   const [importText, setImportText] = useState<string>("");
+  const [cheaterPopupOpen, setCheaterPopupOpen] = useState<boolean>(false);
   const handleStageInputChange = (target: HTMLInputElement) => {
     const num = parseInt(target.value, 10);
     if (!isNaN(num) && num >= 1 && num <= editorLevels.length) {
@@ -316,12 +275,20 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       if (stageParam) {
         const stageIdx = parseInt(stageParam, 10) - 1;
         if (stageIdx >= 0 && stageIdx < BUILTIN_LEVELS.length) {
-          loadLevel(stageIdx);
+          const maxUnlocked = parseInt(localStorage.getItem("puzznic_max_unlocked") || "1", 10);
+          if (isEditor || stageIdx + 1 <= maxUnlocked) {
+            loadLevel(stageIdx);
+          } else {
+            localStorage.setItem("puzznic_max_unlocked", "1");
+            loadLevel(0);
+            setCheaterPopupOpen(true);
+            playSound("error", muted);
+          }
           hasLoadedUrlStageRef.current = true;
         }
       }
     }
-  }, [loadLevel]);
+  }, [loadLevel, isEditor, muted]);
 
   // Fallback to mark as loaded after 1 second if no stage param is found (e.g. direct /game visit)
   useEffect(() => {
@@ -911,180 +878,28 @@ export default function GameView({ isEditor = false }: GameViewProps) {
             </div>
 
             {/* CENTER/RIGHT COLUMN: PLAY BOARD GRID */}
-            <div className="flex-1 flex flex-col items-center justify-center mt-6 md:mt-0 relative">
-              {/* Visual Stone outer border block framework */}
-              <div className="relative p-3 bg-zinc-950 border-[6px] border-zinc-800 rounded-lg shadow-2xl flex items-center justify-center">
-                {/* Board grid inner shadow backdrop */}
-                <div className="absolute inset-2 bg-zinc-800 z-0 pointer-events-none" />
-
-                {/* Dynamic Play Grid */}
-                <div
-                  className="grid gap-0.5 bg-zinc-800 relative z-10 w-full justify-center"
-                  style={{
-                    gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
-                    maxWidth: `${(grid[0]?.length || 8) * 44}px`,
-                  }}
-                >
-                  {grid.map((row, y) =>
-                    row.map((cell, x) => {
-                      const isCursor =
-                        cursor.x === x && cursor.y === y && !activeEditor;
-
-                      return (
-                        <div
-                          key={`${y}-${x}`}
-                          onMouseDown={(e) => handleMouseDown(e, x, y)}
-                          onMouseEnter={() => handleMouseEnter(x, y)}
-                          onClick={() => handleCellClick(x, y)}
-                          onContextMenu={(e) => {
-                            if (activeEditor && !playTestMode) {
-                              e.preventDefault();
-                            }
-                          }}
-                          className={`w-9 sm:w-11 aspect-square relative border border-zinc-900/30 flex items-center justify-center transition-all cursor-pointer overflow-visible ${activeEditor ? "hover:bg-zinc-700/50" : ""
-                            }`}
-                        >
-                          {/* Inner grid styling scanline effect */}
-                          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] pointer-events-none" />
-
-                          {/* Render grid cell elements */}
-                          {cell !== BLOCK_EMPTY && (
-                            <div
-                              className={`w-[88%] h-[88%] transform active:scale-95 transition-transform ${flashingBlocks[`${y},${x}`]
-                                ? "animate-match-flash pointer-events-none"
-                                : ""
-                                }`}
-                            >
-                              <BlockRenderer
-                                id={cell}
-                                x={x}
-                                y={y}
-                                grid={grid}
-                              />
-                            </div>
-                          )}
-
-                          {/* Render Cursor Selector outline (Pulsating gold if grabbed, red if free) */}
-                          {isCursor && (
-                            <div
-                              className={`absolute inset-0 border-2 pointer-events-none z-20 animate-pulse ${grabbed
-                                ? "border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.9)] animate-bounce"
-                                : "border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]"
-                                }`}
-                            >
-                              {/* Glowing corner anchors */}
-                              <span
-                                className={`absolute top-0 left-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`}
-                              />
-                              <span
-                                className={`absolute top-0 right-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`}
-                              />
-                              <span
-                                className={`absolute bottom-0 left-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`}
-                              />
-                              <span
-                                className={`absolute bottom-0 right-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }),
-                  )}
-
-                  {/* Render flying bullets */}
-                  {bullets.map((bullet) => (
-                    <Bullet
-                      key={bullet.id}
-                      bullet={bullet}
-                      W={grid[0]?.length || 8}
-                      H={grid.length || 8}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Success Notification Overlay (Cleared) */}
-              {isLevelCleared && (
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-[3px] z-40 flex flex-col items-center justify-center gap-5 text-center p-6 select-none animate-fade-in">
-                  {/* Glowing Backlight Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 via-emerald-500/15 to-transparent pointer-events-none animate-pulse" />
-
-                  {/* Star Icon container with bouncy animation */}
-                  <div className="relative animate-bounce" style={{ animationDuration: "1.2s" }}>
-                    <svg className="w-14 h-14 text-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.8)]" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  </div>
-
-                  {/* Fancy title */}
-                  <div className="flex flex-col gap-2">
-                    <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest font-press-start animate-pulse uppercase">
-                      STAGE CLEARED!
-                    </h2>
-                    <div className="text-[9px] text-emerald-400 font-bold tracking-widest uppercase">
-                      Level {levelIndex + 1} Complete
-                    </div>
-                  </div>
-
-                  {/* Pinging light indicators */}
-                  <div className="flex gap-3 justify-center py-1">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping [animation-delay:0.2s]" />
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping [animation-delay:0.4s]" />
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping [animation-delay:0.6s]" />
-                  </div>
-
-                  {/* Confirm Button */}
-                  <div className="flex flex-col items-center gap-3 mt-3 w-full max-w-[200px]">
-                    <button
-                      onClick={() => {
-                        setGrabbed(false);
-                        if (!isEditor) {
-                          const nextIdx =
-                            (levelIndex + 1) % BUILTIN_LEVELS.length;
-                          loadLevel(nextIdx);
-                        } else {
-                          resetLevel();
-                        }
-                        playSound("start", muted);
-                      }}
-                      className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-black rounded text-[10px] cursor-pointer border-2 border-yellow-600 font-bold shadow-[0_0_15px_rgba(234,179,8,0.4)] transition-all hover:scale-105 active:scale-95 uppercase tracking-wider font-press-start"
-                    >
-                      {isEditor ? "CONFIRM" : "NEXT LEVEL"}
-                    </button>
-                    <span className="text-[7px] text-zinc-500 tracking-wider uppercase animate-pulse">
-                      [ PRESS ENTER ]
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Game Over Notification Overlay */}
-              {isGameOver && (
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-[2px] z-40 flex flex-col items-center justify-center gap-4 text-center p-4">
-                  <h2 className="text-xl text-red-500 tracking-widest animate-pulse font-press-start">
-                    GAME OVER
-                  </h2>
-                  <p className="text-[8px] text-zinc-500 uppercase">
-                    Time has run out!
-                  </p>
-
-                  <div className="flex gap-4 mt-2">
-                    <button
-                      onClick={() => {
-                        setGrabbed(false);
-                        resetLevel();
-                        playSound("start", muted);
-                      }}
-                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded text-[9px] cursor-pointer border border-yellow-600 font-bold shadow"
-                    >
-                      RETRY
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <GameStageView
+              grid={grid}
+              cursor={cursor}
+              activeEditor={activeEditor}
+              playTestMode={playTestMode}
+              grabbed={grabbed}
+              flashingBlocks={flashingBlocks}
+              bullets={bullets}
+              isLevelCleared={isLevelCleared}
+              isGameOver={isGameOver}
+              levelIndex={levelIndex}
+              isEditor={isEditor}
+              muted={muted}
+              setGrabbed={setGrabbed}
+              loadLevel={loadLevel}
+              resetLevel={resetLevel}
+              setCursor={setCursor}
+              playSound={playSound}
+              handleMouseDown={handleMouseDown}
+              handleMouseEnter={handleMouseEnter}
+              handleCellClick={handleCellClick}
+            />
           </div>
         </div>
 
@@ -1384,6 +1199,42 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       </div>
 
       {/* JSON Import/Export Modal */}
+      {cheaterPopupOpen && (
+        <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-950 border-4 border-red-600 max-w-md w-full rounded-xl p-6 shadow-[0_0_30px_rgba(220,38,38,0.5)] relative text-zinc-300 font-sans flex flex-col gap-5 text-center">
+            <div className="border-b border-zinc-900 pb-3">
+              <h2 className="text-xs font-bold font-press-start text-red-500 tracking-wide animate-pulse">
+                ⚠️ CHEAT DETECTED ⚠️
+              </h2>
+            </div>
+
+            <div className="text-4xl animate-bounce">😜</div>
+
+            <p className="text-[10px] font-press-start leading-relaxed text-yellow-400 uppercase">
+              NICE TRY, HACKER!
+            </p>
+            
+            <p className="text-[9px] text-zinc-400 font-press-start leading-relaxed uppercase">
+              YOU TRIED TO SKIP TO A LOCKED STAGE USING THE URL.
+              <br /><br />
+              <span className="text-red-500 font-bold">PUNISHMENT:</span> PROGRESS RESET TO <span className="text-white font-bold underline">LEVEL 1</span>!
+            </p>
+
+            <div className="flex justify-center mt-2">
+              <button
+                onClick={() => {
+                  setCheaterPopupOpen(false);
+                  playSound("start", muted);
+                }}
+                className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded text-[8px] cursor-pointer border-2 border-red-700 shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all hover:scale-105 active:scale-95 font-press-start uppercase tracking-wider"
+              >
+                I AM SORRY 🥺
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {exportModalContent !== null && (
         <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-zinc-900 border-4 border-zinc-700 max-w-lg w-full rounded-xl p-6 shadow-2xl relative text-zinc-300 font-sans flex flex-col gap-4">
