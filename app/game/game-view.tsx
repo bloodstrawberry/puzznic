@@ -296,21 +296,46 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     isEditor,
   ]);
 
-  // Read stage query param on mount and load it
+  const hasLoadedUrlStageRef = useRef<boolean>(false);
+
+  // Read stage query param on mount/load and load it exactly once
   useEffect(() => {
+    if (hasLoadedUrlStageRef.current) return;
+
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search);
       const stageParam = searchParams.get("stage");
       if (stageParam) {
         const stageIdx = parseInt(stageParam, 10) - 1;
         if (stageIdx >= 0 && stageIdx < BUILTIN_LEVELS.length) {
-          if (levelIndex !== stageIdx) {
-            loadLevel(stageIdx);
-          }
+          loadLevel(stageIdx);
+          hasLoadedUrlStageRef.current = true;
         }
       }
     }
-  }, [loadLevel, levelIndex]);
+  }, [loadLevel]);
+
+  // Fallback to mark as loaded after 1 second if no stage param is found (e.g. direct /game visit)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      hasLoadedUrlStageRef.current = true;
+    }, 1000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Sync levelIndex to URL query parameter
+  useEffect(() => {
+    if (typeof window !== "undefined" && !isEditor) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const currentStageNum = levelIndex + 1;
+      if (searchParams.get("stage") !== currentStageNum.toString()) {
+        searchParams.set("stage", currentStageNum.toString());
+        const newRelativePathQuery =
+          window.location.pathname + "?" + searchParams.toString();
+        window.history.replaceState(null, "", newRelativePathQuery);
+      }
+    }
+  }, [levelIndex, isEditor]);
 
   // Unlock next stage when a stage is cleared
   useEffect(() => {
