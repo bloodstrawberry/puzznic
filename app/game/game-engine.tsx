@@ -21,6 +21,9 @@ import {
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
 } from "../object/constants";
+// Configurable turn delay in ticks (each tick is 450ms) for auto-moving walls
+// Set to 0 for no delay, 1 for 450ms delay, 2 for 900ms delay, etc.
+export const AUTO_WALL_TURN_DELAY_TICKS = 2;
 
 export type CellType = BlockId;
 
@@ -212,6 +215,7 @@ export const useGameEngine = (
 ) => {
   const [levelIndex, setLevelIndex] = useState<number>(initialLevelIndex);
   const autoWallDirections = useRef<Record<string, number>>({});
+  const autoWallDelays = useRef<Record<string, number>>({});
 
   // Editor level states
   const [editorLevels, setEditorLevels] = useState<LevelData[]>(() => {
@@ -594,6 +598,7 @@ export const useGameEngine = (
       firedOnceRef.current = {};
       cooldownsRef.current = {};
       autoWallDirections.current = {};
+      autoWallDelays.current = {};
       setHasMovedFirstBlock(false);
       updateBlockCounts(level.grid);
       playEngineSound("start", muted);
@@ -609,6 +614,7 @@ export const useGameEngine = (
     firedOnceRef.current = {};
     cooldownsRef.current = {};
     autoWallDirections.current = {};
+    autoWallDelays.current = {};
     setHasMovedFirstBlock(false);
     if (isEditorPage) {
       const activeLvl = editorLevels[editorActiveIndex];
@@ -1170,6 +1176,7 @@ export const useGameEngine = (
       const nextDirections: Record<string, number> = {
         ...autoWallDirections.current,
       };
+      const nextDelays: Record<string, number> = {};
 
       for (let y = 0; y < H; y++) {
         for (let x = 0; x < W; x++) {
@@ -1182,6 +1189,8 @@ export const useGameEngine = (
               nextDirections[dirKey] !== undefined
                 ? nextDirections[dirKey]
                 : -1;
+            const hasDelayKey = autoWallDelays.current[dirKey] !== undefined;
+            const currentDelay = hasDelayKey ? autoWallDelays.current[dirKey] : 0;
 
             // Collect stack above this auto-wall
             const stack: Position[] = [{ x, y }];
@@ -1204,7 +1213,12 @@ export const useGameEngine = (
             }
 
             const hasFlashing = stack.some((item) => curFlashingBlocks[`${item.y},${item.x}`]);
-            if (hasFlashing) continue;
+            if (hasFlashing) {
+              if (hasDelayKey) {
+                nextDelays[dirKey] = currentDelay;
+              }
+              continue;
+            }
 
             // Check how many items in the stack can move in direction dx
             let moveCount = 0;
@@ -1230,24 +1244,34 @@ export const useGameEngine = (
             }
 
             if (moveCount === 0) {
-              // Reverse direction and try again
-              dx = -dx;
-              const rnx0 = w0.x + dx;
-              if (rnx0 >= 0 && rnx0 < W && nextGrid[w0.y][rnx0] === BLOCK_EMPTY) {
-                moveCount = 1;
-                for (let i = 1; i < stack.length; i++) {
-                  const item = stack[i];
-                  const nx = item.x + dx;
-                  const ny = item.y;
-                  if (nx >= 0 && nx < W) {
-                    const destCell = nextGrid[ny][nx];
-                    if (destCell === BLOCK_EMPTY) {
-                      moveCount++;
+              if (!hasDelayKey && AUTO_WALL_TURN_DELAY_TICKS > 0) {
+                // Start delay
+                nextDelays[dirKey] = AUTO_WALL_TURN_DELAY_TICKS - 1;
+                nextDirections[dirKey] = dx;
+              } else if (hasDelayKey && currentDelay > 0) {
+                // Decrement delay
+                nextDelays[dirKey] = currentDelay - 1;
+                nextDirections[dirKey] = dx;
+              } else {
+                // Reverse direction and try again
+                dx = -dx;
+                const rnx0 = w0.x + dx;
+                if (rnx0 >= 0 && rnx0 < W && nextGrid[w0.y][rnx0] === BLOCK_EMPTY) {
+                  moveCount = 1;
+                  for (let i = 1; i < stack.length; i++) {
+                    const item = stack[i];
+                    const nx = item.x + dx;
+                    const ny = item.y;
+                    if (nx >= 0 && nx < W) {
+                      const destCell = nextGrid[ny][nx];
+                      if (destCell === BLOCK_EMPTY) {
+                        moveCount++;
+                      } else {
+                        break;
+                      }
                     } else {
                       break;
                     }
-                  } else {
-                    break;
                   }
                 }
               }
@@ -1294,6 +1318,8 @@ export const useGameEngine = (
               nextDirections[dirKey] !== undefined
                 ? nextDirections[dirKey]
                 : -1;
+            const hasDelayKey = autoWallDelays.current[dirKey] !== undefined;
+            const currentDelay = hasDelayKey ? autoWallDelays.current[dirKey] : 0;
 
             // Collect stack above this auto-wall
             const stack: Position[] = [{ x, y }];
@@ -1316,7 +1342,12 @@ export const useGameEngine = (
             }
 
             const hasFlashing = stack.some((item) => curFlashingBlocks[`${item.y},${item.x}`]);
-            if (hasFlashing) continue;
+            if (hasFlashing) {
+              if (hasDelayKey) {
+                nextDelays[dirKey] = currentDelay;
+              }
+              continue;
+            }
 
             // Check if stack can move vertically
             let canMove = true;
@@ -1336,21 +1367,31 @@ export const useGameEngine = (
             }
 
             if (!canMove) {
-              // Reverse direction and try again
-              dy = -dy;
-              canMove = true;
-              for (const item of stack) {
-                const nx = item.x;
-                const ny = item.y + dy;
-                if (ny < 0 || ny >= H) {
-                  canMove = false;
-                  break;
-                }
-                const destCell = nextGrid[ny][nx];
-                const isSelf = stack.some((s) => s.x === nx && s.y === ny);
-                if (destCell !== BLOCK_EMPTY && !isSelf) {
-                  canMove = false;
-                  break;
+              if (!hasDelayKey && AUTO_WALL_TURN_DELAY_TICKS > 0) {
+                // Start delay
+                nextDelays[dirKey] = AUTO_WALL_TURN_DELAY_TICKS - 1;
+                nextDirections[dirKey] = dy;
+              } else if (hasDelayKey && currentDelay > 0) {
+                // Decrement delay
+                nextDelays[dirKey] = currentDelay - 1;
+                nextDirections[dirKey] = dy;
+              } else {
+                // Reverse direction and try again
+                dy = -dy;
+                canMove = true;
+                for (const item of stack) {
+                  const nx = item.x;
+                  const ny = item.y + dy;
+                  if (ny < 0 || ny >= H) {
+                    canMove = false;
+                    break;
+                  }
+                  const destCell = nextGrid[ny][nx];
+                  const isSelf = stack.some((s) => s.x === nx && s.y === ny);
+                  if (destCell !== BLOCK_EMPTY && !isSelf) {
+                    canMove = false;
+                    break;
+                  }
                 }
               }
             }
@@ -1393,8 +1434,10 @@ export const useGameEngine = (
         }
       }
 
+      autoWallDirections.current = nextDirections;
+      autoWallDelays.current = nextDelays;
+
       if (moved) {
-        autoWallDirections.current = nextDirections;
         if (stateRef.current) stateRef.current.grid = nextGrid;
         setGrid(nextGrid);
         if (!curProcessing) {
