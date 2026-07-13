@@ -20,8 +20,13 @@ import {
   BLOCK_SHOOTER_R,
   BLOCK_SHOOTER_L_ONCE,
   BLOCK_SHOOTER_R_ONCE,
+  BLOCK_SPIKE_U,
+  BLOCK_SPIKE_D,
+  BLOCK_SPIKE_L,
+  BLOCK_SPIKE_R,
 } from "./constants";
 import Wall from "./wall";
+import Spike from "./spike";
 import Sphere from "./sphere";
 import Diamond from "./diamond";
 import Cube from "./cube";
@@ -56,6 +61,7 @@ export { default as WallAutoV } from "./wall-auto-v";
 export { default as WallAutoH } from "./wall-auto-h";
 export { default as Bomb } from "./bomb";
 export { default as Shooter } from "./shooter";
+export { default as Spike } from "./spike";
 export * from "./constants";
 
 interface BlockRendererProps {
@@ -115,6 +121,14 @@ export default function BlockRenderer({ id, x, y, grid }: BlockRendererProps) {
       return <Shooter direction="left" mode="once" isPressed={isPressed} />;
     case BLOCK_SHOOTER_R_ONCE:
       return <Shooter direction="right" mode="once" isPressed={isPressed} />;
+    case BLOCK_SPIKE_U:
+      return <Spike direction="up" />;
+    case BLOCK_SPIKE_D:
+      return <Spike direction="down" />;
+    case BLOCK_SPIKE_L:
+      return <Spike direction="left" />;
+    case BLOCK_SPIKE_R:
+      return <Spike direction="right" />;
     default:
       return null;
   }

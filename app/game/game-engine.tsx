@@ -16,6 +16,10 @@ import {
   BLOCK_SHOOTER_R,
   BLOCK_SHOOTER_L_ONCE,
   BLOCK_SHOOTER_R_ONCE,
+  BLOCK_SPIKE_U,
+  BLOCK_SPIKE_D,
+  BLOCK_SPIKE_L,
+  BLOCK_SPIKE_R,
 } from "../object/constants";
 
 export type CellType = BlockId;
@@ -194,7 +198,11 @@ const isNonWallBlock = (id: BlockId): boolean => {
     id !== BLOCK_SHOOTER_L &&
     id !== BLOCK_SHOOTER_R &&
     id !== BLOCK_SHOOTER_L_ONCE &&
-    id !== BLOCK_SHOOTER_R_ONCE
+    id !== BLOCK_SHOOTER_R_ONCE &&
+    id !== BLOCK_SPIKE_U &&
+    id !== BLOCK_SPIKE_D &&
+    id !== BLOCK_SPIKE_L &&
+    id !== BLOCK_SPIKE_R
   );
 };
 
@@ -487,6 +495,49 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
           continue; // Re-evaluate gravity until stable
         }
 
+        // 1.5 Spike check phase
+        let spikeDestroyed = false;
+        const nextSpikeGrid = copyGrid(currentGrid);
+        for (let y = 0; y < currentGrid.length; y++) {
+          for (let x = 0; x < currentGrid[y].length; x++) {
+            const cell = currentGrid[y][x];
+            if (cell === BLOCK_SPIKE_U) {
+              if (y > 0 && isNonWallBlock(nextSpikeGrid[y - 1][x])) {
+                nextSpikeGrid[y - 1][x] = BLOCK_EMPTY;
+                spikeDestroyed = true;
+              }
+            } else if (cell === BLOCK_SPIKE_D) {
+              if (y < currentGrid.length - 1 && isNonWallBlock(nextSpikeGrid[y + 1][x])) {
+                nextSpikeGrid[y + 1][x] = BLOCK_EMPTY;
+                spikeDestroyed = true;
+              }
+            } else if (cell === BLOCK_SPIKE_L) {
+              if (x > 0 && isNonWallBlock(nextSpikeGrid[y][x - 1])) {
+                nextSpikeGrid[y][x - 1] = BLOCK_EMPTY;
+                spikeDestroyed = true;
+              }
+            } else if (cell === BLOCK_SPIKE_R) {
+              if (x < currentGrid[y].length - 1 && isNonWallBlock(nextSpikeGrid[y][x + 1])) {
+                nextSpikeGrid[y][x + 1] = BLOCK_EMPTY;
+                spikeDestroyed = true;
+              }
+            }
+          }
+        }
+
+        if (spikeDestroyed) {
+          currentGrid = nextSpikeGrid;
+          setGrid(currentGrid);
+          if (stateRef.current) stateRef.current.grid = currentGrid;
+          updateBlockCounts(currentGrid);
+          playEngineSound("break", muted);
+          await delay(200);
+          if (stateRef.current?.grid) {
+            currentGrid = copyGrid(stateRef.current.grid);
+          }
+          continue; // Re-evaluate gravity and spikes after block removal
+        }
+
         // 2. Match Phase (2 or more adjacent identical blocks touch)
         let matchChanged = false;
         const toClearKeys = new Set<string>();
@@ -601,7 +652,15 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
 
       const currentGrid = curState.grid;
       const block = currentGrid[y]?.[x];
-      if (block === undefined || block === BLOCK_EMPTY || block === BLOCK_WALL) {
+      if (
+        block === undefined ||
+        block === BLOCK_EMPTY ||
+        block === BLOCK_WALL ||
+        block === BLOCK_SPIKE_U ||
+        block === BLOCK_SPIKE_D ||
+        block === BLOCK_SPIKE_L ||
+        block === BLOCK_SPIKE_R
+      ) {
         playEngineSound("error", curState.muted);
         return;
       }
@@ -633,7 +692,14 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         let ky = y - 1;
         while (ky >= 0) {
           const aboveBlock = currentGrid[ky][x];
-          if (aboveBlock === BLOCK_EMPTY || aboveBlock === BLOCK_WALL) {
+          if (
+            aboveBlock === BLOCK_EMPTY ||
+            aboveBlock === BLOCK_WALL ||
+            aboveBlock === BLOCK_SPIKE_U ||
+            aboveBlock === BLOCK_SPIKE_D ||
+            aboveBlock === BLOCK_SPIKE_L ||
+            aboveBlock === BLOCK_SPIKE_R
+          ) {
             break;
           }
           coords.push({ x, y: ky });
@@ -886,7 +952,15 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
             let ky = y - 1;
             while (ky >= 0) {
               const above = nextGrid[ky][x];
-              if (above === BLOCK_EMPTY || above === BLOCK_WALL) break;
+              if (
+                above === BLOCK_EMPTY ||
+                above === BLOCK_WALL ||
+                above === BLOCK_SPIKE_U ||
+                above === BLOCK_SPIKE_D ||
+                above === BLOCK_SPIKE_L ||
+                above === BLOCK_SPIKE_R
+              )
+                break;
               stack.push({ x, y: ky });
               ky--;
             }
@@ -974,7 +1048,15 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
             let ky = y - 1;
             while (ky >= 0) {
               const above = nextGrid[ky][x];
-              if (above === BLOCK_EMPTY || above === BLOCK_WALL) break;
+              if (
+                above === BLOCK_EMPTY ||
+                above === BLOCK_WALL ||
+                above === BLOCK_SPIKE_U ||
+                above === BLOCK_SPIKE_D ||
+                above === BLOCK_SPIKE_L ||
+                above === BLOCK_SPIKE_R
+              )
+                break;
               stack.push({ x, y: ky });
               ky--;
             }

@@ -21,6 +21,10 @@ import BlockRenderer, {
   BLOCK_SHOOTER_R,
   BLOCK_SHOOTER_L_ONCE,
   BLOCK_SHOOTER_R_ONCE,
+  BLOCK_SPIKE_U,
+  BLOCK_SPIKE_D,
+  BLOCK_SPIKE_L,
+  BLOCK_SPIKE_R,
 } from "../object";
 
 // Retro sound synthesizer proxy
@@ -292,7 +296,11 @@ export default function GameView({ isEditor = false }: GameViewProps) {
           cell !== BLOCK_EMPTY &&
           cell !== BLOCK_WALL &&
           cell !== BLOCK_AUTO_WALL_V &&
-          cell !== BLOCK_AUTO_WALL_H;
+          cell !== BLOCK_AUTO_WALL_H &&
+          cell !== BLOCK_SPIKE_U &&
+          cell !== BLOCK_SPIKE_D &&
+          cell !== BLOCK_SPIKE_L &&
+          cell !== BLOCK_SPIKE_R;
         if (curGrabbed) {
           curSetGrabbed(false);
           playSound("select", curMuted);
@@ -904,6 +912,52 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                   title="Shooter Right (Once)"
                 >
                   <BlockRenderer id={BLOCK_SHOOTER_R_ONCE} />
+                </button>
+
+                {/* Spike blocks */}
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_SPIKE_U)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SPIKE_U
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Spike Up"
+                >
+                  <BlockRenderer id={BLOCK_SPIKE_U} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_SPIKE_D)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SPIKE_D
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Spike Down"
+                >
+                  <BlockRenderer id={BLOCK_SPIKE_D} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_SPIKE_L)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SPIKE_L
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Spike Left"
+                >
+                  <BlockRenderer id={BLOCK_SPIKE_L} />
+                </button>
+                <button
+                  onClick={() => setSelectedPaint(BLOCK_SPIKE_R)}
+                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SPIKE_R
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                  title="Spike Right"
+                >
+                  <BlockRenderer id={BLOCK_SPIKE_R} />
                 </button>
               </div>
 

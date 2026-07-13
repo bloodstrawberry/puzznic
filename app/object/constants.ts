@@ -19,6 +19,10 @@ export const BLOCK_SHOOTER_L = 31;
 export const BLOCK_SHOOTER_R = 32;
 export const BLOCK_SHOOTER_L_ONCE = 33;
 export const BLOCK_SHOOTER_R_ONCE = 34;
+export const BLOCK_SPIKE_U = 40;
+export const BLOCK_SPIKE_D = 41;
+export const BLOCK_SPIKE_L = 42;
+export const BLOCK_SPIKE_R = 43;
 
 export type BlockId = number;
 
