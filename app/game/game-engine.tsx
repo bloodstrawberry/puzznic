@@ -1,7 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import realMap from "../level/real-map.json";
+declare const require: any;
+
+interface RawLevelData {
+  name: string;
+  grid: number[][];
+  timeLimit?: number;
+}
+
+const realMap: RawLevelData[] = typeof window !== "undefined"
+  ? (!window.location.pathname.includes("/editor") || process.env.NEXT_PUBLIC_APP_ENV === "LOCAL"
+      ? (require("../level/real-map.json") as RawLevelData[])
+      : [])
+  : (require("../level/real-map.json") as RawLevelData[]);
+
 
 import {
   BlockId,
@@ -219,6 +232,15 @@ export const useGameEngine = (
 
   // Editor level states
   const [editorLevels, setEditorLevels] = useState<LevelData[]>(() => {
+    if (realMap.length === 0) {
+      return [
+        {
+          name: "LEVEL 1-1",
+          grid: Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY)),
+          timeLimit: 180,
+        },
+      ];
+    }
     return realMap.map((lvl) => ({
       name: lvl.name,
       grid: copyGrid(lvl.grid as CellType[][]),
