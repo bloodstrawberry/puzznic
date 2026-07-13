@@ -727,11 +727,11 @@ export default function GameView({ isEditor = false }: GameViewProps) {
               {/* Visual Stone outer border block framework */}
               <div className="relative p-3 bg-zinc-950 border-[6px] border-zinc-800 rounded-lg shadow-2xl flex items-center justify-center">
                 {/* Board grid inner shadow backdrop */}
-                <div className="absolute inset-2 bg-black/80 z-0 pointer-events-none" />
+                <div className="absolute inset-2 bg-zinc-800 z-0 pointer-events-none" />
 
                 {/* Dynamic Play Grid */}
                 <div
-                  className="grid gap-0.5 bg-black/60 relative z-10 w-full justify-center"
+                  className="grid gap-0.5 bg-zinc-800 relative z-10 w-full justify-center"
                   style={{
                     gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
                     maxWidth: `${(grid[0]?.length || 8) * 44}px`,
@@ -754,7 +754,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                             }
                           }}
                           className={`w-9 sm:w-11 aspect-square relative border border-zinc-900/30 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
-                            activeEditor ? "hover:bg-zinc-800/40" : ""
+                            activeEditor ? "hover:bg-zinc-700/50" : ""
                           }`}
                         >
                           {/* Inner grid styling scanline effect */}
