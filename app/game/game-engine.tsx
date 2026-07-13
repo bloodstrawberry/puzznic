@@ -1148,6 +1148,8 @@ export const useGameEngine = (
               if (
                 above === BLOCK_EMPTY ||
                 above === BLOCK_WALL ||
+                above === BLOCK_WALL_V ||
+                above === BLOCK_WALL_H ||
                 above === BLOCK_SPIKE_U ||
                 above === BLOCK_SPIKE_D ||
                 above === BLOCK_SPIKE_L ||
@@ -1258,6 +1260,8 @@ export const useGameEngine = (
               if (
                 above === BLOCK_EMPTY ||
                 above === BLOCK_WALL ||
+                above === BLOCK_WALL_V ||
+                above === BLOCK_WALL_H ||
                 above === BLOCK_SPIKE_U ||
                 above === BLOCK_SPIKE_D ||
                 above === BLOCK_SPIKE_L ||
