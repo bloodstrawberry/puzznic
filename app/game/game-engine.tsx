@@ -956,6 +956,30 @@ export const useGameEngine = (
     playEngineSound("error", muted);
   }, [isEditorMode, muted, setBlockCounts, setGrabbed, updateEditorLevelGrid]);
 
+  const editorFillBorder = useCallback(() => {
+    if (!isEditorMode) return;
+    setGrabbed(false);
+    setGrid((prevGrid) => {
+      const rows = prevGrid.length;
+      const cols = prevGrid[0]?.length || 0;
+      if (rows === 0 || cols === 0) return prevGrid;
+
+      const nextGrid = prevGrid.map((row, y) =>
+        row.map((cell, x) => {
+          if (y === 0 || y === rows - 1 || x === 0 || x === cols - 1) {
+            return BLOCK_WALL;
+          }
+          return cell;
+        })
+      );
+
+      updateBlockCounts(nextGrid);
+      updateEditorLevelGrid(nextGrid);
+      return nextGrid;
+    });
+    playEngineSound("select", muted);
+  }, [isEditorMode, muted, updateBlockCounts, updateEditorLevelGrid, setGrabbed]);
+
   const editorResizeGrid = useCallback(
     (newRows: number, newCols: number) => {
       if (!isEditorMode) return;
@@ -1403,6 +1427,7 @@ export const useGameEngine = (
     editorPlaceBlock,
     editorClearGrid,
     editorResizeGrid,
+    editorFillBorder,
     muted,
     setMuted,
     grabbed,
