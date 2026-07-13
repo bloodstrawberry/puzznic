@@ -190,11 +190,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
   const {
     grid,
-    setGrid,
     cursor,
     setCursor,
     timeLeft,
-    retries,
     isGameOver,
     isLevelCleared,
     isProcessing,
@@ -212,7 +210,15 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     setGrabbed,
     flashingBlocks,
     bullets,
-  } = useGameEngine(0, activeEditor);
+    editorLevels,
+    editorActiveIndex,
+    selectEditorLevel,
+    editorAddLevel,
+    editorDeleteLevel,
+    editorUpdateTimeLimit,
+    editorImportJSON,
+    editorRestoreLevel,
+  } = useGameEngine(0, activeEditor, isEditor);
 
   const [selectedPaint, setSelectedPaint] = useState<CellType | "eraser">(
     BLOCK_WALL,
@@ -221,6 +227,16 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     null,
   );
   const [importText, setImportText] = useState<string>("");
+  const handleStageInputChange = (target: HTMLInputElement) => {
+    const num = parseInt(target.value, 10);
+    if (!isNaN(num) && num >= 1 && num <= editorLevels.length) {
+      playSound("select", muted);
+      selectEditorLevel(num - 1);
+    } else {
+      playSound("error", muted);
+      target.value = (editorActiveIndex + 1).toString();
+    }
+  };
 
   const gameViewRef = useRef({
     grid,
@@ -429,6 +445,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     setGrabbed(false);
     if (playTestMode) {
       setPlayTestMode(false);
+      editorRestoreLevel();
     } else {
       setPlayTestMode(true);
       const cols = grid[0]?.length || 8;
@@ -438,31 +455,44 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     playSound("start", muted);
   };
 
+  // Format JSON to write each 1D row array of grid on a single line
+  const formatLevelsJSON = (levels: typeof editorLevels): string => {
+    const levelStrings = levels.map((lvl) => {
+      const gridRows = lvl.grid.map((row) => `      [${row.join(", ")}]`);
+      const gridStr = `    "grid": [\n${gridRows.join(",\n")}\n    ]`;
+      return `  {\n    "name": ${JSON.stringify(lvl.name)},\n    "timeLimit": ${lvl.timeLimit},\n${gridStr}\n  }`;
+    });
+    return `[\n${levelStrings.join(",\n")}\n]`;
+  };
+
   // Export grid layout as JSON
   const handleExport = () => {
-    const data = {
-      name: "CUSTOM LEVEL",
-      grid: grid,
-      timeLimit: 90,
-      retries: 3,
-    };
-    setExportModalContent(JSON.stringify(data));
+    setExportModalContent(formatLevelsJSON(editorLevels));
+    playSound("start", muted);
+  };
+
+  // Download level data JSON file
+  const handleDownload = () => {
+    if (!exportModalContent) return;
+    const blob = new Blob([exportModalContent], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "real-map.json";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
     playSound("start", muted);
   };
 
   const handleImport = (jsonStr: string) => {
-    try {
-      const parsed = JSON.parse(jsonStr);
-      if (parsed && Array.isArray(parsed.grid)) {
-        setGrid(parsed.grid);
-        setExportModalContent(null);
-        playSound("start", muted);
-      } else {
-        alert("Invalid format");
-        playSound("error", muted);
-      }
-    } catch {
-      alert("Invalid JSON");
+    const success = editorImportJSON(jsonStr);
+    if (success) {
+      setExportModalContent(null);
+      playSound("start", muted);
+    } else {
+      alert("Invalid format or JSON");
       playSound("error", muted);
     }
   };
@@ -530,41 +560,129 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
                 <div className="flex flex-col gap-1.5">
                   <span className="text-white font-bold">PROBLEM</span>
-                  <span className="text-cyan-400 text-xs uppercase">
-                    {isEditor ? "CUSTOM" : `LEVEL ${levelIndex + 1}`}
+                  <span className="text-cyan-400 text-xs uppercase flex items-center gap-1">
+                    {isEditor ? (
+                      <>
+                        STAGE{" "}
+                        <input
+                          key={editorActiveIndex}
+                          type="text"
+                          defaultValue={editorActiveIndex + 1}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleStageInputChange(e.currentTarget);
+                            }
+                          }}
+                          onBlur={(e) => handleStageInputChange(e.currentTarget)}
+                          className="w-10 bg-zinc-950 border border-zinc-800 text-cyan-400 text-xs text-center focus:outline-none focus:border-cyan-500 font-mono py-0.5 rounded"
+                        />{" "}
+                        / {editorLevels.length}
+                      </>
+                    ) : (
+                      `LEVEL ${levelIndex + 1}`
+                    )}
                   </span>
-                  <span className="text-white text-[9px]">
-                    {isEditor ? "[EDIT]" : `[1-${levelIndex + 1}]`}
-                  </span>
+                  {activeEditor ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <button
+                        onClick={() => {
+                          playSound("select", muted);
+                          selectEditorLevel(editorActiveIndex - 1);
+                        }}
+                        disabled={editorActiveIndex === 0}
+                        className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[8px] cursor-pointer text-white font-bold"
+                        title="Previous Stage"
+                      >
+                        ◀
+                      </button>
+                      <button
+                        onClick={() => {
+                          playSound("select", muted);
+                          selectEditorLevel(editorActiveIndex + 1);
+                        }}
+                        disabled={editorActiveIndex === editorLevels.length - 1}
+                        className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[8px] cursor-pointer text-white font-bold"
+                        title="Next Stage"
+                      >
+                        ▶
+                      </button>
+                      <button
+                        onClick={() => {
+                          editorAddLevel();
+                        }}
+                        className="px-1.5 py-0.5 bg-emerald-800 border border-emerald-700 hover:bg-emerald-700 text-[8px] cursor-pointer text-white font-bold"
+                        title="Add Stage"
+                      >
+                        ➕
+                      </button>
+                      <button
+                        onClick={() => {
+                          editorDeleteLevel();
+                        }}
+                        disabled={editorLevels.length <= 1}
+                        className="px-1.5 py-0.5 bg-red-800 border border-red-700 hover:bg-red-700 disabled:opacity-40 text-[8px] cursor-pointer text-white font-bold"
+                        title="Delete Stage"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-white text-[9px]">
+                      {isEditor ? "[TESTING]" : `[1-${levelIndex + 1}]`}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-cyan-400">TIME</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-yellow-400 text-xs font-bold">
-                      {timeLeft}s
-                    </span>
-                    {/* Time limit progress bar */}
-                    <div className="flex-1 h-2 bg-zinc-950 border border-zinc-800 rounded overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-1000 ${
-                          timeLeft > 20
-                            ? "bg-emerald-500"
-                            : "bg-red-500 animate-pulse"
-                        }`}
-                        style={{
-                          width: `${(timeLeft / (BUILTIN_LEVELS[levelIndex]?.timeLimit || 90)) * 100}%`,
-                        }}
-                      />
-                    </div>
+                  <span className="text-cyan-400">TIME LIMIT</span>
+                  <div className="flex items-center gap-1.5">
+                    {activeEditor ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            playSound("select", muted);
+                            editorUpdateTimeLimit(timeLeft - 10);
+                          }}
+                          disabled={timeLeft <= 10}
+                          className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 text-[8px] cursor-pointer text-white font-bold disabled:opacity-40"
+                          title="Decrease Time Limit"
+                        >
+                          -10s
+                        </button>
+                        <span className="text-yellow-400 text-[10px] font-bold w-12 text-center">
+                          {timeLeft}s
+                        </span>
+                        <button
+                          onClick={() => {
+                            playSound("select", muted);
+                            editorUpdateTimeLimit(timeLeft + 10);
+                          }}
+                          className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 text-[8px] cursor-pointer text-white font-bold"
+                          title="Increase Time Limit"
+                        >
+                          +10s
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-yellow-400 text-xs font-bold w-10 text-center">
+                          {timeLeft}s
+                        </span>
+                        <div className="flex-1 h-2 bg-zinc-950 border border-zinc-800 rounded overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-1000 ${
+                              timeLeft > 20
+                                ? "bg-emerald-500"
+                                : "bg-red-500 animate-pulse"
+                            }`}
+                            style={{
+                              width: `${(timeLeft / (BUILTIN_LEVELS[levelIndex]?.timeLimit || 180)) * 100}%`,
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-
-                <div className="flex justify-between items-center bg-black/40 border border-zinc-900 p-2 rounded">
-                  <span className="text-cyan-400">RETRY</span>
-                  <span className="text-emerald-400 font-bold text-xs">
-                    {retries}
-                  </span>
                 </div>
               </div>
 
@@ -1121,7 +1239,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 }
               }}
               className="w-full h-32 bg-black border border-zinc-800 rounded p-2.5 text-xs font-mono text-emerald-400 focus:outline-none focus:border-zinc-700"
-              placeholder='{"name":"CUSTOM","grid":[...],"timeLimit":90,"retries":3}'
+              placeholder='[{"name":"LEVEL 1-1","grid":[[0,0,...]],"timeLimit":180}]'
             />
 
             <div className="flex gap-3 justify-end mt-2">
@@ -1137,16 +1255,24 @@ export default function GameView({ isEditor = false }: GameViewProps) {
               </button>
 
               {exportModalContent.length > 0 ? (
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(exportModalContent);
-                    alert("Copied to clipboard!");
-                    playSound("select", muted);
-                  }}
-                  className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded text-[10px] cursor-pointer"
-                >
-                  COPY TEXT
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDownload}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-[10px] cursor-pointer"
+                  >
+                    DOWNLOAD FILE
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(exportModalContent);
+                      alert("Copied to clipboard!");
+                      playSound("select", muted);
+                    }}
+                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded text-[10px] cursor-pointer"
+                  >
+                    COPY TEXT
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={() => {

@@ -33,7 +33,6 @@ export interface LevelData {
   name: string;
   grid: CellType[][];
   timeLimit: number;
-  retries: number;
 }
 
 // Load level templates from JSON file
@@ -206,28 +205,53 @@ const isNonWallBlock = (id: BlockId): boolean => {
   );
 };
 
-export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
+export const useGameEngine = (
+  initialLevelIndex = 0,
+  isEditorMode = false,
+  isEditorPage = false,
+) => {
   const [levelIndex, setLevelIndex] = useState<number>(initialLevelIndex);
   const autoWallDirections = useRef<Record<string, number>>({});
-  const [grid, setGrid] = useState<CellType[][]>(() =>
-    isEditorMode
-      ? Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
-      : copyGrid(BUILTIN_LEVELS[initialLevelIndex].grid),
-  );
-  const [cursor, setCursor] = useState<Position>(() =>
-    isEditorMode
-      ? { x: 3, y: 7 }
-      : {
-          x: Math.floor(BUILTIN_LEVELS[initialLevelIndex].grid[0].length / 2),
-          y: BUILTIN_LEVELS[initialLevelIndex].grid.length - 1,
-        },
-  );
-  const [timeLeft, setTimeLeft] = useState<number>(() =>
-    isEditorMode ? 90 : BUILTIN_LEVELS[initialLevelIndex].timeLimit,
-  );
-  const [retries, setRetries] = useState<number>(() =>
-    isEditorMode ? 3 : BUILTIN_LEVELS[initialLevelIndex].retries,
-  );
+
+  // Editor level states
+  const [editorLevels, setEditorLevels] = useState<LevelData[]>(() => {
+    return realMap.map((lvl) => ({
+      name: lvl.name,
+      grid: copyGrid(lvl.grid as CellType[][]),
+      timeLimit: lvl.timeLimit ?? 180,
+    }));
+  });
+  const [editorActiveIndex, setEditorActiveIndex] = useState<number>(0);
+
+  const [grid, setGrid] = useState<CellType[][]>(() => {
+    if (isEditorMode) {
+      const firstLvl = realMap[0];
+      return firstLvl
+        ? copyGrid(firstLvl.grid as CellType[][])
+        : Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY));
+    }
+    return copyGrid(BUILTIN_LEVELS[initialLevelIndex].grid);
+  });
+  const [cursor, setCursor] = useState<Position>(() => {
+    if (isEditorMode) {
+      const firstLvl = realMap[0];
+      const w = firstLvl?.grid[0]?.length ?? 8;
+      const h = firstLvl?.grid?.length ?? 8;
+      return { x: Math.floor(w / 2), y: h - 1 };
+    }
+    return {
+      x: Math.floor(BUILTIN_LEVELS[initialLevelIndex].grid[0].length / 2),
+      y: BUILTIN_LEVELS[initialLevelIndex].grid.length - 1,
+    };
+  });
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    if (isEditorMode) {
+      const firstLvl = realMap[0];
+      return firstLvl ? (firstLvl.timeLimit ?? 180) : 180;
+    }
+    return BUILTIN_LEVELS[initialLevelIndex].timeLimit;
+  });
+
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [isLevelCleared, setIsLevelCleared] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -304,11 +328,9 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     muted,
   ]);
 
-  const editorSavedGrid = useRef<CellType[][] | null>(null);
-
   const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
     const initialGrid = isEditorMode
-      ? Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
+      ? (realMap[0]?.grid as CellType[][]) || Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
       : BUILTIN_LEVELS[initialLevelIndex].grid;
     const counts: Record<string, number> = {};
     initialGrid.forEach((row) => {
@@ -335,34 +357,173 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     return counts;
   }, []);
 
-  const wasEditorModeRef = useRef<boolean>(isEditorMode);
+  const selectEditorLevel = useCallback(
+    (idx: number) => {
+      if (idx < 0 || idx >= editorLevels.length) return;
+      setEditorActiveIndex(idx);
+      const lvl = editorLevels[idx];
+      setGrid(copyGrid(lvl.grid));
+      setTimeLeft(lvl.timeLimit);
+      setCursor({
+        x: Math.floor(lvl.grid[0].length / 2),
+        y: lvl.grid.length - 1,
+      });
+      updateBlockCounts(lvl.grid);
+    },
+    [editorLevels, updateBlockCounts],
+  );
 
-  // Keep editor original grid in sync when in editor mode
-  useEffect(() => {
-    if (isEditorMode) {
-      if (wasEditorModeRef.current) {
-        editorSavedGrid.current = copyGrid(grid);
-      }
-    }
-    wasEditorModeRef.current = isEditorMode;
-  }, [grid, isEditorMode]);
+  const editorAddLevel = useCallback(() => {
+    if (!isEditorMode) return;
+    const insertIdx = editorActiveIndex + 1;
+    setEditorLevels((prev) => {
+      const next = [...prev];
+      const newLvl: LevelData = {
+        name: "",
+        grid: Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY)),
+        timeLimit: 180,
+      };
+      next.splice(insertIdx, 0, newLvl);
+      const reindexed = next.map((lvl, i) => ({
+        ...lvl,
+        name: `LEVEL 1-${i + 1}`,
+      }));
+      setTimeout(() => {
+        setEditorActiveIndex(insertIdx);
+        const lvl = reindexed[insertIdx];
+        setGrid(copyGrid(lvl.grid));
+        setTimeLeft(lvl.timeLimit);
+        setCursor({
+          x: Math.floor(lvl.grid[0].length / 2),
+          y: lvl.grid.length - 1,
+        });
+        updateBlockCounts(lvl.grid);
+      }, 0);
+      return reindexed;
+    });
+    playEngineSound("start", muted);
+  }, [isEditorMode, muted, editorActiveIndex, updateBlockCounts]);
 
-  // Restore editor original grid and reset game states when returning to editor mode
-  useEffect(() => {
-    if (isEditorMode) {
-      if (editorSavedGrid.current) {
-        setGrid(copyGrid(editorSavedGrid.current));
-        updateBlockCounts(editorSavedGrid.current);
+  const editorDeleteLevel = useCallback(() => {
+    if (!isEditorMode || editorLevels.length <= 1) return;
+    setEditorLevels((prev) => {
+      const next = prev.filter((_, i) => i !== editorActiveIndex);
+      const reindexed = next.map((lvl, i) => ({
+        ...lvl,
+        name: `LEVEL 1-${i + 1}`,
+      }));
+      const nextIdx = Math.max(0, Math.min(reindexed.length - 1, editorActiveIndex));
+      setTimeout(() => {
+        setEditorActiveIndex(nextIdx);
+        const lvl = reindexed[nextIdx];
+        setGrid(copyGrid(lvl.grid));
+        setTimeLeft(lvl.timeLimit);
+        setCursor({
+          x: Math.floor(lvl.grid[0].length / 2),
+          y: lvl.grid.length - 1,
+        });
+        updateBlockCounts(lvl.grid);
+      }, 0);
+      return reindexed;
+    });
+    playEngineSound("error", muted);
+  }, [isEditorMode, editorLevels.length, editorActiveIndex, muted, updateBlockCounts]);
+
+  const editorUpdateTimeLimit = useCallback(
+    (limit: number) => {
+      if (!isEditorMode) return;
+      const cleanLimit = Math.max(1, limit);
+      setTimeLeft(cleanLimit);
+      setEditorLevels((prev) => {
+        const next = [...prev];
+        if (next[editorActiveIndex]) {
+          next[editorActiveIndex] = {
+            ...next[editorActiveIndex],
+            timeLimit: cleanLimit,
+          };
+        }
+        return next;
+      });
+    },
+    [isEditorMode, editorActiveIndex],
+  );
+
+  const updateEditorLevelGrid = useCallback(
+    (newGrid: CellType[][]) => {
+      setEditorLevels((prev) => {
+        const next = [...prev];
+        if (next[editorActiveIndex]) {
+          next[editorActiveIndex] = {
+            ...next[editorActiveIndex],
+            grid: copyGrid(newGrid),
+          };
+        }
+        return next;
+      });
+    },
+    [editorActiveIndex],
+  );
+
+  const editorImportJSON = useCallback((jsonStr: string) => {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed)) {
+        const valid = parsed.every((lvl) => lvl && Array.isArray(lvl.grid));
+        if (valid) {
+          const cleaned = parsed.map((lvl, i) => ({
+            name: lvl.name || `LEVEL 1-${i + 1}`,
+            grid: copyGrid(lvl.grid as CellType[][]),
+            timeLimit: lvl.timeLimit ?? 180,
+          }));
+          setEditorLevels(cleaned);
+          setEditorActiveIndex(0);
+          setGrid(copyGrid(cleaned[0].grid));
+          setTimeLeft(cleaned[0].timeLimit);
+          setCursor({
+            x: Math.floor(cleaned[0].grid[0].length / 2),
+            y: cleaned[0].grid.length - 1,
+          });
+          updateBlockCounts(cleaned[0].grid);
+          return true;
+        }
+      } else if (parsed && Array.isArray(parsed.grid)) {
+        const cleaned: LevelData = {
+          name: parsed.name || "CUSTOM LEVEL",
+          grid: copyGrid(parsed.grid as CellType[][]),
+          timeLimit: parsed.timeLimit ?? 180,
+        };
+        setEditorLevels([cleaned]);
+        setEditorActiveIndex(0);
+        setGrid(copyGrid(cleaned.grid));
+        setTimeLeft(cleaned.timeLimit);
+        setCursor({
+          x: Math.floor(cleaned.grid.length > 0 ? cleaned.grid[0].length / 2 : 4),
+          y: cleaned.grid.length > 0 ? cleaned.grid.length - 1 : 7,
+        });
+        updateBlockCounts(cleaned.grid);
+        return true;
       }
-      setIsGameOver(false);
-      setIsLevelCleared(false);
-      setIsProcessing(false);
-      setBullets([]);
-      setFlashingBlocks({});
-      setHasMovedFirstBlock(false);
-      setGrabbed(false);
+      return false;
+    } catch {
+      return false;
     }
-  }, [isEditorMode, updateBlockCounts, setGrabbed]);
+  }, [updateBlockCounts]);
+
+  const editorRestoreLevel = useCallback(() => {
+    const activeLvl = editorLevels[editorActiveIndex];
+    if (activeLvl) {
+      setGrid(copyGrid(activeLvl.grid));
+      updateBlockCounts(activeLvl.grid);
+      setTimeLeft(activeLvl.timeLimit);
+    }
+    setIsGameOver(false);
+    setIsLevelCleared(false);
+    setIsProcessing(false);
+    setBullets([]);
+    setFlashingBlocks({});
+    setHasMovedFirstBlock(false);
+    setGrabbed(false);
+  }, [editorActiveIndex, editorLevels, updateBlockCounts, setGrabbed]);
 
   // Initialize and Reset levels
   const loadLevel = useCallback(
@@ -372,7 +533,6 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       setLevelIndex(levelIdx);
       setGrid(copyGrid(level.grid));
       setTimeLeft(level.timeLimit);
-      setRetries(level.retries);
       setIsGameOver(false);
       setIsLevelCleared(false);
       setIsProcessing(false);
@@ -401,33 +561,25 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     cooldownsRef.current = {};
     autoWallDirections.current = {};
     setHasMovedFirstBlock(false);
-    if (isEditorMode) {
-      // Clear grid for editor
-      const emptyGrid = Array.from({ length: 8 }, () =>
-        Array(8).fill(BLOCK_EMPTY),
-      );
-      setGrid(emptyGrid);
-      editorSavedGrid.current = emptyGrid;
+    if (isEditorPage) {
+      const activeLvl = editorLevels[editorActiveIndex];
+      if (activeLvl) {
+        setGrid(copyGrid(activeLvl.grid));
+        updateBlockCounts(activeLvl.grid);
+        setTimeLeft(activeLvl.timeLimit);
+      }
       setIsLevelCleared(false);
       setIsGameOver(false);
       setIsProcessing(false);
-      setBlockCounts({});
-    } else if (editorSavedGrid.current) {
-      // We are in playtest mode (isEditorMode is false, but editorSavedGrid exists)
-      setGrid(copyGrid(editorSavedGrid.current));
-      setIsLevelCleared(false);
-      setIsGameOver(false);
-      setIsProcessing(false);
-      updateBlockCounts(editorSavedGrid.current);
     } else {
       loadLevel(levelIndex);
     }
   }, [
-    isEditorMode,
+    isEditorPage,
+    editorActiveIndex,
+    editorLevels,
     levelIndex,
     loadLevel,
-    setBlockCounts,
-    setGrabbed,
     updateBlockCounts,
   ]);
 
@@ -779,9 +931,10 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
       nextGrid[y][x] = blockType;
       setGrid(nextGrid);
       updateBlockCounts(nextGrid);
+      updateEditorLevelGrid(nextGrid);
       playEngineSound("select", muted);
     },
-    [grid, isEditorMode, updateBlockCounts, muted],
+    [grid, isEditorMode, updateBlockCounts, updateEditorLevelGrid, muted],
   );
 
   const editorClearGrid = useCallback(() => {
@@ -790,8 +943,9 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     const newGrid = Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY));
     setGrid(newGrid);
     setBlockCounts({});
+    updateEditorLevelGrid(newGrid);
     playEngineSound("error", muted);
-  }, [isEditorMode, muted, setBlockCounts, setGrabbed]);
+  }, [isEditorMode, muted, setBlockCounts, setGrabbed, updateEditorLevelGrid]);
 
   const editorResizeGrid = useCallback(
     (newRows: number, newCols: number) => {
@@ -830,10 +984,11 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
         }));
 
         updateBlockCounts(nextGrid);
+        updateEditorLevelGrid(nextGrid);
         return nextGrid;
       });
     },
-    [isEditorMode, updateBlockCounts],
+    [isEditorMode, updateBlockCounts, updateEditorLevelGrid],
   );
 
   const triggerShot = useCallback(
@@ -1216,8 +1371,6 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     setCursor,
     timeLeft,
     setTimeLeft,
-    retries,
-    setRetries,
     isGameOver,
     setIsGameOver,
     isLevelCleared,
@@ -1238,5 +1391,15 @@ export const useGameEngine = (initialLevelIndex = 0, isEditorMode = false) => {
     hasMovedFirstBlock,
     flashingBlocks,
     bullets,
+    editorLevels,
+    setEditorLevels,
+    editorActiveIndex,
+    setEditorActiveIndex,
+    selectEditorLevel,
+    editorAddLevel,
+    editorDeleteLevel,
+    editorUpdateTimeLimit,
+    editorImportJSON,
+    editorRestoreLevel,
   };
 };
