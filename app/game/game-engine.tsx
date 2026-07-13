@@ -1065,7 +1065,7 @@ export const useGameEngine = (
 
   // Interval timer for auto-moving walls (patrol slabs)
   useEffect(() => {
-    if (isEditorMode || !hasMovedFirstBlock) return;
+    if (isEditorMode) return;
 
     const interval = setInterval(() => {
       const {
@@ -1299,7 +1299,7 @@ export const useGameEngine = (
     }, 450);
 
     return () => clearInterval(interval);
-  }, [isEditorMode, hasMovedFirstBlock, runPhysicsLoop, setCursor]);
+  }, [isEditorMode, runPhysicsLoop, setCursor]);
 
   // Interval timer for shooter blocks
   useEffect(() => {
