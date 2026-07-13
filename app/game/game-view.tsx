@@ -8,6 +8,7 @@ import {
   type Bullet,
 } from "./game-engine";
 import Link from "next/link";
+import { useEditorHotkeys, ALL_PAINT_TOOLS } from "./hot-key";
 import BlockRenderer, {
   BLOCK_EMPTY,
   BLOCK_WALL,
@@ -219,6 +220,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     editorUpdateTimeLimit,
     editorImportJSON,
     editorRestoreLevel,
+    editorUndo,
+    editorPushHistory,
   } = useGameEngine(0, activeEditor, isEditor);
 
   const [selectedPaint, setSelectedPaint] = useState<CellType | "eraser">(
@@ -429,6 +432,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     e.preventDefault(); // Stop text/block drag selection
 
     isDrawingRef.current = true;
+    editorPushHistory();
     const isErase = e.button === 2 || selectedPaint === "eraser";
     const tool = isErase ? BLOCK_EMPTY : (selectedPaint as CellType);
     drawingToolRef.current = tool;
@@ -505,6 +509,71 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       playSound("error", muted);
     }
   };
+
+  useEditorHotkeys({
+    active: activeEditor,
+    handlers: {
+      onPrevStage: () => {
+        if (editorActiveIndex > 0) {
+          playSound("select", muted);
+          selectEditorLevel(editorActiveIndex - 1);
+        }
+      },
+      onNextStage: () => {
+        if (editorActiveIndex < editorLevels.length - 1) {
+          playSound("select", muted);
+          selectEditorLevel(editorActiveIndex + 1);
+        }
+      },
+      onUndo: () => {
+        editorUndo();
+      },
+      onBorderWall: () => {
+        editorFillBorder();
+      },
+      onClearGrid: () => {
+        editorClearGrid();
+      },
+      onExportJson: () => {
+        const jsonStr = formatLevelsJSON(editorLevels);
+        navigator.clipboard.writeText(jsonStr)
+          .then(() => {
+            alert("Level data JSON copied to clipboard directly!");
+            playSound("start", muted);
+          })
+          .catch((err) => {
+            console.error("Clipboard copy failed:", err);
+            playSound("error", muted);
+          });
+      },
+      onSelectBlock: (num: number) => {
+        if (num === 1) {
+          setSelectedPaint(BLOCK_WALL);
+        } else if (num >= 2 && num <= 9) {
+          const blockType = PUZZLE_BLOCK_TYPES[num - 2];
+          if (blockType !== undefined) {
+            setSelectedPaint(blockType);
+          }
+        }
+        playSound("select", muted);
+      },
+      onSelectNextBlock: () => {
+        const idx = ALL_PAINT_TOOLS.indexOf(selectedPaint);
+        const nextIdx = (idx + 1) % ALL_PAINT_TOOLS.length;
+        setSelectedPaint(ALL_PAINT_TOOLS[nextIdx]);
+        playSound("select", muted);
+      },
+      onSelectPrevBlock: () => {
+        const idx = ALL_PAINT_TOOLS.indexOf(selectedPaint);
+        const prevIdx = (idx - 1 + ALL_PAINT_TOOLS.length) % ALL_PAINT_TOOLS.length;
+        setSelectedPaint(ALL_PAINT_TOOLS[prevIdx]);
+        playSound("select", muted);
+      },
+      onAddStage: () => {
+        editorAddLevel();
+      },
+    },
+  });
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-zinc-950 retro-bricks overflow-hidden relative font-press-start select-none">

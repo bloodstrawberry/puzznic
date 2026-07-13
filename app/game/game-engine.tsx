@@ -262,6 +262,19 @@ export const useGameEngine = (
     {},
   );
   const [bullets, setBullets] = useState<Bullet[]>([]);
+  const [, setEditorHistory] = useState<CellType[][][]>([]);
+
+  const editorPushHistory = useCallback((customGrid?: CellType[][]) => {
+    const gridToSave = customGrid || grid;
+    setEditorHistory((prev) => {
+      const next = [...prev, copyGrid(gridToSave)];
+      if (next.length > 50) {
+        next.shift();
+      }
+      return next;
+    });
+  }, [grid]);
+
   const firedOnceRef = useRef<Record<string, boolean>>({});
   const cooldownsRef = useRef<Record<string, number>>({});
 
@@ -373,6 +386,7 @@ export const useGameEngine = (
         y: lvl.grid.length - 1,
       });
       updateBlockCounts(lvl.grid);
+      setEditorHistory([]);
     },
     [editorLevels, updateBlockCounts],
   );
@@ -470,6 +484,30 @@ export const useGameEngine = (
     [editorActiveIndex],
   );
 
+  const editorUndo = useCallback(() => {
+    if (!isEditorMode) return;
+    let reverted = false;
+    setEditorHistory((prev) => {
+      if (prev.length === 0) {
+        return prev;
+      }
+      const next = [...prev];
+      const prevGrid = next.pop()!;
+      
+      setGrid(copyGrid(prevGrid));
+      updateBlockCounts(prevGrid);
+      updateEditorLevelGrid(prevGrid);
+      reverted = true;
+      
+      return next;
+    });
+    if (reverted) {
+      playEngineSound("select", muted);
+    } else {
+      playEngineSound("error", muted);
+    }
+  }, [isEditorMode, muted, updateBlockCounts, updateEditorLevelGrid]);
+
   const editorImportJSON = useCallback((jsonStr: string) => {
     try {
       const parsed = JSON.parse(jsonStr);
@@ -490,6 +528,7 @@ export const useGameEngine = (
             y: cleaned[0].grid.length - 1,
           });
           updateBlockCounts(cleaned[0].grid);
+          setEditorHistory([]);
           return true;
         }
       } else if (parsed && Array.isArray(parsed.grid)) {
@@ -507,6 +546,7 @@ export const useGameEngine = (
           y: cleaned.grid.length > 0 ? cleaned.grid.length - 1 : 7,
         });
         updateBlockCounts(cleaned.grid);
+        setEditorHistory([]);
         return true;
       }
       return false;
@@ -951,6 +991,7 @@ export const useGameEngine = (
   const editorClearGrid = useCallback(() => {
     if (!isEditorMode) return;
     setGrabbed(false);
+    editorPushHistory(grid);
     const currentRows = grid.length;
     const currentCols = grid[0]?.length || 8;
     const newGrid = Array.from({ length: currentRows }, () => Array(currentCols).fill(BLOCK_EMPTY));
@@ -958,11 +999,12 @@ export const useGameEngine = (
     setBlockCounts({});
     updateEditorLevelGrid(newGrid);
     playEngineSound("error", muted);
-  }, [isEditorMode, muted, setBlockCounts, setGrabbed, updateEditorLevelGrid, grid]);
+  }, [isEditorMode, muted, setBlockCounts, setGrabbed, updateEditorLevelGrid, grid, editorPushHistory]);
 
   const editorFillBorder = useCallback(() => {
     if (!isEditorMode) return;
     setGrabbed(false);
+    editorPushHistory(grid);
     setGrid((prevGrid) => {
       const rows = prevGrid.length;
       const cols = prevGrid[0]?.length || 0;
@@ -982,11 +1024,12 @@ export const useGameEngine = (
       return nextGrid;
     });
     playEngineSound("select", muted);
-  }, [isEditorMode, muted, updateBlockCounts, updateEditorLevelGrid, setGrabbed]);
+  }, [isEditorMode, muted, updateBlockCounts, updateEditorLevelGrid, setGrabbed, grid, editorPushHistory]);
 
   const editorResizeGrid = useCallback(
     (newRows: number, newCols: number) => {
       if (!isEditorMode) return;
+      editorPushHistory(grid);
       const rows = Math.max(4, Math.min(12, newRows));
       const cols = Math.max(4, Math.min(16, newCols));
 
@@ -1025,7 +1068,7 @@ export const useGameEngine = (
         return nextGrid;
       });
     },
-    [isEditorMode, updateBlockCounts, updateEditorLevelGrid],
+    [isEditorMode, updateBlockCounts, updateEditorLevelGrid, grid, editorPushHistory],
   );
 
   const triggerShot = useCallback(
@@ -1464,5 +1507,7 @@ export const useGameEngine = (
     editorUpdateTimeLimit,
     editorImportJSON,
     editorRestoreLevel,
+    editorUndo,
+    editorPushHistory,
   };
 };
