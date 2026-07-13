@@ -181,17 +181,9 @@ function Bullet({ bullet, W, H }: { bullet: Bullet; W: number; H: number }) {
   );
 }
 
+// Always return 0 for SSR/hydration consistency.
+// The actual stage from URL params is loaded via useEffect after mount.
 const getInitialStageIndex = (): number => {
-  if (typeof window !== "undefined") {
-    const searchParams = new URLSearchParams(window.location.search);
-    const stageParam = searchParams.get("stage");
-    if (stageParam) {
-      const stageIdx = parseInt(stageParam, 10) - 1;
-      if (stageIdx >= 0 && stageIdx < BUILTIN_LEVELS.length) {
-        return stageIdx;
-      }
-    }
-  }
   return 0;
 };
 
