@@ -574,6 +574,7 @@ export const useGameEngine = (
       if (curGameOver || curLevelCleared) return;
 
       let moved = false;
+      let nextCursor = { ...curCursor };
       const nextGrid = copyGrid(curGrid);
       const H = nextGrid.length;
       const W = nextGrid[0]?.length || 0;
@@ -704,13 +705,17 @@ export const useGameEngine = (
               // Adjust cursor selector if it was on a block in this stack
               let cursorIndex = -1;
               for (let i = 0; i < movingStack.length; i++) {
-                if (movingStack[i].x === curCursor.x && movingStack[i].y === curCursor.y) {
+                if (movingStack[i].x === nextCursor.x && movingStack[i].y === nextCursor.y) {
                   cursorIndex = i;
                   break;
                 }
               }
               if (cursorIndex !== -1) {
-                setCursor((prev) => ({ x: prev.x + dx, y: prev.y }));
+                nextCursor = { x: nextCursor.x + dx, y: nextCursor.y };
+                if (stateRef.current) {
+                  stateRef.current.cursor = nextCursor;
+                }
+                updateCursor(nextCursor);
               }
 
               delete nextDirections[dirKey];
@@ -822,13 +827,17 @@ export const useGameEngine = (
               // Adjust cursor selector if it was on a block in this stack
               let cursorIndex = -1;
               for (let i = 0; i < stack.length; i++) {
-                if (stack[i].x === curCursor.x && stack[i].y === curCursor.y) {
+                if (stack[i].x === nextCursor.x && stack[i].y === nextCursor.y) {
                   cursorIndex = i;
                   break;
                 }
               }
               if (cursorIndex !== -1) {
-                setCursor((prev) => ({ x: prev.x, y: prev.y + dy }));
+                nextCursor = { x: nextCursor.x, y: nextCursor.y + dy };
+                if (stateRef.current) {
+                  stateRef.current.cursor = nextCursor;
+                }
+                updateCursor(nextCursor);
               }
 
               delete nextDirections[dirKey];
@@ -845,7 +854,10 @@ export const useGameEngine = (
       autoWallDelays.current = nextDelays;
 
       if (moved) {
-        if (stateRef.current) stateRef.current.grid = nextGrid;
+        if (stateRef.current) {
+          stateRef.current.grid = nextGrid;
+          stateRef.current.cursor = nextCursor;
+        }
         setGrid(nextGrid);
         checkAndReleaseGrabbed(nextGrid);
         if (!curProcessing) {
@@ -855,7 +867,7 @@ export const useGameEngine = (
     }, 450);
 
     return () => clearInterval(interval);
-  }, [isEditorMode, runPhysicsLoop, setCursor, checkAndReleaseGrabbed]);
+  }, [isEditorMode, runPhysicsLoop, updateCursor, checkAndReleaseGrabbed]);
 
   // Interval timer for shooter blocks
   useEffect(() => {
