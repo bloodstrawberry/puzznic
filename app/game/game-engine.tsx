@@ -412,12 +412,13 @@ export const useGameEngine = (
   );
 
   const checkAndReleaseGrabbed = useCallback(
-    (targetGrid: CellType[][]) => {
+    (targetGrid: CellType[][], customFlashing?: Record<string, boolean>) => {
       if (!stateRef.current) return;
-      const { cursor: curPos, grabbed: curLock } = stateRef.current;
+      const { cursor: curPos, grabbed: curLock, flashingBlocks: stateFlashing } = stateRef.current;
       if (!curLock) return;
       const cell = targetGrid[curPos.y]?.[curPos.x];
-      if (!isNonWallBlock(cell)) {
+      const curFlashing = customFlashing || stateFlashing || {};
+      if (!isNonWallBlock(cell) || curFlashing[`${curPos.y},${curPos.x}`]) {
         updateGrabbed(false);
       }
     },
@@ -867,6 +868,7 @@ export const useGameEngine = (
           });
           setFlashingBlocks(nextFlashing);
           if (stateRef.current) stateRef.current.flashingBlocks = nextFlashing;
+          checkAndReleaseGrabbed(currentGrid, nextFlashing);
           playEngineSound("match", muted);
 
           await delay(600); // Wait for the flashing animation to complete
@@ -925,7 +927,9 @@ export const useGameEngine = (
       if (
         curState.isGameOver ||
         curState.isLevelCleared ||
-        curState.isEditorMode
+        curState.isEditorMode ||
+        curState.isProcessing ||
+        curState.flashingBlocks[`${y},${x}`]
       )
         return;
 
@@ -1011,7 +1015,7 @@ export const useGameEngine = (
         targetCoords.push({ x: tx, y: ty });
       }
 
-      if (blocked) {
+      if (blocked || coords.some((coord) => curState.flashingBlocks[`${coord.y},${coord.x}`])) {
         playEngineSound("error", curState.muted);
         return;
       }
@@ -1203,6 +1207,7 @@ export const useGameEngine = (
               if (stateRef.current) {
                 stateRef.current.grid = nextGrid;
               }
+              checkAndReleaseGrabbed(nextGrid);
               playEngineSound("break", curMuted);
               if (!stateRef.current?.isProcessing) {
                 runPhysicsLoop(nextGrid);
@@ -1214,7 +1219,7 @@ export const useGameEngine = (
         });
       }, 300);
     },
-    [runPhysicsLoop],
+    [runPhysicsLoop, checkAndReleaseGrabbed],
   );
 
   useEffect(() => {
@@ -1512,6 +1517,7 @@ export const useGameEngine = (
       if (moved) {
         if (stateRef.current) stateRef.current.grid = nextGrid;
         setGrid(nextGrid);
+        checkAndReleaseGrabbed(nextGrid);
         if (!curProcessing) {
           runPhysicsLoop(nextGrid);
         }
@@ -1519,7 +1525,7 @@ export const useGameEngine = (
     }, 450);
 
     return () => clearInterval(interval);
-  }, [isEditorMode, runPhysicsLoop, setCursor]);
+  }, [isEditorMode, runPhysicsLoop, setCursor, checkAndReleaseGrabbed]);
 
   // Interval timer for shooter blocks
   useEffect(() => {
