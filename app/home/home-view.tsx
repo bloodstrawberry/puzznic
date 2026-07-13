@@ -2,6 +2,21 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import realMap from "../level/real-map.json";
+
+const LockIcon = () => (
+  <svg
+    className="w-3.5 h-3.5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2.5}
+  >
+    <rect x="5" y="11" width="14" height="11" rx="2" ry="2" fill="currentColor" fillOpacity="0.1" />
+    <path d="M7 11V7a5 5 0 0110 0v4" />
+  </svg>
+);
+
 
 // Retro sound synthesizer using Web Audio API (no external asset dependencies)
 const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) => {
@@ -191,6 +206,22 @@ export default function HomeView() {
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
   const [muted, setMuted] = useState<boolean>(false);
   const [isInserting, setIsInserting] = useState<boolean>(false);
+  const [showStageSelect, setShowStageSelect] = useState<boolean>(false);
+  const [selectedStageIndex, setSelectedStageIndex] = useState<number>(0);
+  const [maxUnlockedStage, setMaxUnlockedStage] = useState<number>(1);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("puzznic_max_unlocked");
+      if (stored) {
+        const val = parseInt(stored, 10);
+        setTimeout(() => {
+          setMaxUnlockedStage(val);
+        }, 0);
+      }
+    }
+  }, []);
+
 
   // Background decoration blocks configuration (static values with random offsets)
   const bgBlocks = [
@@ -213,23 +244,62 @@ export default function HomeView() {
     setTimeout(() => setIsInserting(false), 200);
   }, [muted]);
 
+  const startGame = useCallback((stageNum: number) => {
+    if (credits > 0) {
+      setCredits((prev) => prev - 1);
+      playSound("start", muted);
+      setTimeout(() => router.push(`/game?stage=${stageNum}`), 500);
+    } else {
+      // Auto-insert credit animation for convenience + arcade feel
+      playSound("coin", muted);
+      setCredits(1);
+      setTimeout(() => {
+        setCredits(0);
+        playSound("start", muted);
+        router.push(`/game?stage=${stageNum}`);
+      }, 500);
+    }
+  }, [credits, muted, router]);
+
+  const handleStageSelect = useCallback((idx: number) => {
+    if (idx < maxUnlockedStage) {
+      startGame(idx + 1);
+    } else {
+      playSound("error", muted);
+    }
+  }, [maxUnlockedStage, startGame, muted]);
+
+  const handleStageHover = useCallback((idx: number) => {
+    if (selectedStageIndex !== idx) {
+      setSelectedStageIndex(idx);
+      playSound("select", muted);
+    }
+  }, [selectedStageIndex, muted]);
+
+  const totalPages = Math.ceil(realMap.length / 20);
+  const pageIndex = Math.floor(selectedStageIndex / 20);
+  const currentLevels = realMap.slice(pageIndex * 20, (pageIndex + 1) * 20);
+
+  const nextPage = useCallback(() => {
+    if (pageIndex < totalPages - 1) {
+      const nextIdx = (pageIndex + 1) * 20;
+      setSelectedStageIndex(nextIdx);
+      playSound("select", muted);
+    }
+  }, [pageIndex, totalPages, muted]);
+
+  const prevPage = useCallback(() => {
+    if (pageIndex > 0) {
+      const prevIdx = (pageIndex - 1) * 20;
+      setSelectedStageIndex(prevIdx);
+      playSound("select", muted);
+    }
+  }, [pageIndex, muted]);
+
   const triggerMenuAction = useCallback((index: number) => {
     if (index === 0) {
-      // Play Game (Requires credit or auto-inserts)
-      if (credits > 0) {
-        setCredits((prev) => prev - 1);
-        playSound("start", muted);
-        setTimeout(() => router.push("/game"), 500);
-      } else {
-        // Auto-insert credit animation for convenience + arcade feel
-        playSound("coin", muted);
-        setCredits(1);
-        setTimeout(() => {
-          setCredits(0);
-          playSound("start", muted);
-          router.push("/game");
-        }, 500);
-      }
+      playSound("select", muted);
+      setShowStageSelect(true);
     } else if (index === 1) {
       // Level Editor
       playSound("start", muted);
@@ -239,7 +309,8 @@ export default function HomeView() {
       playSound("select", muted);
       setShowHowToPlay(true);
     }
-  }, [credits, muted, router]);
+  }, [muted, router]);
+
 
   const handleMenuHover = useCallback((index: number) => {
     if (menuIndex !== index) {
@@ -255,6 +326,58 @@ export default function HomeView() {
         if (e.key === "Escape" || e.key === "Enter") {
           setShowHowToPlay(false);
           playSound("select", muted);
+        }
+        return;
+      }
+
+      if (showStageSelect) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setShowStageSelect(false);
+          playSound("select", muted);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          setSelectedStageIndex((prev) => {
+            const nextIdx = prev - 1;
+            if (nextIdx >= 0) {
+              playSound("select", muted);
+              return nextIdx;
+            }
+            return prev;
+          });
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault();
+          setSelectedStageIndex((prev) => {
+            const nextIdx = prev + 1;
+            if (nextIdx < realMap.length) {
+              playSound("select", muted);
+              return nextIdx;
+            }
+            return prev;
+          });
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSelectedStageIndex((prev) => {
+            const nextIdx = prev - 5;
+            if (nextIdx >= 0) {
+              playSound("select", muted);
+              return nextIdx;
+            }
+            return prev;
+          });
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSelectedStageIndex((prev) => {
+            const nextIdx = prev + 5;
+            if (nextIdx < realMap.length) {
+              playSound("select", muted);
+              return nextIdx;
+            }
+            return prev;
+          });
+        } else if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleStageSelect(selectedStageIndex);
         }
         return;
       }
@@ -278,7 +401,16 @@ export default function HomeView() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [menuIndex, showHowToPlay, muted, triggerMenuAction, insertCoin]);
+  }, [
+    menuIndex,
+    showHowToPlay,
+    showStageSelect,
+    selectedStageIndex,
+    muted,
+    triggerMenuAction,
+    insertCoin,
+    handleStageSelect,
+  ]);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6 bg-zinc-950 retro-bricks overflow-hidden relative font-press-start">
@@ -341,75 +473,144 @@ export default function HomeView() {
               </div>
             </div>
 
-            {/* Logo and Menu Panel */}
-            <div className="flex-1 flex flex-col justify-center items-center gap-6 my-2">
-              {/* Bouncy Retro PUZZNIC Title Logo */}
-              <div className="flex justify-center text-4xl sm:text-5xl gap-1 text-center font-black select-none py-2 relative">
-                {[
-                  { char: "P", color: "from-orange-400 to-red-600" },
-                  { char: "U", color: "from-pink-400 to-rose-600" },
-                  { char: "Z", color: "from-yellow-300 to-amber-500" },
-                  { char: "Z", color: "from-cyan-400 to-blue-600" },
-                  { char: "N", color: "from-purple-400 to-indigo-600" },
-                  { char: "I", color: "from-green-400 to-emerald-600" },
-                  { char: "C", color: "from-blue-400 to-indigo-600" },
-                ].map((l, i) => (
-                  <span
-                    key={i}
-                    className={`relative inline-block bg-gradient-to-b ${l.color} bg-clip-text text-transparent`}
-                    style={{
-                      filter: "drop-shadow(3px 3px 0px #000000)",
-                      animation: `retro-bounce 1.6s infinite ease-in-out ${i * 0.12}s`,
-                    }}
+            {/* Logo and Menu Panel or Stage Selection Panel */}
+            {showStageSelect ? (
+              <div className="flex-1 flex flex-col justify-between items-center my-1 py-1 w-full">
+                {/* Title */}
+                <div className="text-center mt-1">
+                  <h2 className="text-[13px] font-bold text-yellow-400 tracking-wider font-press-start">
+                    SELECT STAGE
+                  </h2>
+                  <p className="text-[7px] text-zinc-500 font-press-start mt-1">
+                    CHOOSE A LEVEL TO BEGIN
+                  </p>
+                </div>
+
+                {/* Grid of 20 stages */}
+                <div className="grid grid-cols-5 gap-2.5 my-2">
+                  {currentLevels.map((lvl, idx) => {
+                    const globalIdx = pageIndex * 20 + idx;
+                    const isUnlocked = globalIdx < maxUnlockedStage;
+                    const isSelected = globalIdx === selectedStageIndex;
+                    return (
+                      <button
+                        key={globalIdx}
+                        onClick={() => handleStageSelect(globalIdx)}
+                        onMouseEnter={() => handleStageHover(globalIdx)}
+                        className={`w-9 h-9 flex flex-col items-center justify-center rounded border text-[9px] font-press-start transition-all relative cursor-pointer
+                          ${isSelected 
+                            ? "bg-yellow-500 border-yellow-600 text-black font-bold scale-105 shadow-[0_0_8px_rgba(234,179,8,0.5)]" 
+                            : isUnlocked 
+                              ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700" 
+                              : "bg-zinc-950 border-zinc-950 text-zinc-700 cursor-not-allowed opacity-60"
+                          }`}
+                      >
+                        {isUnlocked ? (
+                          <span>{globalIdx + 1}</span>
+                        ) : (
+                          <div className={isSelected ? "text-black" : "text-zinc-600"}>
+                            <LockIcon />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Pagination and Navigation */}
+                <div className="flex justify-between items-center w-full px-8 text-[8px] font-press-start text-zinc-400 mt-1">
+                  <button 
+                    onClick={prevPage}
+                    className={`hover:text-yellow-400 cursor-pointer ${pageIndex === 0 ? "opacity-0 pointer-events-none" : ""}`}
                   >
-                    {l.char}
-                  </span>
-                ))}
-              </div>
-
-              {/* Sub-header block graphic decoration */}
-              <div className="flex gap-2 justify-center py-1">
-                {blockTypes.map((t, idx) => (
-                  <div key={idx} className="w-5 h-5 opacity-80 animate-pulse" style={{ animationDelay: `${idx * 0.25}s` }}>
-                    <RenderBlock type={t} />
+                    ◀ PREV
+                  </button>
+                  <div className="text-[7px] text-zinc-500">
+                    PAGE {pageIndex + 1} / {totalPages}
                   </div>
-                ))}
-              </div>
+                  <button 
+                    onClick={nextPage}
+                    className={`hover:text-yellow-400 cursor-pointer ${pageIndex === totalPages - 1 ? "opacity-0 pointer-events-none" : ""}`}
+                  >
+                    NEXT ▶
+                  </button>
+                </div>
 
-              {/* Interactive Retro Menu */}
-              <div className="flex flex-col gap-4 mt-2 w-full max-w-[280px]">
-                {[
-                  { label: "PLAY GAME", desc: credits > 0 ? "START PUZZLE" : "FREE GAME START" },
-                  { label: "LEVEL EDITOR", desc: "CREATE LEVELS" },
-                  { label: "HOW TO PLAY", desc: "CONTROLS & RULE" }
-                ].map((item, index) => {
-                  const isActive = menuIndex === index;
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => triggerMenuAction(index)}
-                      onMouseEnter={() => handleMenuHover(index)}
-                      className="group flex flex-col items-center justify-center p-2 rounded relative border border-transparent focus:outline-none transition-all cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2 relative">
-                        {isActive && (
-                          <span className="text-yellow-400 text-xs animate-pulse absolute -left-5">▶</span>
-                        )}
-                        <span className={`text-[12px] tracking-wide transition-all ${isActive ? "text-yellow-400 scale-105" : "text-zinc-400"}`}>
-                          {item.label}
-                        </span>
-                        {isActive && (
-                          <span className="text-yellow-400 text-xs animate-pulse absolute -right-5">◀</span>
-                        )}
-                      </div>
-                      <span className="text-[7px] text-zinc-500 mt-1 tracking-wider group-hover:text-zinc-400">
-                        {item.desc}
-                      </span>
-                    </button>
-                  );
-                })}
+                {/* Cancel instruction */}
+                <div className="text-[7px] text-zinc-500 font-press-start mt-2">
+                  [ESC] BACK TO MENU
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="flex-1 flex flex-col justify-center items-center gap-6 my-2">
+                {/* Bouncy Retro PUZZNIC Title Logo */}
+                <div className="flex justify-center text-4xl sm:text-5xl gap-1 text-center font-black select-none py-2 relative">
+                  {[
+                    { char: "P", color: "from-orange-400 to-red-600" },
+                    { char: "U", color: "from-pink-400 to-rose-600" },
+                    { char: "Z", color: "from-yellow-300 to-amber-500" },
+                    { char: "Z", color: "from-cyan-400 to-blue-600" },
+                    { char: "N", color: "from-purple-400 to-indigo-600" },
+                    { char: "I", color: "from-green-400 to-emerald-600" },
+                    { char: "C", color: "from-blue-400 to-indigo-600" },
+                  ].map((l, i) => (
+                    <span
+                      key={i}
+                      className={`relative inline-block bg-gradient-to-b ${l.color} bg-clip-text text-transparent`}
+                      style={{
+                        filter: "drop-shadow(3px 3px 0px #000000)",
+                        animation: `retro-bounce 1.6s infinite ease-in-out ${i * 0.12}s`,
+                      }}
+                    >
+                      {l.char}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Sub-header block graphic decoration */}
+                <div className="flex gap-2 justify-center py-1">
+                  {blockTypes.map((t, idx) => (
+                    <div key={idx} className="w-5 h-5 opacity-80 animate-pulse" style={{ animationDelay: `${idx * 0.25}s` }}>
+                      <RenderBlock type={t} />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Interactive Retro Menu */}
+                <div className="flex flex-col gap-4 mt-2 w-full max-w-[280px]">
+                  {[
+                    { label: "PLAY GAME", desc: credits > 0 ? "START PUZZLE" : "FREE GAME START" },
+                    { label: "LEVEL EDITOR", desc: "CREATE LEVELS" },
+                    { label: "HOW TO PLAY", desc: "CONTROLS & RULE" }
+                  ].map((item, index) => {
+                    const isActive = menuIndex === index;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => triggerMenuAction(index)}
+                        onMouseEnter={() => handleMenuHover(index)}
+                        className="group flex flex-col items-center justify-center p-2 rounded relative border border-transparent focus:outline-none transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 relative">
+                          {isActive && (
+                            <span className="text-yellow-400 text-xs animate-pulse absolute -left-5">▶</span>
+                          )}
+                          <span className={`text-[12px] tracking-wide transition-all ${isActive ? "text-yellow-400 scale-105" : "text-zinc-400"}`}>
+                            {item.label}
+                          </span>
+                          {isActive && (
+                            <span className="text-yellow-400 text-xs animate-pulse absolute -right-5">◀</span>
+                          )}
+                        </div>
+                        <span className="text-[7px] text-zinc-500 mt-1 tracking-wider group-hover:text-zinc-400">
+                          {item.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Bottom Credits & Info Bar */}
             <div className="flex justify-between w-full text-zinc-400 text-[9px] border-t border-zinc-900 pt-2 select-none uppercase">

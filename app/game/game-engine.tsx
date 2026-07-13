@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-declare const require: any;
+declare const require: (path: string) => unknown;
 
 interface RawLevelData {
   name: string;
@@ -221,6 +221,19 @@ const isNonWallBlock = (id: BlockId): boolean => {
   );
 };
 
+const findInitialCursor = (grid: CellType[][]): Position => {
+  const h = grid.length;
+  const w = grid[0]?.length ?? 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (isNonWallBlock(grid[y][x])) {
+        return { x, y };
+      }
+    }
+  }
+  return { x: Math.floor(w / 2), y: h - 1 };
+};
+
 export const useGameEngine = (
   initialLevelIndex = 0,
   isEditorMode = false,
@@ -265,10 +278,7 @@ export const useGameEngine = (
       const h = firstLvl?.grid?.length ?? 8;
       return { x: Math.floor(w / 2), y: h - 1 };
     }
-    return {
-      x: Math.floor(BUILTIN_LEVELS[initialLevelIndex].grid[0].length / 2),
-      y: BUILTIN_LEVELS[initialLevelIndex].grid.length - 1,
-    };
+    return findInitialCursor(BUILTIN_LEVELS[initialLevelIndex].grid);
   });
   const [timeLeft, setTimeLeft] = useState<number>(() => {
     if (isEditorMode) {
@@ -317,6 +327,7 @@ export const useGameEngine = (
   const stateRef = useRef<{
     grid: CellType[][];
     cursor: Position;
+    grabbed: boolean;
     isProcessing: boolean;
     isGameOver: boolean;
     isLevelCleared: boolean;
@@ -334,6 +345,7 @@ export const useGameEngine = (
   }>({
     grid: [],
     cursor: { x: 0, y: 0 },
+    grabbed: false,
     isProcessing: false,
     isGameOver: false,
     isLevelCleared: false,
@@ -349,6 +361,7 @@ export const useGameEngine = (
     stateRef.current = {
       grid,
       cursor,
+      grabbed,
       isProcessing,
       isGameOver,
       isLevelCleared,
@@ -362,6 +375,7 @@ export const useGameEngine = (
   }, [
     grid,
     cursor,
+    grabbed,
     isProcessing,
     isGameOver,
     isLevelCleared,
@@ -370,6 +384,45 @@ export const useGameEngine = (
     muted,
     flashingBlocks,
   ]);
+
+  const updateCursor = useCallback(
+    (updater: Position | ((prev: Position) => Position)) => {
+      setCursor((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (stateRef.current) {
+          stateRef.current.cursor = next;
+        }
+        return next;
+      });
+    },
+    [setCursor],
+  );
+
+  const updateGrabbed = useCallback(
+    (updater: boolean | ((prev: boolean) => boolean)) => {
+      setGrabbed((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        if (stateRef.current) {
+          stateRef.current.grabbed = next;
+        }
+        return next;
+      });
+    },
+    [setGrabbed],
+  );
+
+  const checkAndReleaseGrabbed = useCallback(
+    (targetGrid: CellType[][]) => {
+      if (!stateRef.current) return;
+      const { cursor: curPos, grabbed: curLock } = stateRef.current;
+      if (!curLock) return;
+      const cell = targetGrid[curPos.y]?.[curPos.x];
+      if (!isNonWallBlock(cell)) {
+        updateGrabbed(false);
+      }
+    },
+    [updateGrabbed],
+  );
 
   const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
     const initialGrid = isEditorMode
@@ -595,8 +648,8 @@ export const useGameEngine = (
     setFlashingBlocks({});
     if (stateRef.current) stateRef.current.flashingBlocks = {};
     setHasMovedFirstBlock(false);
-    setGrabbed(false);
-  }, [editorActiveIndex, editorLevels, updateBlockCounts, setGrabbed]);
+    updateGrabbed(false);
+  }, [editorActiveIndex, editorLevels, updateBlockCounts, updateGrabbed]);
 
   // Initialize and Reset levels
   const loadLevel = useCallback(
@@ -609,11 +662,8 @@ export const useGameEngine = (
       setIsGameOver(false);
       setIsLevelCleared(false);
       setIsProcessing(false);
-      setCursor({
-        x: Math.floor(level.grid[0].length / 2),
-        y: level.grid.length - 1,
-      });
-      setGrabbed(false);
+      updateCursor(findInitialCursor(level.grid));
+      updateGrabbed(false);
       setFlashingBlocks({});
       if (stateRef.current) stateRef.current.flashingBlocks = {};
       setBullets([]);
@@ -625,11 +675,11 @@ export const useGameEngine = (
       updateBlockCounts(level.grid);
       playEngineSound("start", muted);
     },
-    [muted, updateBlockCounts, setGrabbed],
+    [muted, updateBlockCounts, updateGrabbed, updateCursor],
   );
 
   const resetLevel = useCallback(() => {
-    setGrabbed(false);
+    updateGrabbed(false);
     setFlashingBlocks({});
     if (stateRef.current) stateRef.current.flashingBlocks = {};
     setBullets([]);
@@ -658,6 +708,7 @@ export const useGameEngine = (
     levelIndex,
     loadLevel,
     updateBlockCounts,
+    updateGrabbed,
   ]);
 
   // Main countdown timer (Game mode only)
@@ -681,7 +732,7 @@ export const useGameEngine = (
 
   // Physics step resolution logic (runs sequentially for animations)
   const runPhysicsLoop = useCallback(
-    async (startGrid: CellType[][], checkX?: number, checkY?: number) => {
+    async (startGrid: CellType[][]) => {
       setIsProcessing(true);
       if (stateRef.current) stateRef.current.isProcessing = true;
       let currentGrid = copyGrid(startGrid);
@@ -715,6 +766,7 @@ export const useGameEngine = (
           currentGrid = nextGravityGrid;
           setGrid(currentGrid);
           if (stateRef.current) stateRef.current.grid = currentGrid;
+          checkAndReleaseGrabbed(currentGrid);
           updateBlockCounts(currentGrid);
           playEngineSound("fall", muted);
           await delay(200); // falling animation duration
@@ -758,6 +810,7 @@ export const useGameEngine = (
           currentGrid = nextSpikeGrid;
           setGrid(currentGrid);
           if (stateRef.current) stateRef.current.grid = currentGrid;
+          checkAndReleaseGrabbed(currentGrid);
           updateBlockCounts(currentGrid);
           playEngineSound("break", muted);
           await delay(200);
@@ -831,6 +884,7 @@ export const useGameEngine = (
           currentGrid = nextMatchGrid;
           setGrid(currentGrid);
           if (stateRef.current) stateRef.current.grid = currentGrid;
+          checkAndReleaseGrabbed(currentGrid);
           updateBlockCounts(currentGrid);
           continue; // Loop back to gravity check to drop blocks that were held
         }
@@ -855,17 +909,12 @@ export const useGameEngine = (
       }
 
       // Maintain lock state after move settles, but release if block is gone (e.g. matched or fell)
-      if (checkX !== undefined && checkY !== undefined) {
-        const cell = currentGrid[checkY][checkX];
-        if (cell === BLOCK_EMPTY || cell === BLOCK_WALL) {
-          setGrabbed(false);
-        }
-      }
+      checkAndReleaseGrabbed(currentGrid);
 
       setIsProcessing(false);
       if (stateRef.current) stateRef.current.isProcessing = false;
     },
-    [isEditorMode, muted, updateBlockCounts, setGrabbed],
+    [isEditorMode, muted, updateBlockCounts, checkAndReleaseGrabbed],
   );
 
   // Move Block left, right, up, or down
@@ -874,7 +923,6 @@ export const useGameEngine = (
       const curState = stateRef.current;
 
       if (
-        curState.isProcessing ||
         curState.isGameOver ||
         curState.isLevelCleared ||
         curState.isEditorMode
@@ -992,13 +1040,15 @@ export const useGameEngine = (
         stateRef.current.hasMovedFirstBlock = true;
         stateRef.current.cursor = { x: newCursorX, y: newCursorY };
       }
-      setCursor({ x: newCursorX, y: newCursorY });
+      updateCursor({ x: newCursorX, y: newCursorY });
       playEngineSound("select", curState.muted);
 
-      // Start physics solver
-      runPhysicsLoop(nextGrid, newCursorX, newCursorY);
+      // Start physics solver only if not already running
+      if (!curState.isProcessing) {
+        runPhysicsLoop(nextGrid);
+      }
     },
-    [runPhysicsLoop],
+    [runPhysicsLoop, updateCursor],
   );
 
   // Level Editor Grid modification methods

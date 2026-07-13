@@ -255,6 +255,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     resetLevel,
     setCursor,
     setGrabbed,
+    levelIndex,
+    loadLevel,
+    isEditor,
   });
 
   useEffect(() => {
@@ -271,6 +274,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       resetLevel,
       setCursor,
       setGrabbed,
+      levelIndex,
+      loadLevel,
+      isEditor,
     };
   }, [
     grid,
@@ -285,7 +291,41 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     resetLevel,
     setCursor,
     setGrabbed,
+    levelIndex,
+    loadLevel,
+    isEditor,
   ]);
+
+  // Read stage query param on mount and load it
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const stageParam = searchParams.get("stage");
+      if (stageParam) {
+        const stageIdx = parseInt(stageParam, 10) - 1;
+        if (stageIdx >= 0 && stageIdx < BUILTIN_LEVELS.length) {
+          if (levelIndex !== stageIdx) {
+            loadLevel(stageIdx);
+          }
+        }
+      }
+    }
+  }, [loadLevel, levelIndex]);
+
+  // Unlock next stage when a stage is cleared
+  useEffect(() => {
+    if (isLevelCleared && !isEditor) {
+      if (typeof window !== "undefined") {
+        const nextLevel = levelIndex + 2; // index 0 cleared -> stage 2 unlocked
+        if (nextLevel <= BUILTIN_LEVELS.length) {
+          const maxUnlocked = parseInt(localStorage.getItem("puzznic_max_unlocked") || "1", 10);
+          if (nextLevel > maxUnlocked) {
+            localStorage.setItem("puzznic_max_unlocked", nextLevel.toString());
+          }
+        }
+      }
+    }
+  }, [isLevelCleared, levelIndex, isEditor]);
 
   // Keyboard navigation inside grid for Puzznic game
   useEffect(() => {
@@ -293,8 +333,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       const {
         grid: curGrid,
         cursor: curCursor,
-        grabbed: curGrabbed,
-        isProcessing: curProcessing,
+        grabbed: initialGrabbed,
         isGameOver: curGameOver,
         isLevelCleared: curLevelCleared,
         activeEditor: curActiveEditor,
@@ -303,9 +342,28 @@ export default function GameView({ isEditor = false }: GameViewProps) {
         resetLevel: curResetLevel,
         setCursor: curSetCursor,
         setGrabbed: curSetGrabbed,
+        levelIndex: curLevelIndex,
+        loadLevel: curLoadLevel,
+        isEditor: curIsEditor,
       } = gameViewRef.current;
+      let curGrabbed = initialGrabbed;
 
-      if (curActiveEditor || curGameOver || curLevelCleared) return;
+      if (curLevelCleared) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          curSetGrabbed(false);
+          if (!curIsEditor) {
+            const nextIdx = (curLevelIndex + 1) % BUILTIN_LEVELS.length;
+            curLoadLevel(nextIdx);
+          } else {
+            curResetLevel();
+          }
+          playSound("start", curMuted);
+        }
+        return;
+      }
+
+      if (curActiveEditor || curGameOver) return;
 
       // 1. Grab/Deselect action with Space
       if (e.code === "Space" || e.key === " ") {
@@ -325,10 +383,6 @@ export default function GameView({ isEditor = false }: GameViewProps) {
           curSetGrabbed(false);
           playSound("select", curMuted);
         } else {
-          if (curProcessing) {
-            playSound("error", curMuted);
-            return;
-          }
           if (isPuzzleBlock) {
             curSetGrabbed(true);
             playSound("select", curMuted);
@@ -339,12 +393,27 @@ export default function GameView({ isEditor = false }: GameViewProps) {
         return;
       }
 
+      // Release lock if the selector cell no longer has a valid puzzle block while grabbed
+      const currentCellAtCursor = curGrid[curCursor.y]?.[curCursor.x];
+      const isCursorPuzzleBlock =
+        currentCellAtCursor !== undefined &&
+        currentCellAtCursor !== BLOCK_EMPTY &&
+        currentCellAtCursor !== BLOCK_WALL &&
+        currentCellAtCursor !== BLOCK_AUTO_WALL_V &&
+        currentCellAtCursor !== BLOCK_AUTO_WALL_H &&
+        currentCellAtCursor !== BLOCK_SPIKE_U &&
+        currentCellAtCursor !== BLOCK_SPIKE_D &&
+        currentCellAtCursor !== BLOCK_SPIKE_L &&
+        currentCellAtCursor !== BLOCK_SPIKE_R;
+
+      if (curGrabbed && !isCursorPuzzleBlock) {
+        curSetGrabbed(false);
+        curGrabbed = false;
+      }
+
       // 2. Grabbing slide actions
       if (curGrabbed) {
-        if (curProcessing) {
-          curSetGrabbed(false);
-        } else {
-          const cell = curGrid[curCursor.y]?.[curCursor.x];
+        const cell = curGrid[curCursor.y]?.[curCursor.x];
           if (cell === BLOCK_WALL_V) {
             if (e.key === "ArrowUp") {
               e.preventDefault();
@@ -369,7 +438,6 @@ export default function GameView({ isEditor = false }: GameViewProps) {
             }
           }
           return;
-        }
       }
 
       // 3. Normal navigation (when not grabbed)
@@ -613,6 +681,17 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 {playTestMode ? "⏹ STOP TEST" : "▶ TEST LEVEL"}
               </button>
             )}
+            <button
+              onClick={() => {
+                setGrabbed(false);
+                resetLevel();
+                playSound("select", muted);
+              }}
+              className="text-zinc-500 hover:text-zinc-300 text-[10px] cursor-pointer focus:outline-none uppercase"
+            >
+              🔄 RETRY
+            </button>
+            <span className="text-[10px] text-zinc-700">|</span>
             <button
               onClick={() => setMuted(!muted)}
               className="text-zinc-500 hover:text-zinc-300 text-[10px] cursor-pointer focus:outline-none"
@@ -892,30 +971,39 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 </div>
               </div>
 
-              {/* Status notifications overlays (Cleared / GameOver) */}
-              {(isGameOver || isLevelCleared) && (
-                <div className="absolute inset-0 bg-black/90 backdrop-blur-[2px] z-40 flex flex-col items-center justify-center gap-4 text-center p-4">
-                  {isLevelCleared ? (
-                    <>
-                      <h2 className="text-xl text-yellow-400 animate-bounce tracking-widest">
-                        STAGE CLEARED!
-                      </h2>
-                      <p className="text-[8px] text-zinc-500 uppercase">
-                        Excellent Puzzle Solving
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <h2 className="text-xl text-red-500 tracking-widest animate-pulse">
-                        GAME OVER
-                      </h2>
-                      <p className="text-[8px] text-zinc-500 uppercase">
-                        Time has run out!
-                      </p>
-                    </>
-                  )}
+              {/* Success Notification Overlay (Cleared) */}
+              {isLevelCleared && (
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-[3px] z-40 flex flex-col items-center justify-center gap-5 text-center p-6 select-none animate-fade-in">
+                  {/* Glowing Backlight Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 via-emerald-500/15 to-transparent pointer-events-none animate-pulse" />
 
-                  <div className="flex gap-4 mt-2">
+                  {/* Star Icon container with bouncy animation */}
+                  <div className="relative animate-bounce" style={{ animationDuration: "1.2s" }}>
+                    <svg className="w-14 h-14 text-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.8)]" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  </div>
+
+                  {/* Fancy title */}
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest font-press-start animate-pulse uppercase">
+                      STAGE CLEARED!
+                    </h2>
+                    <div className="text-[9px] text-emerald-400 font-bold tracking-widest uppercase">
+                      Level {levelIndex + 1} Complete
+                    </div>
+                  </div>
+
+                  {/* Pinging light indicators */}
+                  <div className="flex gap-3 justify-center py-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                    <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping [animation-delay:0.2s]" />
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping [animation-delay:0.4s]" />
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping [animation-delay:0.6s]" />
+                  </div>
+
+                  {/* Confirm Button */}
+                  <div className="flex flex-col items-center gap-3 mt-3 w-full max-w-[200px]">
                     <button
                       onClick={() => {
                         setGrabbed(false);
@@ -926,19 +1014,39 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                         } else {
                           resetLevel();
                         }
+                        playSound("start", muted);
                       }}
-                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded text-[9px] cursor-pointer border border-yellow-600 font-bold shadow"
+                      className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-black rounded text-[10px] cursor-pointer border-2 border-yellow-600 font-bold shadow-[0_0_15px_rgba(234,179,8,0.4)] transition-all hover:scale-105 active:scale-95 uppercase tracking-wider font-press-start"
                     >
-                      {isEditor ? "RETRY" : "NEXT LEVEL"}
+                      {isEditor ? "CONFIRM" : "NEXT LEVEL"}
                     </button>
+                    <span className="text-[7px] text-zinc-500 tracking-wider uppercase animate-pulse">
+                      [ PRESS ENTER ]
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Game Over Notification Overlay */}
+              {isGameOver && (
+                <div className="absolute inset-0 bg-black/90 backdrop-blur-[2px] z-40 flex flex-col items-center justify-center gap-4 text-center p-4">
+                  <h2 className="text-xl text-red-500 tracking-widest animate-pulse font-press-start">
+                    GAME OVER
+                  </h2>
+                  <p className="text-[8px] text-zinc-500 uppercase">
+                    Time has run out!
+                  </p>
+
+                  <div className="flex gap-4 mt-2">
                     <button
                       onClick={() => {
                         setGrabbed(false);
                         resetLevel();
+                        playSound("start", muted);
                       }}
-                      className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded text-[9px] cursor-pointer border border-zinc-700 shadow"
+                      className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded text-[9px] cursor-pointer border border-yellow-600 font-bold shadow"
                     >
-                      RESTART
+                      RETRY
                     </button>
                   </div>
                 </div>
@@ -1222,9 +1330,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
               </div>
             </div>
           ) : (
-            // Gameplay Controls & Stage selectors
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="text-[7.5px] text-zinc-400 leading-relaxed uppercase max-w-[320px] text-center sm:text-left">
+            // Gameplay Controls
+            <div className="flex items-center justify-center sm:justify-start">
+              <div className="text-[7.5px] text-zinc-400 leading-relaxed uppercase max-w-[480px] text-center sm:text-left">
                 {playTestMode ? (
                   <span className="text-yellow-400 font-bold">
                     [PLAYTESTING MODE] Move selection: [Arrows] | Grab block:
@@ -1237,32 +1345,6 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                   </span>
                 )}
               </div>
-
-              {/* Level select list */}
-              {!playTestMode && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[8px] text-zinc-500 uppercase">
-                    SELECT STAGE:
-                  </span>
-                  <div className="flex gap-1.5">
-                    {BUILTIN_LEVELS.map((_, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          setGrabbed(false);
-                          loadLevel(idx);
-                        }}
-                        className={`w-7 h-7 flex items-center justify-center rounded border text-[9px] cursor-pointer transition-colors ${levelIndex === idx
-                          ? "bg-yellow-500 border-yellow-600 text-black font-bold"
-                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
-                          }`}
-                      >
-                        {idx + 1}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
