@@ -537,8 +537,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
               <button
                 onClick={togglePlayTest}
                 className={`px-3 py-1.5 rounded text-[8px] cursor-pointer transition-all border ${playTestMode
-                    ? "bg-red-600 hover:bg-red-500 border-red-700 text-white"
-                    : "bg-emerald-600 hover:bg-emerald-500 border-emerald-700 text-white animate-pulse"
+                  ? "bg-red-600 hover:bg-red-500 border-red-700 text-white"
+                  : "bg-emerald-600 hover:bg-emerald-500 border-emerald-700 text-white animate-pulse"
                   }`}
               >
                 {playTestMode ? "⏹ STOP TEST" : "▶ TEST LEVEL"}
@@ -679,8 +679,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                         <div className="flex-1 h-2 bg-zinc-950 border border-zinc-800 rounded overflow-hidden">
                           <div
                             className={`h-full transition-all duration-1000 ${timeLeft > 20
-                                ? "bg-emerald-500"
-                                : "bg-red-500 animate-pulse"
+                              ? "bg-emerald-500"
+                              : "bg-red-500 animate-pulse"
                               }`}
                             style={{
                               width: `${(timeLeft / (BUILTIN_LEVELS[levelIndex]?.timeLimit || 180)) * 100}%`,
@@ -770,8 +770,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                           {cell !== BLOCK_EMPTY && (
                             <div
                               className={`w-[88%] h-[88%] transform active:scale-95 transition-transform ${flashingBlocks[`${y},${x}`]
-                                  ? "animate-match-flash pointer-events-none"
-                                  : ""
+                                ? "animate-match-flash pointer-events-none"
+                                : ""
                                 }`}
                             >
                               <BlockRenderer
@@ -787,8 +787,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                           {isCursor && (
                             <div
                               className={`absolute inset-0 border-2 pointer-events-none z-20 animate-pulse ${grabbed
-                                  ? "border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.9)] animate-bounce"
-                                  : "border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]"
+                                ? "border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.9)] animate-bounce"
+                                : "border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]"
                                 }`}
                             >
                               {/* Glowing corner anchors */}
@@ -896,8 +896,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint("eraser")}
                   className={`px-3 py-2 rounded text-[8.5px] border cursor-pointer flex items-center gap-1.5 transition-all ${selectedPaint === "eraser"
-                      ? "bg-red-600 border-red-700 text-white shadow-lg scale-105"
-                      : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                    ? "bg-red-600 border-red-700 text-white shadow-lg scale-105"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
                     }`}
                 >
                   🧹 ERASER
@@ -907,8 +907,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                 >
                   <BlockRenderer id={BLOCK_WALL} />
@@ -920,8 +920,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                     key={type}
                     onClick={() => setSelectedPaint(type)}
                     className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === type
-                        ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                        : "border-zinc-700 hover:border-zinc-500"
+                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-700 hover:border-zinc-500"
                       }`}
                   >
                     <BlockRenderer id={type} />
@@ -932,8 +932,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_BOMB)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_BOMB
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Bomb Block"
                 >
@@ -944,8 +944,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL_V)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL_V
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Vertical Moving Wall"
                 >
@@ -954,8 +954,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL_H)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL_H
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Horizontal Moving Wall"
                 >
@@ -964,8 +964,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_AUTO_WALL_V)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_AUTO_WALL_V
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Vertical Auto-Moving Wall"
                 >
@@ -974,8 +974,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_AUTO_WALL_H)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_AUTO_WALL_H
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Horizontal Auto-Moving Wall"
                 >
@@ -986,8 +986,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_L)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_L
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Shooter Left (Repeated)"
                 >
@@ -996,8 +996,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_R)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_R
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Shooter Right (Repeated)"
                 >
@@ -1006,8 +1006,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_L_ONCE)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_L_ONCE
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Shooter Left (Once)"
                 >
@@ -1016,8 +1016,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_R_ONCE)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_R_ONCE
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Shooter Right (Once)"
                 >
@@ -1028,8 +1028,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_U)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_U
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Spike Up"
                 >
@@ -1038,8 +1038,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_D)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_D
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Spike Down"
                 >
@@ -1048,8 +1048,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_L)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_L
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Spike Left"
                 >
@@ -1058,8 +1058,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_R)}
                   className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_R
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-700 hover:border-zinc-500"
                     }`}
                   title="Spike Right"
                 >
@@ -1184,8 +1184,8 @@ export default function GameView({ isEditor = false }: GameViewProps) {
                           loadLevel(idx);
                         }}
                         className={`w-7 h-7 flex items-center justify-center rounded border text-[9px] cursor-pointer transition-colors ${levelIndex === idx
-                            ? "bg-yellow-500 border-yellow-600 text-black font-bold"
-                            : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
+                          ? "bg-yellow-500 border-yellow-600 text-black font-bold"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white"
                           }`}
                       >
                         {idx + 1}

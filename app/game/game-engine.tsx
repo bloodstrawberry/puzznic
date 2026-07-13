@@ -380,11 +380,13 @@ export const useGameEngine = (
   const editorAddLevel = useCallback(() => {
     if (!isEditorMode) return;
     const insertIdx = editorActiveIndex + 1;
+    const currentRows = grid.length;
+    const currentCols = grid[0]?.length || 8;
     setEditorLevels((prev) => {
       const next = [...prev];
       const newLvl: LevelData = {
         name: "",
-        grid: Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY)),
+        grid: Array.from({ length: currentRows }, () => Array(currentCols).fill(BLOCK_EMPTY)),
         timeLimit: 180,
       };
       next.splice(insertIdx, 0, newLvl);
@@ -406,7 +408,7 @@ export const useGameEngine = (
       return reindexed;
     });
     playEngineSound("start", muted);
-  }, [isEditorMode, muted, editorActiveIndex, updateBlockCounts]);
+  }, [isEditorMode, muted, editorActiveIndex, updateBlockCounts, grid]);
 
   const editorDeleteLevel = useCallback(() => {
     if (!isEditorMode || editorLevels.length <= 1) return;
@@ -949,12 +951,14 @@ export const useGameEngine = (
   const editorClearGrid = useCallback(() => {
     if (!isEditorMode) return;
     setGrabbed(false);
-    const newGrid = Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY));
+    const currentRows = grid.length;
+    const currentCols = grid[0]?.length || 8;
+    const newGrid = Array.from({ length: currentRows }, () => Array(currentCols).fill(BLOCK_EMPTY));
     setGrid(newGrid);
     setBlockCounts({});
     updateEditorLevelGrid(newGrid);
     playEngineSound("error", muted);
-  }, [isEditorMode, muted, setBlockCounts, setGrabbed, updateEditorLevelGrid]);
+  }, [isEditorMode, muted, setBlockCounts, setGrabbed, updateEditorLevelGrid, grid]);
 
   const editorFillBorder = useCallback(() => {
     if (!isEditorMode) return;
@@ -1157,63 +1161,74 @@ export const useGameEngine = (
             const hasFlashing = stack.some((item) => curFlashingBlocks[`${item.y},${item.x}`]);
             if (hasFlashing) continue;
 
-            // Check if stack can move horizontally
-            let canMove = true;
-            for (const item of stack) {
-              const nx = item.x + dx;
-              const ny = item.y;
-              if (nx < 0 || nx >= W) {
-                canMove = false;
-                break;
-              }
-              const destCell = nextGrid[ny][nx];
-              const isSelf = stack.some((s) => s.x === nx && s.y === ny);
-              if (destCell !== BLOCK_EMPTY && !isSelf) {
-                canMove = false;
-                break;
-              }
-            }
-
-            if (!canMove) {
-              // Reverse direction and try again
-              dx = -dx;
-              canMove = true;
-              for (const item of stack) {
+            // Check how many items in the stack can move in direction dx
+            let moveCount = 0;
+            const w0 = stack[0];
+            const nx0 = w0.x + dx;
+            if (nx0 >= 0 && nx0 < W && nextGrid[w0.y][nx0] === BLOCK_EMPTY) {
+              moveCount = 1;
+              for (let i = 1; i < stack.length; i++) {
+                const item = stack[i];
                 const nx = item.x + dx;
                 const ny = item.y;
-                if (nx < 0 || nx >= W) {
-                  canMove = false;
-                  break;
-                }
-                const destCell = nextGrid[ny][nx];
-                const isSelf = stack.some((s) => s.x === nx && s.y === ny);
-                if (destCell !== BLOCK_EMPTY && !isSelf) {
-                  canMove = false;
+                if (nx >= 0 && nx < W) {
+                  const destCell = nextGrid[ny][nx];
+                  if (destCell === BLOCK_EMPTY) {
+                    moveCount++;
+                  } else {
+                    break;
+                  }
+                } else {
                   break;
                 }
               }
             }
 
-            if (canMove) {
-              // Execute stack shift
-              const originalValues = stack.map(
+            if (moveCount === 0) {
+              // Reverse direction and try again
+              dx = -dx;
+              const rnx0 = w0.x + dx;
+              if (rnx0 >= 0 && rnx0 < W && nextGrid[w0.y][rnx0] === BLOCK_EMPTY) {
+                moveCount = 1;
+                for (let i = 1; i < stack.length; i++) {
+                  const item = stack[i];
+                  const nx = item.x + dx;
+                  const ny = item.y;
+                  if (nx >= 0 && nx < W) {
+                    const destCell = nextGrid[ny][nx];
+                    if (destCell === BLOCK_EMPTY) {
+                      moveCount++;
+                    } else {
+                      break;
+                    }
+                  } else {
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (moveCount > 0) {
+              // Execute stack shift for only the movable part
+              const movingStack = stack.slice(0, moveCount);
+              const originalValues = movingStack.map(
                 (item) => nextGrid[item.y][item.x],
               );
               // Clear old
-              for (const item of stack) {
+              for (const item of movingStack) {
                 nextGrid[item.y][item.x] = BLOCK_EMPTY;
               }
               // Write new
-              for (let i = 0; i < stack.length; i++) {
-                const item = stack[i];
+              for (let i = 0; i < movingStack.length; i++) {
+                const item = movingStack[i];
                 nextGrid[item.y][item.x + dx] = originalValues[i];
                 processed[item.y][item.x + dx] = true;
               }
 
               // Adjust cursor selector if it was on a block in this stack
               let cursorIndex = -1;
-              for (let i = 0; i < stack.length; i++) {
-                if (stack[i].x === curCursor.x && stack[i].y === curCursor.y) {
+              for (let i = 0; i < movingStack.length; i++) {
+                if (movingStack[i].x === curCursor.x && movingStack[i].y === curCursor.y) {
                   cursorIndex = i;
                   break;
                 }
