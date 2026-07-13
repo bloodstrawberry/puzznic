@@ -181,6 +181,20 @@ function Bullet({ bullet, W, H }: { bullet: Bullet; W: number; H: number }) {
   );
 }
 
+const getInitialStageIndex = (): number => {
+  if (typeof window !== "undefined") {
+    const searchParams = new URLSearchParams(window.location.search);
+    const stageParam = searchParams.get("stage");
+    if (stageParam) {
+      const stageIdx = parseInt(stageParam, 10) - 1;
+      if (stageIdx >= 0 && stageIdx < BUILTIN_LEVELS.length) {
+        return stageIdx;
+      }
+    }
+  }
+  return 0;
+};
+
 interface GameViewProps {
   isEditor?: boolean;
 }
@@ -188,6 +202,8 @@ interface GameViewProps {
 export default function GameView({ isEditor = false }: GameViewProps) {
   const [playTestMode, setPlayTestMode] = useState<boolean>(false);
   const activeEditor = isEditor && !playTestMode;
+
+  const [initialStageIdx] = useState(getInitialStageIndex);
 
   const {
     grid,
@@ -222,7 +238,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     editorRestoreLevel,
     editorUndo,
     editorPushHistory,
-  } = useGameEngine(0, activeEditor, isEditor);
+  } = useGameEngine(initialStageIdx, activeEditor, isEditor);
 
   const [selectedPaint, setSelectedPaint] = useState<CellType | "eraser">(
     BLOCK_WALL,
