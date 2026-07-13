@@ -53,6 +53,7 @@ export const useGameEngine = (
   const [levelIndex, setLevelIndex] = useState<number>(initialLevelIndex);
   const autoWallDirections = useRef<Record<string, number>>({});
   const autoWallDelays = useRef<Record<string, number>>({});
+  const physicsLoopIdRef = useRef<number>(0);
 
   const [grid, setGrid] = useState<CellType[][]>(() => {
     if (isEditorMode) {
@@ -259,6 +260,7 @@ export const useGameEngine = (
   const loadLevel = useCallback(
     (levelIdx: number) => {
       if (levelIdx < 0 || levelIdx >= BUILTIN_LEVELS.length) return;
+      physicsLoopIdRef.current++;
       const level = BUILTIN_LEVELS[levelIdx];
       setLevelIndex(levelIdx);
       setGrid(copyGrid(level.grid));
@@ -283,6 +285,7 @@ export const useGameEngine = (
   );
 
   const resetLevel = useCallback(() => {
+    physicsLoopIdRef.current++;
     updateGrabbed(false);
     setFlashingBlocks({});
     if (stateRef.current) stateRef.current.flashingBlocks = {};
@@ -337,6 +340,7 @@ export const useGameEngine = (
   // Physics step resolution logic (runs sequentially for animations)
   const runPhysicsLoop = useCallback(
     async (startGrid: CellType[][]) => {
+      const currentLoopId = ++physicsLoopIdRef.current;
       setIsProcessing(true);
       if (stateRef.current) stateRef.current.isProcessing = true;
       let currentGrid = copyGrid(startGrid);
@@ -359,6 +363,7 @@ export const useGameEngine = (
           updateBlockCounts(currentGrid);
           playEngineSound("fall", muted);
           await delay(200); // falling animation duration
+          if (physicsLoopIdRef.current !== currentLoopId) return;
           if (stateRef.current?.grid) {
             currentGrid = copyGrid(stateRef.current.grid);
           }
@@ -376,6 +381,7 @@ export const useGameEngine = (
           updateBlockCounts(currentGrid);
           playEngineSound("break", muted);
           await delay(200);
+          if (physicsLoopIdRef.current !== currentLoopId) return;
           if (stateRef.current?.grid) {
             currentGrid = copyGrid(stateRef.current.grid);
           }
@@ -397,6 +403,7 @@ export const useGameEngine = (
           playEngineSound("match", muted);
 
           await delay(600); // Wait for the flashing animation to complete
+          if (physicsLoopIdRef.current !== currentLoopId) return;
 
           setFlashingBlocks({});
           if (stateRef.current) stateRef.current.flashingBlocks = {};

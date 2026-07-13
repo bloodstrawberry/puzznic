@@ -149,7 +149,11 @@ interface GameViewProps {
   isEditor?: boolean;
 }
 
-export default function GameView({ isEditor = false }: GameViewProps) {
+interface GameContentProps extends GameViewProps {
+  onFullReset?: () => void;
+}
+
+function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
   const [playTestMode, setPlayTestMode] = useState<boolean>(false);
   const activeEditor = isEditor && !playTestMode;
 
@@ -225,6 +229,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     levelIndex,
     loadLevel,
     isEditor,
+    onFullReset,
   });
 
   useEffect(() => {
@@ -244,6 +249,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       levelIndex,
       loadLevel,
       isEditor,
+      onFullReset,
     };
   }, [
     grid,
@@ -261,6 +267,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     levelIndex,
     loadLevel,
     isEditor,
+    onFullReset,
   ]);
 
   const hasLoadedUrlStageRef = useRef<boolean>(false);
@@ -281,7 +288,9 @@ export default function GameView({ isEditor = false }: GameViewProps) {
           } else {
             localStorage.setItem("puzznic_max_unlocked", "1");
             loadLevel(0);
-            setCheaterPopupOpen(true);
+            setTimeout(() => {
+              setCheaterPopupOpen(true);
+            }, 0);
             playSound("error", muted);
           }
           hasLoadedUrlStageRef.current = true;
@@ -345,6 +354,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
         levelIndex: curLevelIndex,
         loadLevel: curLoadLevel,
         isEditor: curIsEditor,
+        onFullReset: curOnFullReset,
       } = gameViewRef.current;
       let curGrabbed = initialGrabbed;
 
@@ -455,7 +465,11 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       } else if (e.key === "r" || e.key === "R") {
         e.preventDefault();
         curSetGrabbed(false);
-        curResetLevel();
+        if (!curIsEditor && curOnFullReset) {
+          curOnFullReset();
+        } else {
+          curResetLevel();
+        }
         return;
       }
 
@@ -684,7 +698,11 @@ export default function GameView({ isEditor = false }: GameViewProps) {
             <button
               onClick={() => {
                 setGrabbed(false);
-                resetLevel();
+                if (!isEditor && onFullReset) {
+                  onFullReset();
+                } else {
+                  resetLevel();
+                }
                 playSound("select", muted);
               }}
               className="text-zinc-500 hover:text-zinc-300 text-[10px] cursor-pointer focus:outline-none uppercase"
@@ -1314,4 +1332,14 @@ export default function GameView({ isEditor = false }: GameViewProps) {
       )}
     </div>
   );
+}
+
+export default function GameView({ isEditor = false }: GameViewProps) {
+  const [resetKey, setResetKey] = useState(0);
+
+  const handleFullReset = () => {
+    setResetKey((prev) => prev + 1);
+  };
+
+  return <GameContent key={resetKey} isEditor={isEditor} onFullReset={handleFullReset} />;
 }

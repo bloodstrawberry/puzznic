@@ -87,7 +87,18 @@ interface GameStageViewProps {
   loadLevel: (index: number) => void;
   resetLevel: () => void;
   setCursor: (cursor: Position) => void;
-  playSound: (type: any, muted: boolean) => void;
+  playSound: (
+    type:
+      | "coin"
+      | "select"
+      | "start"
+      | "error"
+      | "match"
+      | "fall"
+      | "shoot"
+      | "break",
+    muted: boolean,
+  ) => void;
   handleMouseDown: (e: React.MouseEvent, x: number, y: number) => void;
   handleMouseEnter: (x: number, y: number) => void;
   handleCellClick: (x: number, y: number) => void;
