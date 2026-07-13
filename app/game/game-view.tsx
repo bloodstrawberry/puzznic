@@ -301,7 +301,7 @@ export default function GameView({ isEditor = false }: GameViewProps) {
         setGrabbed: curSetGrabbed,
       } = gameViewRef.current;
 
-      if (curActiveEditor || curGameOver || curLevelCleared || curProcessing) return;
+      if (curActiveEditor || curGameOver || curLevelCleared) return;
 
       // 1. Grab/Deselect action with Space
       if (e.code === "Space" || e.key === " ") {
@@ -321,6 +321,10 @@ export default function GameView({ isEditor = false }: GameViewProps) {
           curSetGrabbed(false);
           playSound("select", curMuted);
         } else {
+          if (curProcessing) {
+            playSound("error", curMuted);
+            return;
+          }
           if (isPuzzleBlock) {
             curSetGrabbed(true);
             playSound("select", curMuted);
@@ -333,31 +337,35 @@ export default function GameView({ isEditor = false }: GameViewProps) {
 
       // 2. Grabbing slide actions
       if (curGrabbed) {
-        const cell = curGrid[curCursor.y]?.[curCursor.x];
-        if (cell === BLOCK_WALL_V) {
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            curMoveBlock(curCursor.x, curCursor.y, 0, -1);
-          } else if (e.key === "ArrowDown") {
-            e.preventDefault();
-            curMoveBlock(curCursor.x, curCursor.y, 0, 1);
-          } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-            e.preventDefault();
-            playSound("error", curMuted);
-          }
+        if (curProcessing) {
+          curSetGrabbed(false);
         } else {
-          if (e.key === "ArrowLeft") {
-            e.preventDefault();
-            curMoveBlock(curCursor.x, curCursor.y, -1, 0);
-          } else if (e.key === "ArrowRight") {
-            e.preventDefault();
-            curMoveBlock(curCursor.x, curCursor.y, 1, 0);
-          } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-            e.preventDefault();
-            playSound("error", curMuted);
+          const cell = curGrid[curCursor.y]?.[curCursor.x];
+          if (cell === BLOCK_WALL_V) {
+            if (e.key === "ArrowUp") {
+              e.preventDefault();
+              curMoveBlock(curCursor.x, curCursor.y, 0, -1);
+            } else if (e.key === "ArrowDown") {
+              e.preventDefault();
+              curMoveBlock(curCursor.x, curCursor.y, 0, 1);
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+              e.preventDefault();
+              playSound("error", curMuted);
+            }
+          } else {
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              curMoveBlock(curCursor.x, curCursor.y, -1, 0);
+            } else if (e.key === "ArrowRight") {
+              e.preventDefault();
+              curMoveBlock(curCursor.x, curCursor.y, 1, 0);
+            } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              playSound("error", curMuted);
+            }
           }
+          return;
         }
-        return;
       }
 
       // 3. Normal navigation (when not grabbed)
