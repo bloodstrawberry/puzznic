@@ -4,21 +4,35 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import realMap from "../level/real-map.json";
 
-const LockIcon = () => (
-  <svg
-    className="w-3.5 h-3.5"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2.5}
-  >
-    <rect x="5" y="11" width="14" height="11" rx="2" ry="2" fill="currentColor" fillOpacity="0.1" />
-    <path d="M7 11V7a5 5 0 0110 0v4" />
+// Modern Volume/Mute Icons
+const VolumeOnIcon = () => (
+  <svg className="w-5 h-5 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 5.636a9 9 0 010 12.728M12 18.75l-3-3H6.75A2.25 2.25 0 014.5 13.5v-3a2.25 2.25 0 012.25-2.25H9l3-3v13.5z" />
   </svg>
 );
 
+const VolumeOffIcon = () => (
+  <svg className="w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H2.25A.75.75 0 001.5 9.75v4.5c0 .414.336.75.75.75h2.25l2.25 2.25V5.25z" />
+  </svg>
+);
 
-// Retro sound synthesizer using Web Audio API (no external asset dependencies)
+// Modern Lock Icon
+const LockIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+    <rect x="6" y="11" width="12" height="9" rx="2" fill="currentColor" fillOpacity="0.1" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0v4" />
+  </svg>
+);
+
+// Chevron Right Icon for ListRow
+const ChevronRightIcon = () => (
+  <svg className="w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+// Sound synthesizer using Web Audio API
 const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) => {
   if (muted || typeof window === "undefined") return;
   try {
@@ -27,11 +41,10 @@ const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) 
     const ctx = new AudioContextClass();
 
     if (type === "coin") {
-      // Classic 8-bit dual-tone coin sound (B5 then E6)
       const playTone = (freq: number, startTime: number, duration: number) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = "square";
+        osc.type = "sine";
         osc.frequency.setValueAtTime(freq, startTime);
         gain.gain.setValueAtTime(0.08, startTime);
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
@@ -44,26 +57,24 @@ const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) 
       playTone(987.77, now, 0.12);
       playTone(1318.51, now + 0.08, 0.25);
     } else if (type === "select") {
-      // Short menu navigation blip
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(450, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.07);
-      gain.gain.setValueAtTime(0.05, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
+      osc.frequency.setValueAtTime(500, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.04, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.07);
+      osc.stop(ctx.currentTime + 0.05);
     } else if (type === "start") {
-      // Upward arpeggio startup melody
       const playTone = (freq: number, startTime: number, duration: number) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "triangle";
         osc.frequency.setValueAtTime(freq, startTime);
-        gain.gain.setValueAtTime(0.08, startTime);
+        gain.gain.setValueAtTime(0.07, startTime);
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -71,125 +82,112 @@ const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) 
         osc.stop(startTime + duration);
       };
       const now = ctx.currentTime;
-      playTone(523.25, now, 0.08); // C5
-      playTone(659.25, now + 0.08, 0.08); // E5
-      playTone(783.99, now + 0.16, 0.08); // G5
-      playTone(1046.50, now + 0.24, 0.35); // C6
+      playTone(523.25, now, 0.08); 
+      playTone(659.25, now + 0.08, 0.08); 
+      playTone(783.99, now + 0.16, 0.08); 
+      playTone(1046.50, now + 0.24, 0.3); 
     } else if (type === "error") {
-      // Low buzz error sound
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(150, ctx.currentTime);
-      gain.gain.setValueAtTime(0.07, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      gain.gain.setValueAtTime(0.06, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.2);
+      osc.stop(ctx.currentTime + 0.25);
     }
   } catch (e) {
-    console.warn("Web Audio API not initialized or blocked:", e);
+    console.warn("Audio Context blocked:", e);
   }
 };
 
-// Custom Puzznic 3D blocks SVG component
+// Modern Glassmorphism-style Block Components
 const RenderBlock = ({ type }: { type: string }) => {
   switch (type) {
-    case "sphere": // Red Sphere
+    case "sphere": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
-            <radialGradient id="sphereGrad" cx="30%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#ffb3b3" />
-              <stop offset="30%" stopColor="#ff3333" />
-              <stop offset="85%" stopColor="#b30000" />
-              <stop offset="100%" stopColor="#4d0000" />
+            <radialGradient id="sphereGrad" cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stopColor="#ff9eb5" />
+              <stop offset="40%" stopColor="#ff4b72" />
+              <stop offset="100%" stopColor="#991530" />
             </radialGradient>
           </defs>
-          <circle cx="20" cy="20" r="18" fill="url(#sphereGrad)" stroke="#050515" strokeWidth="2.5" />
-          <circle cx="15" cy="15" r="4.5" fill="#ffffff" fillOpacity="0.45" filter="blur(0.5px)" />
+          <circle cx="20" cy="20" r="17" fill="url(#sphereGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
+          <circle cx="15" cy="15" r="4" fill="#ffffff" fillOpacity="0.4" filter="blur(0.5px)" />
         </svg>
       );
-    case "diamond": // Yellow Diamond
+    case "diamond": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
             <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#fff2a3" />
-              <stop offset="40%" stopColor="#ffd700" />
-              <stop offset="80%" stopColor="#c59b00" />
-              <stop offset="100%" stopColor="#664d00" />
+              <stop offset="0%" stopColor="#ffea79" />
+              <stop offset="50%" stopColor="#ffb800" />
+              <stop offset="100%" stopColor="#b37100" />
             </linearGradient>
           </defs>
-          <polygon points="20,2 38,20 20,38 2,20" fill="url(#goldGrad)" stroke="#050515" strokeWidth="2.5" />
-          <line x1="20" y1="2" x2="20" y2="38" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.5" />
-          <line x1="2" y1="20" x2="38" y2="20" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1.5" />
-          <polygon points="20,20 20,2 2,20" fill="#ffffff" fillOpacity="0.15" />
-          <polygon points="20,20 20,38 38,20" fill="#000000" fillOpacity="0.2" />
+          <polygon points="20,3 37,20 20,37 3,20" fill="url(#goldGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
+          <line x1="20" y1="3" x2="20" y2="37" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
+          <line x1="3" y1="20" x2="37" y2="20" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
         </svg>
       );
-    case "cube": // Pink Cube
+    case "cube": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
             <linearGradient id="pinkGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#ffb3f0" />
-              <stop offset="50%" stopColor="#ff33cc" />
-              <stop offset="100%" stopColor="#990066" />
+              <stop offset="0%" stopColor="#f3adff" />
+              <stop offset="50%" stopColor="#d03bf2" />
+              <stop offset="100%" stopColor="#6e0085" />
             </linearGradient>
           </defs>
-          <rect x="4" y="4" width="32" height="32" rx="3" fill="url(#pinkGrad)" stroke="#050515" strokeWidth="2.5" />
-          <line x1="4" y1="4" x2="36" y2="36" stroke="#ffffff" strokeOpacity="0.3" strokeWidth="1.5" />
-          <polygon points="4,4 36,4 36,36" fill="#ffffff" fillOpacity="0.1" />
-          <polygon points="4,36 36,36 4,4" fill="#000000" fillOpacity="0.15" />
-          <rect x="10" y="10" width="20" height="20" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeOpacity="0.4" />
+          <rect x="4" y="4" width="32" height="32" rx="6" fill="url(#pinkGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
+          <rect x="10" y="10" width="20" height="20" rx="3" fill="none" stroke="#ffffff" strokeWidth="1" strokeOpacity="0.3" />
         </svg>
       );
-    case "cone": // Cyan Cone/Pyramid
+    case "cone": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
             <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#a3ffff" />
-              <stop offset="60%" stopColor="#00cccc" />
-              <stop offset="100%" stopColor="#006666" />
+              <stop offset="0%" stopColor="#7efff5" />
+              <stop offset="60%" stopColor="#00d2d3" />
+              <stop offset="100%" stopColor="#018b8c" />
             </linearGradient>
           </defs>
-          <polygon points="20,2 38,36 2,36" fill="url(#cyanGrad)" stroke="#050515" strokeWidth="2.5" />
-          <line x1="20" y1="2" x2="20" y2="36" stroke="#ffffff" strokeOpacity="0.4" strokeWidth="1.5" />
-          <polygon points="20,2 2,36 20,36" fill="#ffffff" fillOpacity="0.2" />
-          <polygon points="20,2 38,36 20,36" fill="#000000" fillOpacity="0.2" />
+          <polygon points="20,3 37,35 3,35" fill="url(#cyanGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
+          <line x1="20" y1="3" x2="20" y2="35" stroke="#ffffff" strokeOpacity="0.3" strokeWidth="1" />
         </svg>
       );
-    case "star": // Silver Hexagon/Star
+    case "star": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
-            <radialGradient id="silverGrad" cx="30%" cy="30%" r="70%">
+            <radialGradient id="silverGrad" cx="35%" cy="35%" r="65%">
               <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="50%" stopColor="#d9d9d9" />
-              <stop offset="100%" stopColor="#737373" />
+              <stop offset="60%" stopColor="#a3b1c6" />
+              <stop offset="100%" stopColor="#5d6a7e" />
             </radialGradient>
           </defs>
-          <polygon points="20,2 25,14 38,14 28,23 32,36 20,28 8,36 12,23 2,14 15,14" fill="url(#silverGrad)" stroke="#050515" strokeWidth="2.5" />
-          <polygon points="20,28 20,2 25,14" fill="#ffffff" fillOpacity="0.2" />
-          <polygon points="20,28 20,2 15,14" fill="#000000" fillOpacity="0.2" />
+          <polygon points="20,3 25,15 37,15 28,24 32,36 20,29 8,36 12,24 3,15 15,15" fill="url(#silverGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
         </svg>
       );
-    case "cylinder": // Green Cylinder
+    case "cylinder": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
             <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#b3ffb3" />
-              <stop offset="40%" stopColor="#33cc33" />
-              <stop offset="85%" stopColor="#008000" />
-              <stop offset="100%" stopColor="#003300" />
+              <stop offset="0%" stopColor="#7fff7f" />
+              <stop offset="50%" stopColor="#2ecc71" />
+              <stop offset="100%" stopColor="#1e8449" />
             </linearGradient>
           </defs>
-          <path d="M 6,10 A 14,5 0 0,0 34,10 L 34,30 A 14,5 0 0,1 6,30 Z" fill="url(#greenGrad)" stroke="#050515" strokeWidth="2.5" />
-          <ellipse cx="20" cy="10" rx="14" ry="5" fill="#a3ffa3" stroke="#050515" strokeWidth="2.5" />
+          <path d="M 7,12 A 13,5 0 0,0 33,12 L 33,29 A 13,5 0 0,1 7,29 Z" fill="url(#greenGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
+          <ellipse cx="20" cy="12" rx="13" ry="5" fill="#a9dfbf" stroke="#ffffff" strokeOpacity="0.2" strokeWidth="1" />
         </svg>
       );
     default:
@@ -204,6 +202,7 @@ export default function HomeView() {
   const [credits, setCredits] = useState<number>(0);
   const [menuIndex, setMenuIndex] = useState<number>(0);
   const [showHowToPlay, setShowHowToPlay] = useState<boolean>(false);
+  const [showChargeModal, setShowChargeModal] = useState<boolean>(false);
   const [muted, setMuted] = useState<boolean>(false);
   const [isInserting, setIsInserting] = useState<boolean>(false);
   const [showStageSelect, setShowStageSelect] = useState<boolean>(false);
@@ -222,42 +221,36 @@ export default function HomeView() {
     }
   }, []);
 
-
-  // Background decoration blocks configuration (static values with random offsets)
   const bgBlocks = [
-    { type: "sphere", left: "10%", delay: "0s", duration: "14s", size: "w-10 h-10" },
-    { type: "diamond", left: "25%", delay: "3s", duration: "16s", size: "w-8 h-8" },
-    { type: "cube", left: "40%", delay: "6s", duration: "12s", size: "w-12 h-12" },
-    { type: "cone", left: "55%", delay: "1s", duration: "18s", size: "w-10 h-10" },
-    { type: "star", left: "70%", delay: "4s", duration: "15s", size: "w-12 h-12" },
-    { type: "cylinder", left: "85%", delay: "7s", duration: "13s", size: "w-8 h-8" },
-    { type: "sphere", left: "18%", delay: "8s", duration: "15s", size: "w-12 h-12" },
-    { type: "diamond", left: "78%", delay: "10s", duration: "14s", size: "w-10 h-10" },
-    { type: "cube", left: "48%", delay: "2s", duration: "16s", size: "w-8 h-8" },
-    { type: "cone", left: "92%", delay: "5s", duration: "11s", size: "w-12 h-12" },
+    { type: "sphere", left: "8%", delay: "0s", duration: "18s", size: "w-8 h-8" },
+    { type: "diamond", left: "22%", delay: "3s", duration: "20s", size: "w-7 h-7" },
+    { type: "cube", left: "38%", delay: "6s", duration: "16s", size: "w-10 h-10" },
+    { type: "cone", left: "58%", delay: "1s", duration: "22s", size: "w-9 h-9" },
+    { type: "star", left: "74%", delay: "4s", duration: "19s", size: "w-10 h-10" },
+    { type: "cylinder", left: "88%", delay: "7s", duration: "17s", size: "w-7 h-7" },
   ];
 
   const insertCoin = useCallback(() => {
     setIsInserting(true);
     playSound("coin", muted);
     setCredits((prev) => prev + 1);
-    setTimeout(() => setIsInserting(false), 200);
+    setTimeout(() => setIsInserting(false), 300);
   }, [muted]);
 
   const startGame = useCallback((stageNum: number) => {
     if (credits > 0) {
       setCredits((prev) => prev - 1);
       playSound("start", muted);
-      setTimeout(() => router.push(`/game?stage=${stageNum}`), 500);
+      setTimeout(() => router.push(`/game?stage=${stageNum}`), 400);
     } else {
-      // Auto-insert credit animation for convenience + arcade feel
+      // Free auto coin-insert effect for seamless mobile layout
       playSound("coin", muted);
       setCredits(1);
       setTimeout(() => {
         setCredits(0);
         playSound("start", muted);
         router.push(`/game?stage=${stageNum}`);
-      }, 500);
+      }, 400);
     }
   }, [credits, muted, router]);
 
@@ -301,16 +294,13 @@ export default function HomeView() {
       playSound("select", muted);
       setShowStageSelect(true);
     } else if (index === 1) {
-      // Level Editor
       playSound("start", muted);
-      setTimeout(() => router.push("/editor"), 500);
+      setTimeout(() => router.push("/editor"), 400);
     } else if (index === 2) {
-      // How To Play
       playSound("select", muted);
       setShowHowToPlay(true);
     }
   }, [muted, router]);
-
 
   const handleMenuHover = useCallback((index: number) => {
     if (menuIndex !== index) {
@@ -319,12 +309,19 @@ export default function HomeView() {
     }
   }, [menuIndex, muted]);
 
-  // Keyboard navigation for full retro feel
+  // Keyboard accessibility
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (showHowToPlay) {
         if (e.key === "Escape" || e.key === "Enter") {
           setShowHowToPlay(false);
+          playSound("select", muted);
+        }
+        return;
+      }
+      if (showChargeModal) {
+        if (e.key === "Escape" || e.key === "Enter") {
+          setShowChargeModal(false);
           playSound("select", muted);
         }
         return;
@@ -404,6 +401,7 @@ export default function HomeView() {
   }, [
     menuIndex,
     showHowToPlay,
+    showChargeModal,
     showStageSelect,
     selectedStageIndex,
     muted,
@@ -413,16 +411,17 @@ export default function HomeView() {
   ]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-6 bg-zinc-950 retro-bricks overflow-hidden relative font-press-start">
-      {/* Dark tint overlay over bricks */}
-      <div className="absolute inset-0 bg-black/45 backdrop-blur-[1px] z-0 pointer-events-none" />
+    <div className="flex min-h-screen items-center justify-center p-0 md:p-6 bg-[#0f0f10] text-[#f9fafb] overflow-hidden relative font-sans">
+      
+      {/* Subtle modern background gradient overlay */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/10 via-zinc-950/20 to-zinc-950 pointer-events-none z-0" />
 
-      {/* Smooth floating background blocks */}
+      {/* Floating 3D Blocks Background */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
         {bgBlocks.map((b, i) => (
           <div
             key={i}
-            className={`absolute animate-float-up ${b.size} opacity-40`}
+            className={`absolute animate-float-up ${b.size} opacity-15`}
             style={{
               left: b.left,
               animationDelay: b.delay,
@@ -434,289 +433,336 @@ export default function HomeView() {
         ))}
       </div>
 
-      {/* Main Arcade Cabinet Body */}
-      <div className="relative z-10 w-full max-w-3xl flex flex-col items-center">
-        {/* Cabinet Marquee / Header */}
-        <div className="w-[94%] bg-zinc-900 border-4 border-b-0 border-zinc-800 rounded-t-2xl px-6 py-4 flex items-center justify-between shadow-[inset_0_4px_10px_rgba(255,255,255,0.15)] relative overflow-hidden select-none">
-          {/* Backlight effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-yellow-500/20 to-cyan-500/10 animate-pulse pointer-events-none" />
-          <div className="text-[10px] text-zinc-400 tracking-wider">BLOODSTRAWBERRY</div>
-          <div className="text-yellow-400 text-xs animate-pulse font-bold tracking-widest">★ INSERT COIN OR PRESS START ★</div>
-
-          {/* Mute Button */}
+      {/* Main WebView Container (iPhone 13 Mini Width target: 375px) */}
+      <div className="relative z-10 w-full max-w-[375px] min-h-[100vh] md:min-h-[812px] md:max-h-[812px] md:rounded-[36px] bg-[#101012] border-0 md:border-[6px] md:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col justify-between select-none">
+        
+        {/* Toss Style AppBar / Navigation */}
+        <header className="w-full h-14 px-5 flex items-center justify-between sticky top-0 bg-[#101012]/90 backdrop-blur-md z-30 border-b border-zinc-900">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-[18px] tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+              Puzznic
+            </span>
+            <span className="text-[10px] bg-zinc-800 text-zinc-400 font-semibold px-1.5 py-0.5 rounded">MINI</span>
+          </div>
+          
+          {/* Sound Toggle Button */}
           <button
             onClick={() => setMuted(!muted)}
-            className="text-zinc-500 hover:text-zinc-300 text-[10px] focus:outline-none transition-colors z-20 cursor-pointer"
+            className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-zinc-800/80 active:bg-zinc-800 transition-colors focus:outline-none cursor-pointer"
           >
-            {muted ? "🔊 UNMUTE" : "🔇 MUTE"}
+            {muted ? <VolumeOffIcon /> : <VolumeOnIcon />}
           </button>
-        </div>
+        </header>
 
-        {/* CRT Bezel Frame */}
-        <div className="w-full bg-zinc-900 border-[14px] border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8),_inset_0_4px_10px_rgba(255,255,255,0.1)] p-4 relative">
-          {/* CRT Screen inside Bezel */}
-          <div className="crt-screen crt-glow-effect bg-[#05050f] w-full aspect-[4/3] rounded-lg border-[6px] border-black flex flex-col justify-between p-4 md:p-6 text-white text-[11px] relative overflow-hidden select-none">
+        {/* Content Area */}
+        <main className="flex-1 flex flex-col justify-between p-5 pb-6 gap-6">
 
-            {/* Top Scoreboard HUD */}
-            <div className="flex justify-between w-full text-zinc-300 uppercase leading-relaxed text-xs">
-              <div className="flex flex-col gap-1">
-                <span className="text-amber-500 text-[10px]">1UP</span>
-                <span className="tracking-widest">0</span>
+          {showStageSelect ? (
+            /* Stage Selection Screen */
+            <div className="flex-1 flex flex-col justify-between my-auto py-2">
+              
+              {/* Header Title */}
+              <div className="mb-4">
+                <h2 className="text-[20px] font-bold text-white tracking-tight">
+                  스테이지 선택
+                </h2>
+                <p className="text-[12px] text-zinc-500 mt-1">
+                  도전할 퍼즐 단계를 선택해 주세요.
+                </p>
               </div>
-              <div className="flex flex-col items-center gap-1">
-                <span className="text-cyan-400 text-[10px]">HIGH SCORE</span>
-                <span className="tracking-widest">50000</span>
-              </div>
-              <div className="flex flex-col items-end gap-1">
-                <span className="text-zinc-400 text-[10px]">LEVEL</span>
-                <span className="text-emerald-400">1-1</span>
-              </div>
-            </div>
 
-            {/* Logo and Menu Panel or Stage Selection Panel */}
-            {showStageSelect ? (
-              <div className="flex-1 flex flex-col justify-between items-center my-1 py-1 w-full">
-                {/* Title */}
-                <div className="text-center mt-1">
-                  <h2 className="text-[13px] font-bold text-yellow-400 tracking-wider font-press-start">
-                    SELECT STAGE
-                  </h2>
-                  <p className="text-[7px] text-zinc-500 font-press-start mt-1">
-                    CHOOSE A LEVEL TO BEGIN
-                  </p>
-                </div>
-
-                {/* Grid of 20 stages */}
-                <div className="grid grid-cols-5 gap-2.5 my-2">
-                  {currentLevels.map((lvl, idx) => {
-                    const globalIdx = pageIndex * 20 + idx;
-                    const isUnlocked = globalIdx < maxUnlockedStage;
-                    const isSelected = globalIdx === selectedStageIndex;
-                    return (
-                      <button
-                        key={globalIdx}
-                        onClick={() => handleStageSelect(globalIdx)}
-                        onMouseEnter={() => handleStageHover(globalIdx)}
-                        className={`w-9 h-9 flex flex-col items-center justify-center rounded border text-[9px] font-press-start transition-all relative cursor-pointer
-                          ${isSelected 
-                            ? "bg-yellow-500 border-yellow-600 text-black font-bold scale-105 shadow-[0_0_8px_rgba(234,179,8,0.5)]" 
-                            : isUnlocked 
-                              ? "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700" 
-                              : "bg-zinc-950 border-zinc-950 text-zinc-700 cursor-not-allowed opacity-60"
-                          }`}
-                      >
-                        {isUnlocked ? (
-                          <span>{globalIdx + 1}</span>
-                        ) : (
-                          <div className={isSelected ? "text-black" : "text-zinc-600"}>
-                            <LockIcon />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Pagination and Navigation */}
-                <div className="flex justify-between items-center w-full px-8 text-[8px] font-press-start text-zinc-400 mt-1">
-                  <button 
-                    onClick={prevPage}
-                    className={`hover:text-yellow-400 cursor-pointer ${pageIndex === 0 ? "opacity-0 pointer-events-none" : ""}`}
-                  >
-                    ◀ PREV
-                  </button>
-                  <div className="text-[7px] text-zinc-500">
-                    PAGE {pageIndex + 1} / {totalPages}
-                  </div>
-                  <button 
-                    onClick={nextPage}
-                    className={`hover:text-yellow-400 cursor-pointer ${pageIndex === totalPages - 1 ? "opacity-0 pointer-events-none" : ""}`}
-                  >
-                    NEXT ▶
-                  </button>
-                </div>
-
-                {/* Cancel instruction */}
-                <div className="text-[7px] text-zinc-500 font-press-start mt-2">
-                  [ESC] BACK TO MENU
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col justify-center items-center gap-6 my-2">
-                {/* Bouncy Retro PUZZNIC Title Logo */}
-                <div className="flex justify-center text-4xl sm:text-5xl gap-1 text-center font-black select-none py-2 relative">
-                  {[
-                    { char: "P", color: "from-orange-400 to-red-600" },
-                    { char: "U", color: "from-pink-400 to-rose-600" },
-                    { char: "Z", color: "from-yellow-300 to-amber-500" },
-                    { char: "Z", color: "from-cyan-400 to-blue-600" },
-                    { char: "N", color: "from-purple-400 to-indigo-600" },
-                    { char: "I", color: "from-green-400 to-emerald-600" },
-                    { char: "C", color: "from-blue-400 to-indigo-600" },
-                  ].map((l, i) => (
-                    <span
-                      key={i}
-                      className={`relative inline-block bg-gradient-to-b ${l.color} bg-clip-text text-transparent`}
-                      style={{
-                        filter: "drop-shadow(3px 3px 0px #000000)",
-                        animation: `retro-bounce 1.6s infinite ease-in-out ${i * 0.12}s`,
-                      }}
+              {/* Stage Grid (20 Stages) */}
+              <div className="grid grid-cols-5 gap-2.5 my-auto">
+                {currentLevels.map((lvl, idx) => {
+                  const globalIdx = pageIndex * 20 + idx;
+                  const isUnlocked = globalIdx < maxUnlockedStage;
+                  const isSelected = globalIdx === selectedStageIndex;
+                  return (
+                    <button
+                      key={globalIdx}
+                      onClick={() => handleStageSelect(globalIdx)}
+                      onMouseEnter={() => handleStageHover(globalIdx)}
+                      className={`aspect-square flex flex-col items-center justify-center rounded-2xl text-sm font-semibold transition-all relative cursor-pointer
+                        ${isSelected 
+                          ? "bg-[#3182f6] text-white font-bold scale-105 shadow-[0_4px_12px_rgba(49,130,246,0.35)]" 
+                          : isUnlocked 
+                            ? "bg-[#1c1c1e] border border-zinc-800 text-zinc-200 hover:bg-[#252528] active:scale-95" 
+                            : "bg-[#17171a] border border-transparent text-zinc-700 cursor-not-allowed opacity-40"
+                        }`}
                     >
-                      {l.char}
-                    </span>
-                  ))}
-                </div>
+                      {isUnlocked ? (
+                        <span>{globalIdx + 1}</span>
+                      ) : (
+                        <div className={isSelected ? "text-white" : "text-zinc-600"}>
+                          <LockIcon />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
 
-                {/* Sub-header block graphic decoration */}
-                <div className="flex gap-2 justify-center py-1">
+              {/* Pagination controls */}
+              <div className="flex justify-between items-center w-full px-2 text-[13px] font-medium text-zinc-400 mt-5">
+                <button 
+                  onClick={prevPage}
+                  className={`px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white cursor-pointer transition-colors active:bg-zinc-800 ${pageIndex === 0 ? "opacity-0 pointer-events-none" : ""}`}
+                >
+                  이전
+                </button>
+                <div className="text-[12px] text-zinc-500 font-semibold bg-zinc-900/50 px-3 py-1 rounded-full">
+                  {pageIndex + 1} / {totalPages}
+                </div>
+                <button 
+                  onClick={nextPage}
+                  className={`px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white cursor-pointer transition-colors active:bg-zinc-800 ${pageIndex === totalPages - 1 ? "opacity-0 pointer-events-none" : ""}`}
+                >
+                  다음
+                </button>
+              </div>
+
+              {/* Dismiss button */}
+              <button
+                onClick={() => {
+                  setShowStageSelect(false);
+                  playSound("select", muted);
+                }}
+                className="w-full mt-6 py-4 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-850 text-zinc-300 font-semibold text-[14px] rounded-2xl transition-all cursor-pointer text-center"
+              >
+                메인 메뉴로 돌아가기
+              </button>
+            </div>
+          ) : (
+            /* Main Menu Screen */
+            <div className="flex-1 flex flex-col justify-between py-2">
+              
+              {/* Modern Logo Brand Section */}
+              <div className="flex flex-col items-center justify-center text-center mt-6 mb-4">
+                {/* Title */}
+                <h1 className="text-[42px] font-black tracking-tight leading-none bg-gradient-to-br from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent drop-shadow-md select-none animate-retro-bounce">
+                  PUZZNIC
+                </h1>
+                <p className="text-[13px] text-zinc-400 font-medium mt-2 tracking-wide">
+                  새로운 감각의 정교한 퍼즐 매치 게임
+                </p>
+
+                {/* Sub-header block row decoration */}
+                <div className="flex gap-2 justify-center py-5">
                   {blockTypes.map((t, idx) => (
-                    <div key={idx} className="w-5 h-5 opacity-80 animate-pulse" style={{ animationDelay: `${idx * 0.25}s` }}>
+                    <div key={idx} className="w-6 h-6 animate-pulse" style={{ animationDelay: `${idx * 0.15}s` }}>
                       <RenderBlock type={t} />
                     </div>
                   ))}
                 </div>
+              </div>
 
-                {/* Interactive Retro Menu */}
-                <div className="flex flex-col gap-4 mt-2 w-full max-w-[280px]">
-                  {[
-                    { label: "PLAY GAME", desc: credits > 0 ? "START PUZZLE" : "FREE GAME START" },
-                    { label: "LEVEL EDITOR", desc: "CREATE LEVELS" },
-                    { label: "HOW TO PLAY", desc: "CONTROLS & RULE" }
-                  ].map((item, index) => {
-                    const isActive = menuIndex === index;
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => triggerMenuAction(index)}
-                        onMouseEnter={() => handleMenuHover(index)}
-                        className="group flex flex-col items-center justify-center p-2 rounded relative border border-transparent focus:outline-none transition-all cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2 relative">
-                          {isActive && (
-                            <span className="text-yellow-400 text-xs animate-pulse absolute -left-5">▶</span>
-                          )}
-                          <span className={`text-[12px] tracking-wide transition-all ${isActive ? "text-yellow-400 scale-105" : "text-zinc-400"}`}>
-                            {item.label}
-                          </span>
-                          {isActive && (
-                            <span className="text-yellow-400 text-xs animate-pulse absolute -right-5">◀</span>
-                          )}
+              {/* Toss Style Menu List Container */}
+              <div className="flex flex-col gap-2 bg-[#17171c] rounded-[24px] border border-zinc-900 p-2 shadow-inner">
+                {[
+                  { title: "게임 시작하기", desc: credits > 0 ? "도전할 스테이지를 고릅니다" : "무료 게임으로 바로 시작", color: "bg-blue-500/10 text-blue-400", block: "sphere" },
+                  { title: "레벨 에디터", desc: "나만의 퍼즐 스테이지 만들기", color: "bg-yellow-500/10 text-yellow-400", block: "diamond" },
+                  { title: "플레이 방법", desc: "조작키 및 매치 규칙 설명", color: "bg-purple-500/10 text-purple-400", block: "cone" }
+                ].map((item, index) => {
+                  const isActive = menuIndex === index;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => triggerMenuAction(index)}
+                      onMouseEnter={() => handleMenuHover(index)}
+                      className={`group flex items-center justify-between p-3.5 rounded-2xl transition-all text-left cursor-pointer
+                        ${isActive 
+                          ? "bg-zinc-800/80 shadow-md translate-x-1" 
+                          : "hover:bg-zinc-900/50"
+                        }`}
+                    >
+                      <div className="flex items-center gap-3.5">
+                        {/* Custom Block Representation */}
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${item.color} p-1 shadow-sm`}>
+                          <RenderBlock type={item.block} />
                         </div>
-                        <span className="text-[7px] text-zinc-500 mt-1 tracking-wider group-hover:text-zinc-400">
-                          {item.desc}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Bottom Credits & Info Bar */}
-            <div className="flex justify-between w-full text-zinc-400 text-[9px] border-t border-zinc-900 pt-2 select-none uppercase">
-              <div>© BLOODSTRAWBERRY / 2026</div>
-              <div className="flex gap-2">
-                <span className="text-red-500">CREDIT</span>
-                <span className={credits > 0 ? "text-yellow-400 animate-pulse font-bold" : "text-zinc-500"}>
-                  {credits}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Cabinet Control Deck / Coin Door Mimic */}
-        <div className="w-[96%] bg-zinc-800 border-4 border-t-0 border-zinc-700 rounded-b-2xl p-4 flex flex-col sm:flex-row items-center justify-between shadow-[0_15px_30px_rgba(0,0,0,0.6)] select-none">
-          {/* Controls instructions */}
-          <div className="text-[8px] text-zinc-400 max-w-[200px] mb-3 sm:mb-0 leading-relaxed text-center sm:text-left uppercase">
-            [↑/↓] MOVE SELECTION<br />
-            [ENTER] SELECT OPTION<br />
-            [C] INSERT COIN
-          </div>
-
-          {/* Interactive Mechanical Coin Door Slot */}
-          <button
-            onClick={insertCoin}
-            className={`group bg-zinc-900 border-2 ${isInserting ? "border-red-500" : "border-zinc-700 hover:border-red-500"} p-2.5 rounded-lg flex flex-col items-center gap-1.5 min-w-[120px] transition-all active:scale-95 shadow-md relative cursor-pointer overflow-hidden`}
-          >
-            {/* Glowing amber light */}
-            <div className={`absolute top-0 inset-x-0 h-0.5 bg-red-500 blur-[1px] opacity-80`} />
-            <div className="text-[7px] text-zinc-500 tracking-widest group-hover:text-zinc-400 uppercase">25¢ COIN SLOT</div>
-            <div className="w-1.5 h-7 bg-zinc-950 border border-zinc-800 rounded relative shadow-inner">
-              {/* Coin slot light */}
-              <div className={`absolute inset-0 bg-red-600/70 animate-pulse ${isInserting ? "bg-red-400/90 shadow-[0_0_8px_rgba(239,68,68,0.8)]" : ""}`} />
-            </div>
-            <div className={`text-[7px] ${credits > 0 ? "text-yellow-500 animate-pulse" : "text-zinc-500"} uppercase`}>
-              {credits > 0 ? "CREDITS READY" : "INSERT COIN"}
-            </div>
-          </button>
-        </div>
-      </div>
-
-      {/* How To Play Overlay Modal */}
-      {showHowToPlay && (
-        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border-4 border-zinc-700 max-w-lg w-full rounded-xl p-6 shadow-2xl relative text-zinc-300 font-sans select-none flex flex-col gap-4">
-
-            {/* Modal title in retro style */}
-            <div className="text-center border-b-2 border-zinc-800 pb-3">
-              <h2 className="text-xl font-bold font-press-start text-yellow-400 tracking-wide">HOW TO PLAY</h2>
-              <p className="text-[9px] text-zinc-500 font-press-start mt-2">CLASSIC GAMEPLAY RULE</p>
-            </div>
-
-            {/* Explanations */}
-            <div className="text-sm leading-relaxed flex flex-col gap-3">
-              <p className="text-zinc-300">
-                Puzznic is an arcade puzzle match game where you move blocks to align matching shapes.
-              </p>
-
-              <ul className="list-disc pl-5 text-zinc-400 flex flex-col gap-2">
-                <li>
-                  <strong className="text-white">Goal:</strong> Clear all blocks from the game arena.
-                </li>
-                <li>
-                  <strong className="text-white">Movement:</strong> Click and drag, or use arrows to select and slide blocks left or right.
-                </li>
-                <li>
-                  <strong className="text-white">Matching:</strong> When two or more identical blocks touch, they immediately disappear!
-                </li>
-                <li>
-                  <strong className="text-white">Gravity:</strong> Unsupported blocks fall downwards. Use gravity and level geometry to guide matches!
-                </li>
-                <li>
-                  <strong className="text-white">Timer:</strong> You must clear the grid before the time bar runs out!
-                </li>
-              </ul>
-
-              {/* Block icons demo */}
-              <div className="bg-black/40 border border-zinc-800 rounded-lg p-3 mt-1">
-                <p className="text-[10px] font-press-start text-center text-zinc-400 mb-3">PUZZLE BLOCK IDENTIFIERS</p>
-                <div className="grid grid-cols-6 gap-2 justify-items-center">
-                  {blockTypes.map((t, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-1.5">
-                      <div className="w-7 h-7">
-                        <RenderBlock type={t} />
+                        <div className="flex flex-col">
+                          <span className={`text-[15px] font-bold transition-colors ${isActive ? "text-[#3182f6]" : "text-zinc-200"}`}>
+                            {item.title}
+                          </span>
+                          <span className="text-[12px] text-zinc-500 font-normal mt-0.5">
+                            {item.desc}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[7px] font-press-start uppercase text-zinc-500">{t.slice(0, 4)}</span>
-                    </div>
-                  ))}
-                </div>
+                      <ChevronRightIcon />
+                    </button>
+                  );
+                })}
               </div>
-            </div>
 
-            {/* Modal Dismiss Action */}
-            <button
+              {/* Toss Style Financial-ish Wallet banner */}
+              <div className="mt-6 bg-[#17171c] rounded-[24px] border border-zinc-900 p-4.5 flex flex-col gap-3.5 shadow-md">
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] text-zinc-500 font-medium">나의 가상 잔액</span>
+                    <span className="text-[18px] font-bold text-white mt-0.5">보유 크레딧</span>
+                  </div>
+                  <div className="flex items-baseline gap-1 bg-zinc-900 px-3.5 py-2 rounded-2xl border border-zinc-800">
+                    <span className={`text-xl font-bold ${credits > 0 ? "text-yellow-400" : "text-zinc-400"}`}>{credits}</span>
+                    <span className="text-xs text-zinc-500">개</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowChargeModal(true);
+                    playSound("select", muted);
+                  }}
+                  className="w-full py-3.5 bg-[#3182f6] hover:bg-[#1b64da] active:bg-[#154fa6] text-white font-bold text-[14px] rounded-2xl transition-all cursor-pointer text-center shadow-lg shadow-blue-500/20"
+                >
+                  크레딧 충전하기
+                </button>
+              </div>
+
+            </div>
+          )}
+
+        </main>
+
+        {/* Toss Style Footer Information */}
+        <footer className="w-full py-4 border-t border-zinc-900 text-center text-[11px] text-zinc-600 bg-[#101012] select-none font-medium">
+          <div>© BLOODSTRAWBERRY • 2026</div>
+        </footer>
+
+        {/* BottomSheet Modal: How To Play */}
+        {showHowToPlay && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center md:absolute md:rounded-[36px] overflow-hidden">
+            {/* Sheet click background to dismiss */}
+            <div 
+              className="absolute inset-0 cursor-pointer" 
               onClick={() => {
                 setShowHowToPlay(false);
                 playSound("select", muted);
               }}
-              className="mt-2 w-full py-3 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-black text-xs font-press-start font-bold rounded-lg border-2 border-yellow-600 cursor-pointer shadow-md transition-colors"
-            >
-              OK (DISMISS)
-            </button>
+            />
+            
+            {/* Actual BottomSheet Body */}
+            <div className="relative w-full bg-[#1c1c1e] rounded-t-[28px] border-t border-zinc-800 px-6 pt-4 pb-8 z-50 flex flex-col gap-4 animate-slide-up max-h-[80%] overflow-y-auto">
+              
+              {/* Header Handle Bar */}
+              <div className="w-9 h-1 bg-zinc-700 rounded-full mx-auto mb-3" />
+              
+              <div className="text-left mb-2">
+                <h3 className="text-lg font-bold text-white">플레이 방법</h3>
+                <p className="text-[12px] text-zinc-500 mt-1">간단한 매치 규칙을 소개합니다.</p>
+              </div>
+
+              {/* Manual Info list (Toss List style) */}
+              <div className="flex flex-col gap-3 text-[13px] text-zinc-300 leading-relaxed font-medium">
+                <div className="flex gap-3 bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/40">
+                  <span className="text-[#3182f6] font-bold">1.</span>
+                  <div>
+                    <strong className="text-white">최종 목표:</strong> 스테이지 안에 있는 모든 블록을 파괴하여 제거해야 합니다.
+                  </div>
+                </div>
+                <div className="flex gap-3 bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/40">
+                  <span className="text-[#3182f6] font-bold">2.</span>
+                  <div>
+                    <strong className="text-white">블록 이동:</strong> 클릭 후 드래그하거나 방향키로 블록을 양옆으로 밀어서 떨어뜨릴 수 있습니다.
+                  </div>
+                </div>
+                <div className="flex gap-3 bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/40">
+                  <span className="text-[#3182f6] font-bold">3.</span>
+                  <div>
+                    <strong className="text-white">모양 맞추기:</strong> 동일한 아이콘을 가진 블록들이 가로나 세로로 접촉하면 즉시 함께 파괴됩니다.
+                  </div>
+                </div>
+                <div className="flex gap-3 bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/40">
+                  <span className="text-[#3182f6] font-bold">4.</span>
+                  <div>
+                    <strong className="text-white">중력 작용:</strong> 아래에 받쳐주는 타일이 없으면 중력에 의해 낙하하므로 낙하 궤적을 예측해보세요.
+                  </div>
+                </div>
+              </div>
+
+              {/* Block icons dictionary preview */}
+              <div className="bg-zinc-900/70 border border-zinc-800 rounded-[20px] p-4.5 mt-2">
+                <p className="text-[11px] text-center text-zinc-500 font-bold mb-3 tracking-wide">퍼즐 블록 종류</p>
+                <div className="grid grid-cols-6 gap-2 justify-items-center">
+                  {blockTypes.map((t, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-1.5">
+                      <div className="w-8 h-8 p-0.5">
+                        <RenderBlock type={t} />
+                      </div>
+                      <span className="text-[9px] font-semibold uppercase text-zinc-500">{t.slice(0, 3)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowHowToPlay(false);
+                  playSound("select", muted);
+                }}
+                className="w-full mt-4 py-4 bg-[#3182f6] hover:bg-[#1b64da] active:bg-[#154fa6] text-white font-bold text-[14px] rounded-2xl transition-colors cursor-pointer text-center"
+              >
+                확인
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* BottomSheet Modal: Credit Recharge */}
+        {showChargeModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center md:absolute md:rounded-[36px] overflow-hidden">
+            {/* Sheet click background to dismiss */}
+            <div 
+              className="absolute inset-0 cursor-pointer" 
+              onClick={() => {
+                setShowChargeModal(false);
+                playSound("select", muted);
+              }}
+            />
+            
+            {/* Actual BottomSheet Body */}
+            <div className="relative w-full bg-[#1c1c1e] rounded-t-[28px] border-t border-zinc-800 px-6 pt-4 pb-8 z-50 flex flex-col gap-4 animate-slide-up text-center">
+              
+              {/* Header Handle Bar */}
+              <div className="w-9 h-1 bg-zinc-700 rounded-full mx-auto mb-3" />
+
+              <div className="w-16 h-16 mx-auto bg-yellow-500/10 rounded-full flex items-center justify-center p-3 text-yellow-500 animate-bounce mt-2">
+                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+
+              <div className="mt-2">
+                <h3 className="text-lg font-bold text-white">가상 크레딧 충전</h3>
+                <p className="text-[13px] text-zinc-400 mt-1.5 leading-relaxed px-4">
+                  무료 충전 단추를 눌러 게임 크레딧을 채우세요. <br />
+                  실제 비용은 청구되지 않으니 안심하세요!
+                </p>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowChargeModal(false);
+                    playSound("select", muted);
+                  }}
+                  className="flex-1 py-4 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-850 text-zinc-400 font-bold text-[14px] rounded-2xl transition-colors cursor-pointer text-center"
+                >
+                  닫기
+                </button>
+                <button
+                  onClick={() => {
+                    insertCoin();
+                  }}
+                  className={`flex-1 py-4 bg-[#3182f6] hover:bg-[#1b64da] active:bg-[#154fa6] text-white font-bold text-[14px] rounded-2xl transition-all cursor-pointer text-center shadow-lg shadow-blue-500/20 ${isInserting ? "scale-95 opacity-80" : ""}`}
+                >
+                  {isInserting ? "충전 중..." : "1개 충전하기"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }

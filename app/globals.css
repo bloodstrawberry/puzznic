@@ -177,3 +177,16 @@ body {
 .animate-match-flash {
   animation: match-flash 0.6s linear forwards;
 }
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}

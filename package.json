@@ -3,12 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "granite dev",
+    "build": "ait build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "ait deploy"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "^2.10.6",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"
