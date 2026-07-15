@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "granite dev",
-    "build": "yarn ait build",
-    "postbuild": "node scripts/post-build.js",
+    "build": "ait build",
     "start": "next start",
     "lint": "eslint",
     "deploy": "ait deploy"

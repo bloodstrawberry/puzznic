@@ -507,101 +507,6 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     };
   }, []);
 
-  const handleDpadDirection = (direction: "up" | "down" | "left" | "right") => {
-    const {
-      grid: curGrid,
-      cursor: curCursor,
-      grabbed: curGrabbed,
-      isGameOver: curGameOver,
-      isLevelCleared: curLevelCleared,
-      activeEditor: curActiveEditor,
-      muted: curMuted,
-      moveBlock: curMoveBlock,
-      setCursor: curSetCursor,
-    } = gameViewRef.current;
-
-    if (curLevelCleared || curActiveEditor || curGameOver) return;
-
-    let dx = 0;
-    let dy = 0;
-
-    if (direction === "left") dx = -1;
-    else if (direction === "right") dx = 1;
-    else if (direction === "up") dy = -1;
-    else if (direction === "down") dy = 1;
-
-    // Grabbing state
-    if (curGrabbed) {
-      const cell = curGrid[curCursor.y]?.[curCursor.x];
-      if (cell === BLOCK_WALL_V) {
-        if (direction === "up") {
-          curMoveBlock(curCursor.x, curCursor.y, 0, -1);
-        } else if (direction === "down") {
-          curMoveBlock(curCursor.x, curCursor.y, 0, 1);
-        } else {
-          playSound("error", curMuted);
-        }
-      } else {
-        if (direction === "left") {
-          curMoveBlock(curCursor.x, curCursor.y, -1, 0);
-        } else if (direction === "right") {
-          curMoveBlock(curCursor.x, curCursor.y, 1, 0);
-        } else {
-          playSound("error", curMuted);
-        }
-      }
-    } else {
-      // Normal moving selection cursor
-      curSetCursor((prev) => {
-        const cols = curGrid[0]?.length || 8;
-        const rows = curGrid.length || 8;
-        const nx = Math.max(0, Math.min(cols - 1, prev.x + dx));
-        const ny = Math.max(0, Math.min(rows - 1, prev.y + dy));
-        playSound("select", curMuted);
-        return { x: nx, y: ny };
-      });
-    }
-  };
-
-  const handleDpadGrab = () => {
-    const {
-      grid: curGrid,
-      cursor: curCursor,
-      grabbed: curGrabbed,
-      isGameOver: curGameOver,
-      isLevelCleared: curLevelCleared,
-      activeEditor: curActiveEditor,
-      muted: curMuted,
-      setGrabbed: curSetGrabbed,
-    } = gameViewRef.current;
-
-    if (curLevelCleared || curActiveEditor || curGameOver) return;
-
-    const cell = curGrid[curCursor.y]?.[curCursor.x];
-    const isPuzzleBlock =
-      cell !== undefined &&
-      cell !== BLOCK_EMPTY &&
-      cell !== BLOCK_WALL &&
-      cell !== BLOCK_AUTO_WALL_V &&
-      cell !== BLOCK_AUTO_WALL_H &&
-      cell !== BLOCK_SPIKE_U &&
-      cell !== BLOCK_SPIKE_D &&
-      cell !== BLOCK_SPIKE_L &&
-      cell !== BLOCK_SPIKE_R;
-
-    if (curGrabbed) {
-      curSetGrabbed(false);
-      playSound("select", curMuted);
-    } else {
-      if (isPuzzleBlock) {
-        curSetGrabbed(true);
-        playSound("select", curMuted);
-      } else {
-        playSound("error", curMuted);
-      }
-    }
-  };
-
   const handleMouseDown = (e: React.MouseEvent, x: number, y: number) => {
     if (!activeEditor) return;
     if (e.button !== 0 && e.button !== 2) return; // Left or Right click only
@@ -1291,77 +1196,20 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
               </div>
             </div>
           ) : (
-            // Gameplay Controls & Virtual D-Pad for Mobile
-            <div className="flex flex-col gap-4 w-full">
-              {/* Desktop keyboard shortcut description */}
-              <div className="hidden md:flex items-center justify-center sm:justify-start">
-                <div className="text-[7.5px] text-zinc-400 leading-relaxed uppercase max-w-[480px] text-center sm:text-left">
-                  {playTestMode ? (
-                    <span className="text-yellow-400 font-bold">
-                      [PLAYTESTING MODE] Move selection: [Arrows] | Grab block:
-                      [Space] | Slide: [Left/Right].
-                    </span>
-                  ) : (
-                    <span>
-                      MOVE SELECTION: [Arrow keys] | Grab Block: [Space] | Slide
-                      block: [Arrow Left/Right]. Restart stage: [R]
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Mobile Virtual D-Pad UI */}
-              <div className="flex md:hidden items-center justify-center gap-6 py-4 bg-zinc-900/40 border border-zinc-800 rounded-2xl px-5 mt-1">
-                {/* Cross Direction Buttons */}
-                <div className="relative w-28 h-28 flex items-center justify-center bg-zinc-950/80 rounded-full border border-zinc-800 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
-                  {/* Up */}
-                  <button
-                    onClick={() => handleDpadDirection("up")}
-                    className="absolute top-1 w-9 h-9 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-650 border border-zinc-700 rounded-lg flex items-center justify-center text-[10px] cursor-pointer font-bold text-zinc-300 shadow"
-                  >
-                    ▲
-                  </button>
-                  {/* Left */}
-                  <button
-                    onClick={() => handleDpadDirection("left")}
-                    className="absolute left-1 w-9 h-9 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-650 border border-zinc-700 rounded-lg flex items-center justify-center text-[10px] cursor-pointer font-bold text-zinc-300 shadow"
-                  >
-                    ◀
-                  </button>
-                  {/* Center deco */}
-                  <div className="w-8 h-8 bg-zinc-900 border border-zinc-850 rounded-full z-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-2.5 h-2.5 bg-zinc-700 rounded-full" />
-                  </div>
-                  {/* Right */}
-                  <button
-                    onClick={() => handleDpadDirection("right")}
-                    className="absolute right-1 w-9 h-9 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-650 border border-zinc-700 rounded-lg flex items-center justify-center text-[10px] cursor-pointer font-bold text-zinc-300 shadow"
-                  >
-                    ▶
-                  </button>
-                  {/* Down */}
-                  <button
-                    onClick={() => handleDpadDirection("down")}
-                    className="absolute bottom-1 w-9 h-9 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-650 border border-zinc-700 rounded-lg flex items-center justify-center text-[10px] cursor-pointer font-bold text-zinc-300 shadow"
-                  >
-                    ▼
-                  </button>
-                </div>
-
-                {/* GRAB Button */}
-                <div className="flex flex-col items-center justify-center">
-                  <button
-                    onClick={handleDpadGrab}
-                    className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-4 font-bold cursor-pointer transition-all shadow-lg active:scale-95 ${
-                      grabbed
-                        ? "bg-yellow-500 border-yellow-600 hover:bg-yellow-400 text-black shadow-[0_0_12px_rgba(250,204,21,0.5)]"
-                        : "bg-red-600 border-red-700 hover:bg-red-500 text-white"
-                    }`}
-                  >
-                    <span className="text-[10px] tracking-wider">{grabbed ? "RELEASE" : "GRAB"}</span>
-                    <span className="text-[6.5px] text-zinc-400 mt-1 uppercase font-normal">{grabbed ? "LOCK ON" : "SPACE"}</span>
-                  </button>
-                </div>
+            // Gameplay Controls
+            <div className="flex items-center justify-center sm:justify-start">
+              <div className="text-[7.5px] text-zinc-400 leading-relaxed uppercase max-w-[480px] text-center sm:text-left">
+                {playTestMode ? (
+                  <span className="text-yellow-400 font-bold">
+                    [PLAYTESTING MODE] Move selection: [Arrows] | Grab block:
+                    [Space] | Slide: [Left/Right].
+                  </span>
+                ) : (
+                  <span>
+                    MOVE SELECTION: [Arrow keys] | Grab Block: [Space] | Slide
+                    block: [Arrow Left/Right]. Restart stage: [R]
+                  </span>
+                )}
               </div>
             </div>
           )}
