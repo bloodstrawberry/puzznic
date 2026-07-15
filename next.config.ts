@@ -6,6 +6,12 @@ const nextConfig: NextConfig = {
   // Always use static HTML export because apps-in-toss framework requires CSR/SSG only.
   output: "export",
   
+  // 각 라우트 경로 끝에 '/'를 붙여 정적 파일 경로 매핑을 원활하게 함
+  trailingSlash: true,
+
+  // 상대 경로 컴파일을 위해 assetPrefix 설정 추가
+  assetPrefix: "./",
+
   // GitHub Pages 배포 시 도메인 주소(https://bloodstrawberry.github.io/puzznic)의 서브경로를 지원합니다.
   basePath: basePath || undefined,
   
