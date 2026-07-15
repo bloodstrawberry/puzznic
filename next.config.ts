@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
 const nextConfig: NextConfig = {
-  // GitHub Pages 배포 시 basePath가 적용되며, static HTML export를 사용합니다.
-  output: basePath ? "export" : undefined,
+  // Always use static HTML export because apps-in-toss framework requires CSR/SSG only.
+  output: "export",
   
   // GitHub Pages 배포 시 도메인 주소(https://bloodstrawberry.github.io/puzznic)의 서브경로를 지원합니다.
   basePath: basePath || undefined,
