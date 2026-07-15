@@ -82,10 +82,10 @@ const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) 
         osc.stop(startTime + duration);
       };
       const now = ctx.currentTime;
-      playTone(523.25, now, 0.08);
-      playTone(659.25, now + 0.08, 0.08);
-      playTone(783.99, now + 0.16, 0.08);
-      playTone(1046.50, now + 0.24, 0.3);
+      playTone(523.25, now, 0.08); 
+      playTone(659.25, now + 0.08, 0.08); 
+      playTone(783.99, now + 0.16, 0.08); 
+      playTone(1046.50, now + 0.24, 0.3); 
     } else if (type === "error") {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -106,7 +106,7 @@ const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) 
 // Modern Glassmorphism-style Block Components
 const RenderBlock = ({ type }: { type: string }) => {
   switch (type) {
-    case "sphere":
+    case "sphere": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -120,7 +120,7 @@ const RenderBlock = ({ type }: { type: string }) => {
           <circle cx="15" cy="15" r="4" fill="#ffffff" fillOpacity="0.4" filter="blur(0.5px)" />
         </svg>
       );
-    case "diamond":
+    case "diamond": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -135,7 +135,7 @@ const RenderBlock = ({ type }: { type: string }) => {
           <line x1="3" y1="20" x2="37" y2="20" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
         </svg>
       );
-    case "cube":
+    case "cube": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -149,7 +149,7 @@ const RenderBlock = ({ type }: { type: string }) => {
           <rect x="10" y="10" width="20" height="20" rx="3" fill="none" stroke="#ffffff" strokeWidth="1" strokeOpacity="0.3" />
         </svg>
       );
-    case "cone":
+    case "cone": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -163,7 +163,7 @@ const RenderBlock = ({ type }: { type: string }) => {
           <line x1="20" y1="3" x2="20" y2="35" stroke="#ffffff" strokeOpacity="0.3" strokeWidth="1" />
         </svg>
       );
-    case "star":
+    case "star": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -176,7 +176,7 @@ const RenderBlock = ({ type }: { type: string }) => {
           <polygon points="20,3 25,15 37,15 28,24 32,36 20,29 8,36 12,24 3,15 15,15" fill="url(#silverGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
         </svg>
       );
-    case "cylinder":
+    case "cylinder": 
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -412,7 +412,7 @@ export default function HomeView() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-0 md:p-6 bg-[#0f0f10] text-[#f9fafb] overflow-hidden relative font-sans">
-
+      
       {/* Subtle modern background gradient overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/10 via-zinc-950/20 to-zinc-950 pointer-events-none z-0" />
 
@@ -435,7 +435,7 @@ export default function HomeView() {
 
       {/* Main WebView Container (iPhone 13 Mini Width target: 375px) */}
       <div className="relative z-10 w-full max-w-[375px] min-h-[100vh] md:min-h-[812px] md:max-h-[812px] md:rounded-[36px] bg-[#101012] border-0 md:border-[6px] md:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col justify-between select-none">
-
+        
         {/* Toss Style AppBar / Navigation */}
         <header className="w-full h-14 px-5 flex items-center justify-between sticky top-0 bg-[#101012]/90 backdrop-blur-md z-30 border-b border-zinc-900">
           <div className="flex items-center gap-2">
@@ -444,7 +444,7 @@ export default function HomeView() {
             </span>
             <span className="text-[10px] bg-zinc-800 text-zinc-400 font-semibold px-1.5 py-0.5 rounded">MINI</span>
           </div>
-
+          
           {/* Sound Toggle Button */}
           <button
             onClick={() => setMuted(!muted)}
@@ -460,7 +460,7 @@ export default function HomeView() {
           {showStageSelect ? (
             /* Stage Selection Screen */
             <div className="flex-1 flex flex-col justify-between my-auto py-2">
-
+              
               {/* Header Title */}
               <div className="mb-4">
                 <h2 className="text-[20px] font-bold text-white tracking-tight">
@@ -483,10 +483,10 @@ export default function HomeView() {
                       onClick={() => handleStageSelect(globalIdx)}
                       onMouseEnter={() => handleStageHover(globalIdx)}
                       className={`aspect-square flex flex-col items-center justify-center rounded-2xl text-sm font-semibold transition-all relative cursor-pointer
-                        ${isSelected
-                          ? "bg-[#3182f6] text-white font-bold scale-105 shadow-[0_4px_12px_rgba(49,130,246,0.35)]"
-                          : isUnlocked
-                            ? "bg-[#1c1c1e] border border-zinc-800 text-zinc-200 hover:bg-[#252528] active:scale-95"
+                        ${isSelected 
+                          ? "bg-[#3182f6] text-white font-bold scale-105 shadow-[0_4px_12px_rgba(49,130,246,0.35)]" 
+                          : isUnlocked 
+                            ? "bg-[#1c1c1e] border border-zinc-800 text-zinc-200 hover:bg-[#252528] active:scale-95" 
                             : "bg-[#17171a] border border-transparent text-zinc-700 cursor-not-allowed opacity-40"
                         }`}
                     >
@@ -504,7 +504,7 @@ export default function HomeView() {
 
               {/* Pagination controls */}
               <div className="flex justify-between items-center w-full px-2 text-[13px] font-medium text-zinc-400 mt-5">
-                <button
+                <button 
                   onClick={prevPage}
                   className={`px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white cursor-pointer transition-colors active:bg-zinc-800 ${pageIndex === 0 ? "opacity-0 pointer-events-none" : ""}`}
                 >
@@ -513,7 +513,7 @@ export default function HomeView() {
                 <div className="text-[12px] text-zinc-500 font-semibold bg-zinc-900/50 px-3 py-1 rounded-full">
                   {pageIndex + 1} / {totalPages}
                 </div>
-                <button
+                <button 
                   onClick={nextPage}
                   className={`px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white cursor-pointer transition-colors active:bg-zinc-800 ${pageIndex === totalPages - 1 ? "opacity-0 pointer-events-none" : ""}`}
                 >
@@ -535,7 +535,7 @@ export default function HomeView() {
           ) : (
             /* Main Menu Screen */
             <div className="flex-1 flex flex-col justify-between py-2">
-
+              
               {/* Modern Logo Brand Section */}
               <div className="flex flex-col items-center justify-center text-center mt-6 mb-4">
                 {/* Title */}
@@ -570,8 +570,8 @@ export default function HomeView() {
                       onClick={() => triggerMenuAction(index)}
                       onMouseEnter={() => handleMenuHover(index)}
                       className={`group flex items-center justify-between p-3.5 rounded-2xl transition-all text-left cursor-pointer
-                        ${isActive
-                          ? "bg-zinc-800/80 shadow-md translate-x-1"
+                        ${isActive 
+                          ? "bg-zinc-800/80 shadow-md translate-x-1" 
                           : "hover:bg-zinc-900/50"
                         }`}
                     >
@@ -632,20 +632,20 @@ export default function HomeView() {
         {showHowToPlay && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center md:absolute md:rounded-[36px] overflow-hidden">
             {/* Sheet click background to dismiss */}
-            <div
-              className="absolute inset-0 cursor-pointer"
+            <div 
+              className="absolute inset-0 cursor-pointer" 
               onClick={() => {
                 setShowHowToPlay(false);
                 playSound("select", muted);
               }}
             />
-
+            
             {/* Actual BottomSheet Body */}
             <div className="relative w-full bg-[#1c1c1e] rounded-t-[28px] border-t border-zinc-800 px-6 pt-4 pb-8 z-50 flex flex-col gap-4 animate-slide-up max-h-[80%] overflow-y-auto">
-
+              
               {/* Header Handle Bar */}
               <div className="w-9 h-1 bg-zinc-700 rounded-full mx-auto mb-3" />
-
+              
               <div className="text-left mb-2">
                 <h3 className="text-lg font-bold text-white">플레이 방법</h3>
                 <p className="text-[12px] text-zinc-500 mt-1">간단한 매치 규칙을 소개합니다.</p>
@@ -711,17 +711,17 @@ export default function HomeView() {
         {showChargeModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center md:absolute md:rounded-[36px] overflow-hidden">
             {/* Sheet click background to dismiss */}
-            <div
-              className="absolute inset-0 cursor-pointer"
+            <div 
+              className="absolute inset-0 cursor-pointer" 
               onClick={() => {
                 setShowChargeModal(false);
                 playSound("select", muted);
               }}
             />
-
+            
             {/* Actual BottomSheet Body */}
             <div className="relative w-full bg-[#1c1c1e] rounded-t-[28px] border-t border-zinc-800 px-6 pt-4 pb-8 z-50 flex flex-col gap-4 animate-slide-up text-center">
-
+              
               {/* Header Handle Bar */}
               <div className="w-9 h-1 bg-zinc-700 rounded-full mx-auto mb-3" />
 
