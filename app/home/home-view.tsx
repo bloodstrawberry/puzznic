@@ -2,6 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { IAP } from "@apps-in-toss/web-framework";
+import type { IapProductListItem } from "@apps-in-toss/web-framework";
+import { Button } from "@toss/tds-mobile";
 import realMap from "../level/real-map.json";
 
 // Modern Volume/Mute Icons
@@ -209,6 +212,9 @@ export default function HomeView() {
   const [selectedStageIndex, setSelectedStageIndex] = useState<number>(0);
   const [maxUnlockedStage, setMaxUnlockedStage] = useState<number>(1);
 
+  const [products, setProducts] = useState<IapProductListItem[]>([]);
+  const [iapSupported, setIapSupported] = useState<boolean>(false);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("puzznic_max_unlocked");
@@ -220,6 +226,90 @@ export default function HomeView() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    async function initIAP() {
+      // 브라우저 환경에서는 네이티브 브릿지(ReactNativeWebView)가 없으므로 IAP 초기화를 건너뜁니다.
+      if (typeof window === "undefined" || !(window as unknown as Record<string, unknown>).ReactNativeWebView) {
+        return;
+      }
+      try {
+        const response = await IAP.getProductItemList();
+        if (response && response.products && response.products.length > 0) {
+          setProducts(response.products);
+          setIapSupported(true);
+
+          // Restore pending orders
+          try {
+            const pending = await IAP.getPendingOrders();
+            if (pending && pending.orders && pending.orders.length > 0) {
+              for (const order of pending.orders) {
+                let count = 1;
+                const match = order.sku.match(/(\d+)개/);
+                if (match) {
+                  count = parseInt(match[1], 10);
+                }
+                setCredits((prev) => prev + count);
+                playSound("coin", muted);
+
+                await IAP.completeProductGrant({ params: { orderId: order.orderId } });
+              }
+            }
+          } catch (pendingErr) {
+            console.warn("Failed to restore pending orders:", pendingErr);
+          }
+        }
+      } catch (e) {
+        console.warn("IAP not supported or products failed to load:", e);
+      }
+    }
+    initIAP();
+  }, [muted]);
+
+  const handleIapBuy = useCallback((sku: string) => {
+    setIsInserting(true);
+    try {
+      const cleanup = IAP.createOneTimePurchaseOrder({
+        options: {
+          sku,
+          processProductGrant: async ({ orderId }) => {
+            let count = 1;
+            const product = products.find(p => p.sku === sku);
+            if (product) {
+              const match = product.displayName.match(/(\d+)개/);
+              if (match) {
+                count = parseInt(match[1], 10);
+              }
+            }
+            setCredits((prev) => prev + count);
+            playSound("coin", muted);
+
+            try {
+              await IAP.completeProductGrant({ params: { orderId } });
+            } catch (err) {
+              console.error("Failed to complete product grant:", err);
+            }
+            return true;
+          },
+        },
+        onEvent: (event) => {
+          if (event.type === 'success') {
+            setIsInserting(false);
+            setShowChargeModal(false);
+            cleanup();
+          }
+        },
+        onError: (error) => {
+          console.error("IAP error:", error);
+          setIsInserting(false);
+          cleanup();
+        },
+      });
+    } catch (e) {
+      console.error("Failed to initiate purchase:", e);
+      setIsInserting(false);
+    }
+  }, [products, muted]);
 
   const bgBlocks = [
     { type: "sphere", left: "8%", delay: "0s", duration: "18s", size: "w-8 h-8" },
@@ -481,7 +571,11 @@ export default function HomeView() {
                     <button
                       key={globalIdx}
                       onClick={() => handleStageSelect(globalIdx)}
-                      onMouseEnter={() => handleStageHover(globalIdx)}
+                      onPointerEnter={(e) => {
+                        if (e.pointerType !== "touch") {
+                          handleStageHover(globalIdx);
+                        }
+                      }}
                       className={`aspect-square flex flex-col items-center justify-center rounded-2xl text-sm font-semibold transition-all relative cursor-pointer
                         ${isSelected 
                           ? "bg-[#3182f6] text-white font-bold scale-105 shadow-[0_4px_12px_rgba(49,130,246,0.35)]" 
@@ -522,15 +616,18 @@ export default function HomeView() {
               </div>
 
               {/* Dismiss button */}
-              <button
+              <Button
+                color="dark"
+                variant="weak"
+                display="full"
+                size="large"
                 onClick={() => {
                   setShowStageSelect(false);
                   playSound("select", muted);
                 }}
-                className="w-full mt-6 py-4 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-850 text-zinc-300 font-semibold text-[14px] rounded-2xl transition-all cursor-pointer text-center"
               >
                 메인 메뉴로 돌아가기
-              </button>
+              </Button>
             </div>
           ) : (
             /* Main Menu Screen */
@@ -568,7 +665,11 @@ export default function HomeView() {
                     <button
                       key={index}
                       onClick={() => triggerMenuAction(index)}
-                      onMouseEnter={() => handleMenuHover(index)}
+                      onPointerEnter={(e) => {
+                        if (e.pointerType !== "touch") {
+                          handleMenuHover(index);
+                        }
+                      }}
                       className={`group flex items-center justify-between p-3.5 rounded-2xl transition-all text-left cursor-pointer
                         ${isActive 
                           ? "bg-zinc-800/80 shadow-md translate-x-1" 
@@ -607,15 +708,18 @@ export default function HomeView() {
                     <span className="text-xs text-zinc-500">개</span>
                   </div>
                 </div>
-                <button
+                <Button
+                  color="primary"
+                  variant="fill"
+                  display="full"
+                  size="large"
                   onClick={() => {
                     setShowChargeModal(true);
                     playSound("select", muted);
                   }}
-                  className="w-full py-3.5 bg-[#3182f6] hover:bg-[#1b64da] active:bg-[#154fa6] text-white font-bold text-[14px] rounded-2xl transition-all cursor-pointer text-center shadow-lg shadow-blue-500/20"
                 >
                   크레딧 충전하기
-                </button>
+                </Button>
               </div>
 
             </div>
@@ -694,15 +798,18 @@ export default function HomeView() {
                 </div>
               </div>
 
-              <button
+              <Button
+                color="primary"
+                variant="fill"
+                display="full"
+                size="large"
                 onClick={() => {
                   setShowHowToPlay(false);
                   playSound("select", muted);
                 }}
-                className="w-full mt-4 py-4 bg-[#3182f6] hover:bg-[#1b64da] active:bg-[#154fa6] text-white font-bold text-[14px] rounded-2xl transition-colors cursor-pointer text-center"
               >
                 확인
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -740,23 +847,46 @@ export default function HomeView() {
               </div>
 
               <div className="flex gap-3 mt-6">
-                <button
+                <Button
+                  color="dark"
+                  variant="weak"
+                  display="full"
+                  size="large"
                   onClick={() => {
                     setShowChargeModal(false);
                     playSound("select", muted);
                   }}
-                  className="flex-1 py-4 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-850 text-zinc-400 font-bold text-[14px] rounded-2xl transition-colors cursor-pointer text-center"
                 >
                   닫기
-                </button>
-                <button
-                  onClick={() => {
-                    insertCoin();
-                  }}
-                  className={`flex-1 py-4 bg-[#3182f6] hover:bg-[#1b64da] active:bg-[#154fa6] text-white font-bold text-[14px] rounded-2xl transition-all cursor-pointer text-center shadow-lg shadow-blue-500/20 ${isInserting ? "scale-95 opacity-80" : ""}`}
-                >
-                  {isInserting ? "충전 중..." : "1개 충전하기"}
-                </button>
+                </Button>
+                <div className="flex-1 flex flex-col gap-2">
+                  {iapSupported && products.length > 0 ? (
+                    products.map((product) => (
+                      <Button
+                        key={product.sku}
+                        color="primary"
+                        variant="fill"
+                        display="full"
+                        size="large"
+                        loading={isInserting}
+                        onClick={() => handleIapBuy(product.sku)}
+                      >
+                        {product.displayName} ({product.displayAmount})
+                      </Button>
+                    ))
+                  ) : (
+                    <Button
+                      color="primary"
+                      variant="fill"
+                      display="full"
+                      size="large"
+                      loading={isInserting}
+                      onClick={() => insertCoin()}
+                    >
+                      1개 충전하기
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
