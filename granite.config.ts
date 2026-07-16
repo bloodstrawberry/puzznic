@@ -8,11 +8,11 @@ export default defineConfig({
     icon: '', // 화면에 노출될 앱의 아이콘 이미지 주소로 바꿔주세요.
   },
   web: {
-    host: '192.168.55.120',
+    host: 'localhost', //'192.168.55.120',
     port: 5173,
     commands: {
       dev: 'next dev -p 5173 -H 0.0.0.0',
-      build: 'next build',
+      build: 'next build && node scripts/post-build.js',
     },
   },
   permissions: [],

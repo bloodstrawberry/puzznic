@@ -15,6 +15,12 @@ interface ProvidersProps {
 function setupConstantHandlerFallbacks() {
   if (typeof window === "undefined") return;
 
+  const win = window as unknown as Record<string, unknown>;
+  if (!win.__CONSTANT_HANDLER_MAP || typeof win.__CONSTANT_HANDLER_MAP !== "object") {
+    win.__CONSTANT_HANDLER_MAP = {};
+  }
+
+  const map = win.__CONSTANT_HANDLER_MAP as Record<string, unknown>;
   const fallbacks: Record<string, unknown> = {
     getSafeAreaInsets: { top: 0, bottom: 0, left: 0, right: 0 },
     deploymentId: "",
@@ -23,10 +29,11 @@ function setupConstantHandlerFallbacks() {
     brandPrimaryColor: "#3182F6",
   };
 
-  const win = window as unknown as Record<string, unknown>;
-  const existing =
-    (win.__CONSTANT_HANDLER_MAP as Record<string, unknown>) ?? {};
-  win.__CONSTANT_HANDLER_MAP = { ...fallbacks, ...existing };
+  for (const [key, value] of Object.entries(fallbacks)) {
+    if (map[key] === undefined) {
+      map[key] = value;
+    }
+  }
 }
 
 export function Providers({ children }: ProvidersProps) {
