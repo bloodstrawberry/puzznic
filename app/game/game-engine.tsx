@@ -477,7 +477,6 @@ export const useGameEngine = (
         curState.isGameOver ||
         curState.isLevelCleared ||
         curState.isEditorMode ||
-        curState.isProcessing ||
         curState.flashingBlocks[`${y},${x}`]
       )
         return;
@@ -989,7 +988,7 @@ export const useGameEngine = (
     muted,
     setMuted,
     grabbed,
-    setGrabbed,
+    setGrabbed: updateGrabbed,
     hasMovedFirstBlock,
     flashingBlocks,
     bullets,
