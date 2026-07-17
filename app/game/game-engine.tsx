@@ -168,26 +168,40 @@ export const useGameEngine = (
 
   const updateCursor = useCallback(
     (updater: Position | ((prev: Position) => Position)) => {
-      setCursor((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : updater;
+      if (typeof updater === "function") {
+        setCursor((prev) => {
+          const next = updater(prev);
+          if (stateRef.current) {
+            stateRef.current.cursor = next;
+          }
+          return next;
+        });
+      } else {
         if (stateRef.current) {
-          stateRef.current.cursor = next;
+          stateRef.current.cursor = updater;
         }
-        return next;
-      });
+        setCursor(updater);
+      }
     },
     [setCursor],
   );
 
   const updateGrabbed = useCallback(
     (updater: boolean | ((prev: boolean) => boolean)) => {
-      setGrabbed((prev) => {
-        const next = typeof updater === "function" ? updater(prev) : updater;
+      if (typeof updater === "function") {
+        setGrabbed((prev) => {
+          const next = updater(prev);
+          if (stateRef.current) {
+            stateRef.current.grabbed = next;
+          }
+          return next;
+        });
+      } else {
         if (stateRef.current) {
-          stateRef.current.grabbed = next;
+          stateRef.current.grabbed = updater;
         }
-        return next;
-      });
+        setGrabbed(updater);
+      }
     },
     [setGrabbed],
   );
@@ -356,6 +370,16 @@ export const useGameEngine = (
         const gravityResult = applyGravity(currentGrid);
 
         if (gravityResult.changed) {
+          if (stateRef.current?.grabbed) {
+            const { cursor: curCursor } = stateRef.current;
+            const oldCell = currentGrid[curCursor.y]?.[curCursor.x];
+            const newCell = gravityResult.grid[curCursor.y + 1]?.[curCursor.x];
+            const oldCellNowEmpty = gravityResult.grid[curCursor.y]?.[curCursor.x] === BLOCK_EMPTY;
+            if (isNonWallBlock(oldCell) && newCell === oldCell && oldCellNowEmpty) {
+              const nextCursor = { x: curCursor.x, y: curCursor.y + 1 };
+              updateCursor(nextCursor);
+            }
+          }
           currentGrid = gravityResult.grid;
           setGrid(currentGrid);
           if (stateRef.current) stateRef.current.grid = currentGrid;
@@ -441,7 +465,7 @@ export const useGameEngine = (
       setIsProcessing(false);
       if (stateRef.current) stateRef.current.isProcessing = false;
     },
-    [isEditorMode, muted, updateBlockCounts, checkAndReleaseGrabbed],
+    [isEditorMode, muted, updateBlockCounts, checkAndReleaseGrabbed, updateCursor],
   );
 
   // Move Block left, right, up, or down

@@ -343,6 +343,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         grid: curGrid,
         cursor: curCursor,
         grabbed: initialGrabbed,
+        isProcessing: curProcessing,
         isGameOver: curGameOver,
         isLevelCleared: curLevelCleared,
         activeEditor: curActiveEditor,
@@ -416,7 +417,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         currentCellAtCursor !== BLOCK_SPIKE_L &&
         currentCellAtCursor !== BLOCK_SPIKE_R;
 
-      if (curGrabbed && !isCursorPuzzleBlock) {
+      if (curGrabbed && !isCursorPuzzleBlock && !curProcessing) {
         curSetGrabbed(false);
         curGrabbed = false;
       }
