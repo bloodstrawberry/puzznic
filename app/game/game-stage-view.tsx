@@ -129,15 +129,38 @@ export default function GameStageView({
   handleCellClick,
 }: GameStageViewProps) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center mt-6 md:mt-0 relative animate-fade-in">
-      {/* Visual Stone outer border block framework */}
-      <div className="relative p-0.5 md:p-1 bg-[#5a8a2a] border-2 md:border-4 border-[#4a7a22] rounded-lg shadow-2xl flex items-center justify-center">
-        {/* Board grid inner shadow backdrop */}
-        <div className="absolute inset-0.5 bg-[#8CC63F] z-0 pointer-events-none" />
+    <div className="flex-1 flex flex-col items-center justify-center mt-6 md:mt-0 relative animate-fade-in w-full h-full select-none">
+      {/* Decorative lawn details around the stage (grass blades and tiny white flowers) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        {/* Top left flower cluster */}
+        <div className="absolute top-[8%] left-[6%] flex items-center gap-1 opacity-80">
+          <span className="w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-yellow-300" />
+          <span className="w-2 h-2 bg-white rounded-full shadow-sm border border-yellow-300" />
+          <span className="text-[10px] text-green-700 font-bold ml-0.5">w</span>
+        </div>
+        {/* Bottom left grass tufts */}
+        <div className="absolute bottom-[12%] left-[10%] flex items-end gap-1.5 opacity-75">
+          <span className="text-[12px] text-green-800 font-bold">🌱</span>
+          <span className="w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-yellow-300 mb-1" />
+        </div>
+        {/* Top right grass blades */}
+        <div className="absolute top-[12%] right-[12%] flex items-center gap-1 opacity-75">
+          <span className="text-[11px] text-green-800 font-bold">☘️</span>
+          <span className="w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-yellow-300" />
+        </div>
+        {/* Bottom right flower dots */}
+        <div className="absolute bottom-[16%] right-[8%] flex items-center gap-1.5 opacity-80">
+          <span className="w-2 h-2 bg-white rounded-full shadow-sm border border-yellow-300" />
+          <span className="w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-yellow-300" />
+          <span className="text-[10px] text-green-700 font-bold">w</span>
+        </div>
+      </div>
 
+      {/* Seamless Game Stage Grid Container */}
+      <div className="relative p-2 md:p-4 flex items-center justify-center w-full z-10">
         {/* Dynamic Play Grid */}
         <div
-          className="grid bg-[#8CC63F] relative z-10 w-full justify-center animate-fade-in"
+          className="grid relative z-10 w-full justify-center animate-fade-in"
           style={{
             gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
             maxWidth: `${(grid[0]?.length || 8) * 44}px`,
@@ -160,28 +183,23 @@ export default function GameStageView({
                       e.preventDefault();
                     }
                   }}
-                  className={`w-full aspect-square relative border border-[#5a8a2a]/20 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
-                    activeEditor ? "hover:bg-[#a8e050]/40" : ""
+                  className={`w-full aspect-square relative rounded-[22%] flex items-center justify-center transition-all cursor-pointer overflow-visible select-none ${
+                    activeEditor
+                      ? "hover:bg-[#a8e050]/50 hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.15),0_0_8px_rgba(255,255,255,0.8)]"
+                      : ""
                   }`}
+                  style={{
+                    background:
+                      "linear-gradient(150deg, rgba(30, 80, 10, 0.22) 0%, rgba(10, 40, 0, 0.35) 100%)",
+                    boxShadow:
+                      "inset 0 3px 6px rgba(0, 0, 0, 0.28), inset 0 1px 3px rgba(0, 0, 0, 0.18), 0 1px 1px rgba(255, 255, 255, 0.4)",
+                    border: "1px solid rgba(40, 85, 10, 0.25)",
+                  }}
                 >
-                  {/* Inner grid subtle highlight */}
-                  <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06)_0%,transparent_50%)] pointer-events-none" />
-
-                  {/* Render grid cell elements */}
-                  {cell === BLOCK_EMPTY ? (
-                    /* Empty slot placeholder */
+                  {/* Render grid cell elements (blocks inside the indented slot) */}
+                  {cell !== BLOCK_EMPTY && (
                     <div
-                      className="rounded-sm pointer-events-none"
-                      style={{
-                        width: `${STAGE_BLOCK_SIZE_PERCENT}%`,
-                        height: `${STAGE_BLOCK_SIZE_PERCENT}%`,
-                        backgroundColor: "rgba(0,0,0,0.08)",
-                        border: "1px solid rgba(0,0,0,0.06)",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      className={`transform active:scale-95 transition-transform ${
+                      className={`transform active:scale-95 transition-transform relative z-10 ${
                         flashingBlocks[`${y},${x}`] ? "animate-match-flash pointer-events-none" : ""
                       }`}
                       style={{
@@ -196,17 +214,17 @@ export default function GameStageView({
                   {/* Render Cursor Selector outline (Pulsating gold if grabbed, red if free) */}
                   {isCursor && (
                     <div
-                      className={`absolute inset-0 border-2 pointer-events-none z-20 animate-pulse ${
+                      className={`absolute inset-0 border-2 rounded-[22%] pointer-events-none z-20 animate-pulse ${
                         grabbed
                           ? "border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.9)] animate-bounce"
                           : "border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]"
                       }`}
                     >
                       {/* Glowing corner anchors */}
-                      <span className={`absolute top-0 left-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                      <span className={`absolute top-0 right-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                      <span className={`absolute bottom-0 left-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                      <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
+                      <span className={`absolute top-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
+                      <span className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
+                      <span className={`absolute bottom-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
+                      <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
                     </div>
                   )}
                 </div>
