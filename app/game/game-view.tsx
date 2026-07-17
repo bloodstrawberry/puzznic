@@ -753,28 +753,29 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-1 md:p-4 bg-zinc-950 retro-bricks overflow-hidden relative font-press-start select-none">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-0 pointer-events-none" />
+    <div className="flex min-h-screen items-center justify-center p-0 md:p-6 bg-[#0f0f10] text-[#f9fafb] overflow-hidden relative font-sans select-none">
+      {/* Subtle modern background gradient overlay */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-950/15 via-zinc-950/20 to-zinc-950 pointer-events-none z-0" />
 
       {/* Main Container */}
-      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center">
+      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center p-2 md:p-4">
         {/* Navigation Bar */}
-        <div className="w-[96%] bg-zinc-900 border-4 border-b-0 border-zinc-800 rounded-t-2xl px-2 md:px-6 py-4 flex items-center justify-between shadow-[inset_0_4px_10px_rgba(255,255,255,0.15)] select-none">
+        <div className="w-full bg-[#17171c]/90 backdrop-blur-md border border-zinc-900 rounded-t-[24px] px-4 md:px-6 py-4 flex items-center justify-between shadow-sm select-none">
           <div className="flex gap-4 items-center">
             <Link
               href="/home"
               onClick={() => playSound("select", muted)}
-              className="text-zinc-400 hover:text-white text-[10px] transition-colors cursor-pointer"
+              className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
             >
-              ◀ BACK TO CAB
+              ◀ 메인 메뉴로
             </Link>
-            <span className="text-[10px] text-zinc-500">|</span>
-            <span className="text-zinc-300 text-[10px] uppercase">
+            <span className="text-xs text-zinc-700">|</span>
+            <span className="text-zinc-300 text-xs font-semibold">
               {isEditor
                 ? playTestMode
-                  ? "EDIT MODE (TESTING)"
-                  : "MAP EDITOR MODE"
-                : "ARCADE STAGE"}
+                  ? "맵 에디터 (테스트 중)"
+                  : "맵 에디터 모드"
+                : "퍼즐 플레이"}
             </span>
           </div>
 
@@ -782,12 +783,12 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
             {isEditor && (
               <button
                 onClick={togglePlayTest}
-                className={`px-3 py-1.5 rounded text-[8px] cursor-pointer transition-all border ${playTestMode
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all border ${playTestMode
                   ? "bg-red-600 hover:bg-red-500 border-red-700 text-white"
                   : "bg-emerald-600 hover:bg-emerald-500 border-emerald-700 text-white animate-pulse"
                   }`}
               >
-                {playTestMode ? "⏹ STOP TEST" : "▶ TEST LEVEL"}
+                {playTestMode ? "⏹ 테스트 중단" : "▶ 레벨 테스트"}
               </button>
             )}
             <button
@@ -800,39 +801,39 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 }
                 playSound("select", muted);
               }}
-              className="text-zinc-500 hover:text-zinc-300 text-[10px] cursor-pointer focus:outline-none uppercase"
+              className="text-zinc-400 hover:text-zinc-200 text-xs font-semibold cursor-pointer focus:outline-none flex items-center gap-1"
             >
-              🔄 RETRY
+              🔄 다시 도전
             </button>
-            <span className="text-[10px] text-zinc-700">|</span>
+            <span className="text-xs text-zinc-700">|</span>
             <button
               onClick={() => setMuted(!muted)}
-              className="text-zinc-500 hover:text-zinc-300 text-[10px] cursor-pointer focus:outline-none"
+              className="text-zinc-400 hover:text-zinc-200 text-xs font-semibold cursor-pointer focus:outline-none"
             >
-              {muted ? "🔊 UNMUTE" : "🔇 MUTE"}
+              {muted ? "🔊 소리 켜기" : "🔇 음소거"}
             </button>
           </div>
         </div>
 
-        {/* CRT cabinet Bezel */}
-        <div className="w-full bg-zinc-900 border-[6px] md:border-[14px] border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-1 md:p-4 relative">
-          {/* CRT Screen wrapper */}
-          <div className="crt-screen crt-glow-effect farm-grass-bg w-full min-h-[480px] rounded-lg border-[3px] md:border-[6px] border-black flex flex-col md:flex-row p-1 md:p-6 text-white relative">
+        {/* Toss Style Game Board Container */}
+        <div className="w-full bg-[#17171c] border border-t-0 border-zinc-900 rounded-b-[24px] shadow-2xl p-2 md:p-6 relative">
+          {/* Farm Board Area */}
+          <div className="farm-grass-bg w-full min-h-[480px] rounded-2xl border border-zinc-800/40 flex flex-col md:flex-row p-4 md:p-6 text-white relative shadow-inner">
             {/* LEFT COLUMN: STATS AND HUD */}
-            <div className="w-full md:w-[260px] flex flex-col justify-between pr-4 border-b md:border-b-0 md:border-r border-[#5a8a2a]/50 pb-4 md:pb-0 md:mr-6">
+            <div className="w-full md:w-[260px] flex flex-col justify-between pr-0 md:pr-4 border-b md:border-b-0 md:border-r border-zinc-800/40 pb-4 md:pb-0 md:mr-6">
               {/* Retro HUD stats */}
-              <div className="flex flex-col gap-4 text-[10px] text-zinc-400">
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-yellow-400">PLAYER-1</span>
-                  <span className="text-white text-xs tracking-widest">0</span>
+              <div className="flex flex-col gap-4 text-xs text-zinc-400">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[#3182f6] font-semibold tracking-wider">PLAYER 1</span>
+                  <span className="text-white text-lg font-bold tracking-wider">0</span>
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-white font-bold">PROBLEM</span>
-                  <span className="text-cyan-400 text-xs uppercase flex items-center gap-1">
+                <div className="flex flex-col gap-1">
+                  <span className="text-zinc-400 font-medium">STAGE</span>
+                  <span className="text-emerald-400 text-sm font-bold flex items-center gap-1.5">
                     {isEditor ? (
                       <>
-                        STAGE{" "}
+                        단계{" "}
                         <input
                           key={editorActiveIndex}
                           type="text"
@@ -843,7 +844,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                             }
                           }}
                           onBlur={(e) => handleStageInputChange(e.currentTarget)}
-                          className="w-10 bg-zinc-950 border border-zinc-800 text-cyan-400 text-xs text-center focus:outline-none focus:border-cyan-500 font-mono py-0.5 rounded"
+                          className="w-10 bg-zinc-900 border border-zinc-800 text-emerald-400 text-xs font-bold text-center focus:outline-none focus:border-emerald-500 py-0.5 rounded"
                         />{" "}
                         / {editorLevels.length}
                       </>
@@ -859,7 +860,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                           selectEditorLevel(editorActiveIndex - 1);
                         }}
                         disabled={editorActiveIndex === 0}
-                        className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[8px] cursor-pointer text-white font-bold"
+                        className="px-2 py-1 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[10px] rounded-lg cursor-pointer text-white font-bold"
                         title="Previous Stage"
                       >
                         ◀
@@ -870,7 +871,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                           selectEditorLevel(editorActiveIndex + 1);
                         }}
                         disabled={editorActiveIndex === editorLevels.length - 1}
-                        className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[8px] cursor-pointer text-white font-bold"
+                        className="px-2 py-1 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[10px] rounded-lg cursor-pointer text-white font-bold"
                         title="Next Stage"
                       >
                         ▶
@@ -879,7 +880,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                         onClick={() => {
                           editorAddLevel();
                         }}
-                        className="px-1.5 py-0.5 bg-emerald-800 border border-emerald-700 hover:bg-emerald-700 text-[8px] cursor-pointer text-white font-bold"
+                        className="px-2 py-1 bg-emerald-800 border border-emerald-700 hover:bg-emerald-700 text-[10px] rounded-lg cursor-pointer text-white font-bold"
                         title="Add Stage"
                       >
                         ➕
@@ -889,21 +890,21 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                           editorDeleteLevel();
                         }}
                         disabled={editorLevels.length <= 1}
-                        className="px-1.5 py-0.5 bg-red-800 border border-red-700 hover:bg-red-700 disabled:opacity-40 text-[8px] cursor-pointer text-white font-bold"
+                        className="px-2 py-1 bg-red-800 border border-red-700 hover:bg-red-700 disabled:opacity-40 text-[10px] rounded-lg cursor-pointer text-white font-bold"
                         title="Delete Stage"
                       >
                         🗑️
                       </button>
                     </div>
                   ) : (
-                    <span className="text-white text-[9px]">
-                      {isEditor ? "[TESTING]" : `[1-${levelIndex + 1}]`}
+                    <span className="text-zinc-500 text-[10px]">
+                      {isEditor ? "[테스트 모드]" : `[1-${levelIndex + 1}]`}
                     </span>
                   )}
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-cyan-400">TIME LIMIT</span>
+                  <span className="text-zinc-400 font-medium">제한 시간</span>
                   <div className="flex items-center gap-1.5">
                     {activeEditor ? (
                       <>
@@ -913,33 +914,33 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                             editorUpdateTimeLimit(timeLeft - 10);
                           }}
                           disabled={timeLeft <= 10}
-                          className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 text-[8px] cursor-pointer text-white font-bold disabled:opacity-40"
+                          className="px-2 py-1 bg-zinc-850 border border-zinc-800 rounded-lg text-[10px] cursor-pointer text-white font-bold disabled:opacity-40"
                           title="Decrease Time Limit"
                         >
-                          -10s
+                          -10초
                         </button>
-                        <span className="text-yellow-400 text-[10px] font-bold w-12 text-center">
-                          {timeLeft}s
+                        <span className="text-yellow-400 text-xs font-bold w-12 text-center">
+                          {timeLeft}초
                         </span>
                         <button
                           onClick={() => {
                             playSound("select", muted);
                             editorUpdateTimeLimit(timeLeft + 10);
                           }}
-                          className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 text-[8px] cursor-pointer text-white font-bold"
+                          className="px-2 py-1 bg-zinc-850 border border-zinc-800 rounded-lg text-[10px] cursor-pointer text-white font-bold"
                           title="Increase Time Limit"
                         >
-                          +10s
+                          +10초
                         </button>
                       </>
                     ) : (
                       <>
                         <span className="text-yellow-400 text-xs font-bold w-10 text-center">
-                          {timeLeft}s
+                          {timeLeft}초
                         </span>
-                        <div className="flex-1 h-2 bg-zinc-950 border border-zinc-800 rounded overflow-hidden">
+                        <div className="flex-1 h-2 bg-zinc-950 border border-zinc-900 rounded-full overflow-hidden">
                           <div
-                            className={`h-full transition-all duration-1000 ${timeLeft > 20
+                            className={`h-full transition-all duration-1000 rounded-full ${timeLeft > 20
                               ? "bg-emerald-500"
                               : "bg-red-500 animate-pulse"
                               }`}
@@ -956,15 +957,15 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
 
               {/* Target Blocks box */}
               <div className="flex-1 flex flex-col justify-end mt-4">
-                <div className="bg-black/80 border-4 border-double border-zinc-700 p-3 rounded-lg flex flex-col min-h-[160px]">
-                  <div className="text-[7.5px] text-zinc-500 text-center mb-2 uppercase tracking-wider border-b border-zinc-900 pb-1.5">
-                    BLOCKS TO MATCH
+                <div className="bg-zinc-900/60 border border-zinc-800 p-4 rounded-[20px] flex flex-col min-h-[160px] shadow-sm">
+                  <div className="text-[11px] text-zinc-400 font-bold text-center mb-3 uppercase tracking-wider border-b border-zinc-800/40 pb-2">
+                    제거해야 할 블록
                   </div>
 
                   <div className="grid grid-cols-2 gap-x-2 gap-y-3.5 mt-1 overflow-y-auto max-h-[160px] pr-1">
                     {Object.keys(blockCounts).length === 0 ? (
-                      <div className="col-span-2 text-center text-[7.5px] text-zinc-600 mt-6 uppercase">
-                        EMPTY GRID
+                      <div className="col-span-2 text-center text-xs text-zinc-500 mt-6 font-semibold">
+                        남은 블록 없음
                       </div>
                     ) : (
                       Object.entries(blockCounts).map(([typeStr, count]) => {
@@ -973,12 +974,12 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                         return (
                           <div
                             key={type}
-                            className={`flex items-center gap-1.5 ${isCleared ? "opacity-25 line-through" : ""}`}
+                            className={`flex items-center gap-2 ${isCleared ? "opacity-25 line-through" : ""}`}
                           >
-                            <div className="w-5 h-5 flex-shrink-0">
+                            <div className="w-6 h-6 flex-shrink-0">
                               <BlockRenderer id={type} />
                             </div>
-                            <span className="text-[8px] text-zinc-400 font-press-start font-bold">
+                            <span className="text-[12px] text-zinc-300 font-bold">
                               x{count}
                             </span>
                           </div>
@@ -1017,36 +1018,36 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         </div>
 
         {/* BOTTOM SECTION: EDITOR PALETTE & LEVEL SELECTORS */}
-        <div className="w-[98%] bg-zinc-800 border-4 border-t-0 border-zinc-700 rounded-b-2xl p-4 flex flex-col gap-4 shadow-[0_15px_30px_rgba(0,0,0,0.6)]">
+        <div className="w-full bg-[#17171c] border border-t-0 border-zinc-900 rounded-b-[24px] p-4 flex flex-col gap-4 shadow-xl">
           {activeEditor ? (
             // Editor Toolbar
-            <div className="flex flex-col gap-3">
-              <div className="text-[8px] text-zinc-400 border-b border-zinc-700 pb-2 flex justify-between items-center uppercase">
+            <div className="flex flex-col gap-3 font-sans">
+              <div className="text-xs text-zinc-400 border-b border-zinc-800/50 pb-2 flex justify-between items-center font-semibold">
                 <span>
-                  SELECT PAINT TOOL AND CLICK OR DRAG THE GRID CELLS TO DRAW
+                  그리기 도구를 선택하고 격자 셀을 클릭하거나 드래그하여 그려보세요.
                 </span>
-                <span className="text-yellow-400">EDITOR PALETTE</span>
+                <span className="text-[#3182f6]">에디터 팔레트</span>
               </div>
 
               {/* Block Selection Palette */}
-              <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex flex-wrap gap-2.5 items-center">
                 {/* Eraser */}
                 <button
                   onClick={() => setSelectedPaint("eraser")}
-                  className={`px-3 py-2 rounded text-[8.5px] border cursor-pointer flex items-center gap-1.5 transition-all ${selectedPaint === "eraser"
-                    ? "bg-red-600 border-red-700 text-white shadow-lg scale-105"
+                  className={`px-3 py-2 rounded-xl text-xs border cursor-pointer flex items-center gap-1.5 transition-all ${selectedPaint === "eraser"
+                    ? "bg-red-600 border-red-700 text-white shadow-lg scale-102 font-bold"
                     : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
                     }`}
                 >
-                  🧹 ERASER
+                  🧹 지우개
                 </button>
 
                 {/* Wall block */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                 >
                   <BlockRenderer id={BLOCK_WALL} />
@@ -1057,9 +1058,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                   <button
                     key={type}
                     onClick={() => setSelectedPaint(type)}
-                    className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === type
-                      ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-700 hover:border-zinc-500"
+                    className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === type
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                       }`}
                   >
                     <BlockRenderer id={type} />
@@ -1069,9 +1070,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Bomb block */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_BOMB)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_BOMB
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_BOMB
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Bomb Block"
                 >
@@ -1081,9 +1082,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Moving slider walls */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL_V)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL_V
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL_V
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Vertical Moving Wall"
                 >
@@ -1091,9 +1092,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL_H)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL_H
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL_H
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Horizontal Moving Wall"
                 >
@@ -1101,9 +1102,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_AUTO_WALL_V)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_AUTO_WALL_V
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_AUTO_WALL_V
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Vertical Auto-Moving Wall"
                 >
@@ -1111,9 +1112,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_AUTO_WALL_H)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_AUTO_WALL_H
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_AUTO_WALL_H
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Horizontal Auto-Moving Wall"
                 >
@@ -1123,9 +1124,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Shooter blocks */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_L)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_L
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_L
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Shooter Left (Repeated)"
                 >
@@ -1133,9 +1134,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_R)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_R
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_R
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Shooter Right (Repeated)"
                 >
@@ -1143,9 +1144,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_L_ONCE)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_L_ONCE
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_L_ONCE
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Shooter Left (Once)"
                 >
@@ -1153,9 +1154,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_R_ONCE)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_R_ONCE
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_R_ONCE
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Shooter Right (Once)"
                 >
@@ -1165,9 +1166,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Spike blocks */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_U)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_U
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_U
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Spike Up"
                 >
@@ -1175,9 +1176,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_D)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_D
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_D
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Spike Down"
                 >
@@ -1185,9 +1186,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_L)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_L
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_L
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Spike Left"
                 >
@@ -1195,9 +1196,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_R)}
-                  className={`w-9 h-9 p-0.5 rounded border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_R
-                    ? "border-yellow-400 bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-700 hover:border-zinc-500"
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_R
+                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
                     }`}
                   title="Spike Right"
                 >
@@ -1206,23 +1207,23 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
               </div>
 
               {/* Map actions */}
-              <div className="flex flex-wrap justify-between items-center gap-2 mt-2 pt-2 border-t border-zinc-700">
+              <div className="flex flex-wrap justify-between items-center gap-3 mt-2 pt-3 border-t border-zinc-800/60">
                 <div className="flex flex-wrap items-center gap-3">
                   {/* Rows / Cols control */}
-                  <div className="flex items-center gap-2 bg-zinc-950 px-2 py-1 rounded border border-zinc-800 text-white select-none">
-                    <span className="text-[7px] text-zinc-500 font-bold">
-                      ROWS
+                  <div className="flex items-center gap-2 bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-850 text-white select-none">
+                    <span className="text-[10px] text-zinc-500 font-bold">
+                      행
                     </span>
                     <button
                       onClick={() =>
                         editorResizeGrid(grid.length - 1, grid[0].length)
                       }
                       disabled={grid.length <= 4}
-                      className="w-4 h-4 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-[8px] text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                      className="w-5 h-5 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold rounded-lg"
                     >
                       -
                     </button>
-                    <span className="text-[8px] text-yellow-400 font-bold w-3 text-center">
+                    <span className="text-xs text-yellow-400 font-bold w-4 text-center">
                       {grid.length}
                     </span>
                     <button
@@ -1230,26 +1231,26 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                         editorResizeGrid(grid.length + 1, grid[0].length)
                       }
                       disabled={grid.length >= 12}
-                      className="w-4 h-4 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-[8px] text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                      className="w-5 h-5 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold rounded-lg"
                     >
                       +
                     </button>
 
                     <span className="text-zinc-800">|</span>
 
-                    <span className="text-[7px] text-zinc-500 font-bold">
-                      COLS
+                    <span className="text-[10px] text-zinc-500 font-bold">
+                      열
                     </span>
                     <button
                       onClick={() =>
                         editorResizeGrid(grid.length, grid[0].length - 1)
                       }
                       disabled={grid[0].length <= 4}
-                      className="w-4 h-4 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-[8px] text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                      className="w-5 h-5 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold rounded-lg"
                     >
                       -
                     </button>
-                    <span className="text-[8px] text-yellow-400 font-bold w-3 text-center">
+                    <span className="text-xs text-yellow-400 font-bold w-4 text-center">
                       {grid[0].length}
                     </span>
                     <button
@@ -1257,7 +1258,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                         editorResizeGrid(grid.length, grid[0].length + 1)
                       }
                       disabled={grid[0].length >= 16}
-                      className="w-4 h-4 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-[8px] text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                      className="w-5 h-5 flex items-center justify-center bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:bg-zinc-700 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-bold rounded-lg"
                     >
                       +
                     </button>
@@ -1265,27 +1266,27 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
 
                   <button
                     onClick={editorFillBorder}
-                    className="px-3 py-2 bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-900 rounded text-[8px] cursor-pointer"
+                    className="px-3.5 py-1.5 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-900/60 rounded-xl text-xs font-semibold cursor-pointer"
                   >
-                    🧱 BORDER WALL
+                    🧱 테두리 벽 채우기
                   </button>
                   <button
                     onClick={editorClearGrid}
-                    className="px-3 py-2 bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-900 rounded text-[8px] cursor-pointer"
+                    className="px-3.5 py-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-900/60 rounded-xl text-xs font-semibold cursor-pointer"
                   >
-                    🗑 CLEAR GRID
+                    🗑 격자 비우기
                   </button>
                   <button
                     onClick={handleExport}
-                    className="px-3 py-2 bg-zinc-900 hover:bg-zinc-700 text-white border border-zinc-700 rounded text-[8px] cursor-pointer"
+                    className="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-850 rounded-xl text-xs font-semibold cursor-pointer"
                   >
-                    📥 EXPORT JSON
+                    📥 JSON 내보내기
                   </button>
                   <button
                     onClick={() => setExportModalContent("")}
-                    className="px-3 py-2 bg-zinc-900 hover:bg-zinc-700 text-white border border-zinc-700 rounded text-[8px] cursor-pointer"
+                    className="px-3.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-850 rounded-xl text-xs font-semibold cursor-pointer"
                   >
-                    📤 IMPORT JSON
+                    📤 JSON 가져오기
                   </button>
                 </div>
               </div>
@@ -1295,54 +1296,52 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
             <div className="flex flex-col gap-4 w-full">
               {/* Desktop keyboard shortcut description */}
               <div className="hidden md:flex items-center justify-center sm:justify-start">
-                <div className="text-[7.5px] text-zinc-400 leading-relaxed uppercase max-w-[480px] text-center sm:text-left">
+                <div className="text-xs text-zinc-400 leading-relaxed max-w-[500px] text-center sm:text-left font-medium">
                   {playTestMode ? (
-                    <span className="text-yellow-400 font-bold">
-                      [PLAYTESTING MODE] Move selection: [Arrows] | Grab block:
-                      [Space] | Slide: [Left/Right].
+                    <span className="text-[#3182f6] font-bold">
+                      [테스트 모드] 이동: [방향키] | 블록 선택/해제: [Space] | 밀기: [왼쪽/오른쪽 방향키]
                     </span>
                   ) : (
                     <span>
-                      MOVE SELECTION: [Arrow keys] | Grab Block: [Space] | Slide
-                      block: [Arrow Left/Right]. Restart stage: [R]
+                      선택 이동: [방향키] | 블록 잡기/놓기: [Space] | 블록 밀기: [왼쪽/오른쪽 방향키] | 단계 재시작: [R]
                     </span>
                   )}
                 </div>
               </div>
 
               {/* Mobile Virtual D-Pad UI */}
-              <div className="flex md:hidden items-center justify-center gap-6 py-4 bg-zinc-900/40 border border-zinc-800 rounded-2xl px-5 mt-1">
+              <div className="flex md:hidden items-center justify-center gap-6 py-4 bg-zinc-900/30 border border-zinc-900 rounded-[24px] px-5 mt-1">
                 {/* Cross Direction Buttons */}
-                <div className="relative w-28 h-28 flex items-center justify-center bg-zinc-950/80 rounded-full border border-zinc-800 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
+                <div className="relative w-28 h-28 flex items-center justify-center bg-zinc-950/60 rounded-full border border-zinc-900 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
                   {/* Up */}
                   <button
                     onClick={() => handleDpadDirection("up")}
-                    className="absolute top-1 w-9 h-9 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-650 border border-zinc-700 rounded-lg flex items-center justify-center text-[10px] cursor-pointer font-bold text-zinc-300 shadow"
+                    className="absolute top-1 w-9 h-9 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800 rounded-xl flex items-center justify-center text-xs cursor-pointer font-bold text-zinc-300 shadow"
                   >
                     ▲
                   </button>
                   {/* Left */}
                   <button
                     onClick={() => handleDpadDirection("left")}
-                    className="absolute left-1 w-9 h-9 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-650 border border-zinc-700 rounded-lg flex items-center justify-center text-[10px] cursor-pointer font-bold text-zinc-300 shadow"
+                    className="absolute left-1 w-9 h-9 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800 rounded-xl flex items-center justify-center text-xs cursor-pointer font-bold text-zinc-300 shadow"
                   >
                     ◀
                   </button>
                   {/* Center deco */}
-                  <div className="w-8 h-8 bg-zinc-900 border border-zinc-850 rounded-full z-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-2.5 h-2.5 bg-zinc-700 rounded-full" />
+                  <div className="w-8 h-8 bg-zinc-950 border border-zinc-900 rounded-full z-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-2 h-2 bg-zinc-800 rounded-full" />
                   </div>
                   {/* Right */}
                   <button
                     onClick={() => handleDpadDirection("right")}
-                    className="absolute right-1 w-9 h-9 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-650 border border-zinc-700 rounded-lg flex items-center justify-center text-[10px] cursor-pointer font-bold text-zinc-300 shadow"
+                    className="absolute right-1 w-9 h-9 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800 rounded-xl flex items-center justify-center text-xs cursor-pointer font-bold text-zinc-300 shadow"
                   >
                     ▶
                   </button>
                   {/* Down */}
                   <button
                     onClick={() => handleDpadDirection("down")}
-                    className="absolute bottom-1 w-9 h-9 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-650 border border-zinc-700 rounded-lg flex items-center justify-center text-[10px] cursor-pointer font-bold text-zinc-300 shadow"
+                    className="absolute bottom-1 w-9 h-9 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800 rounded-xl flex items-center justify-center text-xs cursor-pointer font-bold text-zinc-300 shadow"
                   >
                     ▼
                   </button>
@@ -1352,14 +1351,14 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 <div className="flex flex-col items-center justify-center">
                   <button
                     onClick={handleDpadGrab}
-                    className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-4 font-bold cursor-pointer transition-all shadow-lg active:scale-95 ${
+                    className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-2 font-bold cursor-pointer transition-all shadow-lg active:scale-95 ${
                       grabbed
-                        ? "bg-yellow-500 border-yellow-600 hover:bg-yellow-400 text-black shadow-[0_0_12px_rgba(250,204,21,0.5)]"
-                        : "bg-red-600 border-red-700 hover:bg-red-500 text-white"
+                        ? "bg-emerald-500 border-emerald-600 hover:bg-emerald-450 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]"
+                        : "bg-[#3182f6] border-[#2272e6] hover:bg-[#1b64da] text-white"
                     }`}
                   >
-                    <span className="text-[10px] tracking-wider">{grabbed ? "RELEASE" : "GRAB"}</span>
-                    <span className="text-[6.5px] text-zinc-400 mt-1 uppercase font-normal">{grabbed ? "LOCK ON" : "SPACE"}</span>
+                    <span className="text-[13px] tracking-wide font-bold">{grabbed ? "놓기" : "잡기"}</span>
+                    <span className="text-[8px] text-zinc-300 mt-0.5 font-normal tracking-wide">{grabbed ? "RELEASE" : "SPACE"}</span>
                   </button>
                 </div>
               </div>
@@ -1370,24 +1369,24 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
 
       {/* JSON Import/Export Modal */}
       {cheaterPopupOpen && (
-        <div className="absolute inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-950 border-4 border-red-600 max-w-md w-full rounded-xl p-6 shadow-[0_0_30px_rgba(220,38,38,0.5)] relative text-zinc-300 font-sans flex flex-col gap-5 text-center">
-            <div className="border-b border-zinc-900 pb-3">
-              <h2 className="text-xs font-bold font-press-start text-red-500 tracking-wide animate-pulse">
-                ⚠️ CHEAT DETECTED ⚠️
+        <div className="absolute inset-0 bg-[#121214]/85 backdrop-blur-[4px] z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1c1c1e] border border-zinc-800/80 rounded-[28px] max-w-md w-full p-6 shadow-2xl relative text-zinc-300 flex flex-col gap-5 text-center animate-slide-up">
+            <div className="border-b border-zinc-850 pb-3">
+              <h2 className="text-sm font-bold text-red-500 tracking-wide animate-pulse">
+                ⚠️ 비정상적인 접근 감지 ⚠️
               </h2>
             </div>
 
             <div className="text-4xl animate-bounce">😜</div>
 
-            <p className="text-[10px] font-press-start leading-relaxed text-yellow-400 uppercase">
-              NICE TRY, HACKER!
+            <p className="text-sm font-bold text-yellow-400 uppercase tracking-wide">
+              주소창 입력을 통한 스테이지 건너뛰기가 감지되었습니다.
             </p>
             
-            <p className="text-[9px] text-zinc-400 font-press-start leading-relaxed uppercase">
-              YOU TRIED TO SKIP TO A LOCKED STAGE USING THE URL.
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              잠겨있는 스테이지에는 바로 입장하실 수 없습니다.
               <br /><br />
-              <span className="text-red-500 font-bold">PUNISHMENT:</span> PROGRESS RESET TO <span className="text-white font-bold underline">LEVEL 1</span>!
+              <span className="text-red-500 font-bold">진행 상황 패널티:</span> 처음 레벨로 <span className="text-white font-bold underline">초기화</span>됩니다!
             </p>
 
             <div className="flex justify-center mt-2">
@@ -1396,9 +1395,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                   setCheaterPopupOpen(false);
                   playSound("start", muted);
                 }}
-                className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded text-[8px] cursor-pointer border-2 border-red-700 shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all hover:scale-105 active:scale-95 font-press-start uppercase tracking-wider"
+                className="w-full py-3.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-2xl text-xs cursor-pointer border border-red-700 shadow-md transition-all hover:scale-102 active:scale-98 tracking-wider"
               >
-                I AM SORRY 🥺
+                죄송합니다 🥺 (다시 시작)
               </button>
             </div>
           </div>
@@ -1406,20 +1405,20 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       )}
 
       {exportModalContent !== null && (
-        <div className="absolute inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border-4 border-zinc-700 max-w-lg w-full rounded-xl p-6 shadow-2xl relative text-zinc-300 font-sans flex flex-col gap-4">
-            <div className="text-center border-b border-zinc-800 pb-2">
-              <h2 className="text-md font-bold font-press-start text-yellow-400 tracking-wide">
+        <div className="absolute inset-0 bg-[#121214]/85 backdrop-blur-[4px] z-50 flex items-center justify-center p-4">
+          <div className="bg-[#1c1c1e] border border-zinc-800/80 rounded-[28px] max-w-lg w-full p-6 shadow-2xl relative text-zinc-300 flex flex-col gap-4 animate-slide-up">
+            <div className="text-center border-b border-zinc-850 pb-2">
+              <h2 className="text-md font-bold text-yellow-400 tracking-wide">
                 {exportModalContent.length > 0
-                  ? "EXPORT LEVEL DATA"
-                  : "IMPORT LEVEL DATA"}
+                  ? "레벨 데이터 내보내기"
+                  : "레벨 데이터 가져오기"}
               </h2>
             </div>
 
             <p className="text-xs text-zinc-400">
               {exportModalContent.length > 0
-                ? "Copy the level data JSON string below to save or share:"
-                : "Paste a level data JSON string below to load it into the editor:"}
+                ? "아래의 레벨 데이터 JSON 문자열을 복사하여 저장하거나 공유하세요:"
+                : "불러올 레벨 데이터 JSON 문자열을 아래에 붙여넣어 주세요:"}
             </p>
 
             <textarea
@@ -1432,7 +1431,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                   setImportText(e.target.value);
                 }
               }}
-              className="w-full h-32 bg-black border border-zinc-800 rounded p-2.5 text-xs font-mono text-emerald-400 focus:outline-none focus:border-zinc-700"
+              className="w-full h-32 bg-black/60 border border-zinc-800 rounded-2xl p-3 text-xs font-mono text-emerald-400 focus:outline-none focus:border-zinc-700"
               placeholder='[{"name":"LEVEL 1-1","grid":[[0,0,...]],"timeLimit":180}]'
             />
 
@@ -1443,28 +1442,28 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                   setImportText("");
                   playSound("select", muted);
                 }}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded text-[10px] cursor-pointer"
+                className="px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 rounded-xl text-xs font-semibold cursor-pointer"
               >
-                CANCEL
+                취소
               </button>
 
               {exportModalContent.length > 0 ? (
                 <div className="flex gap-2">
                   <button
                     onClick={handleDownload}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-[10px] cursor-pointer"
+                    className="px-4 py-2 bg-[#3182f6] hover:bg-[#1b64da] text-white font-bold rounded-xl text-xs cursor-pointer"
                   >
-                    DOWNLOAD FILE
+                    파일 다운로드
                   </button>
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(exportModalContent);
-                      alert("Copied to clipboard!");
+                      alert("클립보드에 복사되었습니다!");
                       playSound("select", muted);
                     }}
-                    className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black font-bold rounded text-[10px] cursor-pointer"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs cursor-pointer"
                   >
-                    COPY TEXT
+                    텍스트 복사
                   </button>
                 </div>
               ) : (
@@ -1473,9 +1472,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                     handleImport(importText);
                     setImportText("");
                   }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[10px] cursor-pointer"
+                  className="px-4 py-2 bg-[#3182f6] hover:bg-[#1b64da] text-white font-bold rounded-xl text-xs cursor-pointer"
                 >
-                  IMPORT NOW
+                  가져오기
                 </button>
               )}
             </div>

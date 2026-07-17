@@ -130,29 +130,29 @@ export default function GameStageView({
 }: GameStageViewProps) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center mt-6 md:mt-0 relative animate-fade-in w-full h-full select-none">
-      {/* Decorative lawn details around the stage (grass blades and tiny white flowers) */}
+      {/* Decorative lawn details around the stage (clover, sprouts, and tiny wildflowers) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        {/* Top left flower cluster */}
+        {/* Top left sprout cluster */}
         <div className="absolute top-[8%] left-[6%] flex items-center gap-1 opacity-80">
-          <span className="w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-yellow-300" />
-          <span className="w-2 h-2 bg-white rounded-full shadow-sm border border-yellow-300" />
-          <span className="text-[10px] text-green-700 font-bold ml-0.5">w</span>
+          <span className="text-[14px]">🌱</span>
+          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm" />
+          <span className="text-[10px] text-emerald-600 font-bold ml-0.5">🍀</span>
         </div>
-        {/* Bottom left grass tufts */}
+        {/* Bottom left plants */}
         <div className="absolute bottom-[12%] left-[10%] flex items-end gap-1.5 opacity-75">
-          <span className="text-[12px] text-green-800 font-bold">🌱</span>
-          <span className="w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-yellow-300 mb-1" />
+          <span className="text-[15px]">🌿</span>
+          <span className="w-1.5 h-1.5 bg-emerald-300 rounded-full shadow-sm mb-1" />
         </div>
-        {/* Top right grass blades */}
+        {/* Top right clover */}
         <div className="absolute top-[12%] right-[12%] flex items-center gap-1 opacity-75">
-          <span className="text-[11px] text-green-800 font-bold">☘️</span>
-          <span className="w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-yellow-300" />
+          <span className="text-[13px]">☘️</span>
+          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm" />
         </div>
         {/* Bottom right flower dots */}
         <div className="absolute bottom-[16%] right-[8%] flex items-center gap-1.5 opacity-80">
-          <span className="w-2 h-2 bg-white rounded-full shadow-sm border border-yellow-300" />
-          <span className="w-1.5 h-1.5 bg-white rounded-full shadow-sm border border-yellow-300" />
-          <span className="text-[10px] text-green-700 font-bold">w</span>
+          <span className="text-[14px]">🌸</span>
+          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm" />
+          <span className="text-[12px] text-emerald-600 font-bold">🌱</span>
         </div>
       </div>
 
@@ -185,15 +185,15 @@ export default function GameStageView({
                   }}
                   className={`w-full aspect-square relative rounded-[22%] flex items-center justify-center transition-all cursor-pointer overflow-visible select-none ${
                     activeEditor
-                      ? "hover:bg-[#a8e050]/50 hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.15),0_0_8px_rgba(255,255,255,0.8)]"
+                      ? "hover:bg-emerald-500/30 hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.15),0_0_8px_rgba(52,211,153,0.5)]"
                       : ""
                   }`}
                   style={{
                     background:
-                      "linear-gradient(150deg, rgba(30, 80, 10, 0.22) 0%, rgba(10, 40, 0, 0.35) 100%)",
+                      "linear-gradient(150deg, rgba(16, 50, 16, 0.25) 0%, rgba(8, 30, 8, 0.4) 100%)",
                     boxShadow:
-                      "inset 0 3px 6px rgba(0, 0, 0, 0.28), inset 0 1px 3px rgba(0, 0, 0, 0.18), 0 1px 1px rgba(255, 255, 255, 0.4)",
-                    border: "1px solid rgba(40, 85, 10, 0.25)",
+                      "inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(34, 197, 94, 0.15)",
                   }}
                 >
                   {/* Render grid cell elements (blocks inside the indented slot) */}
@@ -211,20 +211,20 @@ export default function GameStageView({
                     </div>
                   )}
 
-                  {/* Render Cursor Selector outline (Pulsating gold if grabbed, red if free) */}
+                  {/* Render Cursor Selector outline (Pulsating green if grabbed, blue if free) */}
                   {isCursor && (
                     <div
                       className={`absolute inset-0 border-2 rounded-[22%] pointer-events-none z-20 animate-pulse ${
                         grabbed
-                          ? "border-yellow-400 shadow-[0_0_12px_rgba(250,204,21,0.9)] animate-bounce"
-                          : "border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.7)]"
+                          ? "border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-bounce"
+                          : "border-[#3182f6] shadow-[0_0_10px_rgba(49,130,246,0.7)]"
                       }`}
                     >
                       {/* Glowing corner anchors */}
-                      <span className={`absolute top-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                      <span className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                      <span className={`absolute bottom-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
-                      <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-yellow-400" : "bg-red-500"}`} />
+                      <span className={`absolute top-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`} />
+                      <span className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`} />
+                      <span className={`absolute bottom-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`} />
+                      <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`} />
                     </div>
                   )}
                 </div>
@@ -241,76 +241,76 @@ export default function GameStageView({
 
       {/* Success Notification Overlay (Cleared) */}
       {isLevelCleared && (
-        <div className="absolute inset-0 bg-black/90 backdrop-blur-[3px] z-40 flex flex-col items-center justify-center gap-5 text-center p-6 select-none animate-fade-in">
-          {/* Glowing Backlight Effect */}
-          <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/10 via-emerald-500/15 to-transparent pointer-events-none animate-pulse" />
-
-          {/* Star Icon container with bouncy animation */}
-          <div className="relative animate-bounce" style={{ animationDuration: "1.2s" }}>
-            <svg className="w-14 h-14 text-yellow-400 drop-shadow-[0_0_12px_rgba(234,179,8,0.8)]" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-          </div>
-
-          {/* Fancy title */}
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest font-press-start animate-pulse uppercase">
-              STAGE CLEARED!
-            </h2>
-            <div className="text-[9px] text-emerald-400 font-bold tracking-widest uppercase">
-              Level {levelIndex + 1} Complete
+        <div className="absolute inset-0 bg-[#121214]/85 backdrop-blur-[4px] z-40 flex flex-col items-center justify-center p-6 select-none animate-fade-in">
+          {/* Toss Style Card */}
+          <div className="w-full max-w-[280px] bg-[#1c1c1e] border border-zinc-800/80 rounded-[28px] p-6 shadow-2xl flex flex-col items-center gap-4 text-center animate-slide-up">
+            <div className="w-14 h-14 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 text-3xl animate-bounce">
+              🎉
             </div>
-          </div>
+            
+            <div className="flex flex-col gap-1">
+              <h2 className="text-[20px] font-bold text-white tracking-tight">
+                스테이지 클리어!
+              </h2>
+              <p className="text-[13px] text-zinc-400">
+                레벨 {levelIndex + 1} 완료
+              </p>
+            </div>
 
-          {/* Pinging light indicators */}
-          <div className="flex gap-3 justify-center py-1">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-ping [animation-delay:0.2s]" />
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping [animation-delay:0.4s]" />
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping [animation-delay:0.6s]" />
-          </div>
-
-          {/* Confirm Button */}
-          <div className="flex flex-col items-center gap-3 mt-3 w-full max-w-[200px]">
-            <button
-              onClick={() => {
-                setGrabbed(false);
-                if (!isEditor) {
-                  const nextIdx = (levelIndex + 1) % BUILTIN_LEVELS.length;
-                  loadLevel(nextIdx);
-                } else {
-                  resetLevel();
-                }
-                playSound("start", muted);
-              }}
-              className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-black rounded text-[10px] cursor-pointer border-2 border-yellow-600 font-bold shadow-[0_0_15px_rgba(234,179,8,0.4)] transition-all hover:scale-105 active:scale-95 uppercase tracking-wider font-press-start"
-            >
-              {isEditor ? "CONFIRM" : "NEXT LEVEL"}
-            </button>
-            <span className="text-[7px] text-zinc-500 tracking-wider uppercase animate-pulse">
-              [ PRESS ENTER ]
-            </span>
+            <div className="w-full flex flex-col gap-2 mt-2">
+              <button
+                onClick={() => {
+                  setGrabbed(false);
+                  if (!isEditor) {
+                    const nextIdx = (levelIndex + 1) % BUILTIN_LEVELS.length;
+                    loadLevel(nextIdx);
+                  } else {
+                    resetLevel();
+                  }
+                  playSound("start", muted);
+                }}
+                className="w-full py-3.5 bg-[#3182f6] hover:bg-[#1b64da] active:scale-95 transition-all text-white rounded-2xl text-[14px] font-bold cursor-pointer tracking-wide shadow-lg shadow-blue-500/20"
+              >
+                {isEditor ? "확인" : "다음 레벨로"}
+              </button>
+              <span className="text-[10px] text-zinc-500 font-medium">
+                [ Enter 키를 누르세요 ]
+              </span>
+            </div>
           </div>
         </div>
       )}
 
       {/* Game Over Notification Overlay */}
       {isGameOver && (
-        <div className="absolute inset-0 bg-black/90 backdrop-blur-[2px] z-40 flex flex-col items-center justify-center gap-4 text-center p-4">
-          <h2 className="text-xl text-red-500 tracking-widest animate-pulse font-press-start">GAME OVER</h2>
-          <p className="text-[8px] text-zinc-500 uppercase">Time has run out!</p>
+        <div className="absolute inset-0 bg-[#121214]/85 backdrop-blur-[4px] z-40 flex flex-col items-center justify-center p-6 select-none animate-fade-in">
+          {/* Toss Style Card */}
+          <div className="w-full max-w-[280px] bg-[#1c1c1e] border border-zinc-800/80 rounded-[28px] p-6 shadow-2xl flex flex-col items-center gap-4 text-center animate-slide-up">
+            <div className="w-14 h-14 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 text-3xl animate-bounce">
+              ⚠️
+            </div>
 
-          <div className="flex gap-4 mt-2">
-            <button
-              onClick={() => {
-                setGrabbed(false);
-                resetLevel();
-                playSound("start", muted);
-              }}
-              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 text-black rounded text-[9px] cursor-pointer border border-yellow-600 font-bold shadow"
-            >
-              RETRY
-            </button>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-[20px] font-bold text-white tracking-tight">
+                게임 오버
+              </h2>
+              <p className="text-[13px] text-zinc-400">
+                제한 시간이 초과되었습니다!
+              </p>
+            </div>
+
+            <div className="w-full mt-2">
+              <button
+                onClick={() => {
+                  setGrabbed(false);
+                  resetLevel();
+                  playSound("start", muted);
+                }}
+                className="w-full py-3.5 bg-[#3182f6] hover:bg-[#1b64da] active:scale-95 transition-all text-white rounded-2xl text-[14px] font-bold cursor-pointer tracking-wide shadow-lg shadow-blue-500/20"
+              >
+                다시 도전
+              </button>
+            </div>
           </div>
         </div>
       )}
