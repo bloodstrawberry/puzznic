@@ -17,6 +17,8 @@ import BlockRenderer, {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
+  STAGE_BLOCK_SIZE_PERCENT,
+  STAGE_GRID_GAP_REM,
 } from "../object";
 import { CellType, Position, Bullet as BulletType, BUILTIN_LEVELS } from "./types";
 
@@ -129,16 +131,17 @@ export default function GameStageView({
   return (
     <div className="flex-1 flex flex-col items-center justify-center mt-6 md:mt-0 relative animate-fade-in">
       {/* Visual Stone outer border block framework */}
-      <div className="relative p-1 bg-zinc-950 border-4 border-zinc-800 rounded-lg shadow-2xl flex items-center justify-center">
+      <div className="relative p-0.5 md:p-1 bg-[#5a8a2a] border-2 md:border-4 border-[#4a7a22] rounded-lg shadow-2xl flex items-center justify-center">
         {/* Board grid inner shadow backdrop */}
-        <div className="absolute inset-0.5 bg-zinc-800 z-0 pointer-events-none" />
+        <div className="absolute inset-0.5 bg-[#8CC63F] z-0 pointer-events-none" />
 
         {/* Dynamic Play Grid */}
         <div
-          className="grid gap-0.5 bg-zinc-800 relative z-10 w-full justify-center animate-fade-in"
+          className="grid bg-[#8CC63F] relative z-10 w-full justify-center animate-fade-in"
           style={{
             gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
             maxWidth: `${(grid[0]?.length || 8) * 44}px`,
+            gap: `${STAGE_GRID_GAP_REM}rem`,
           }}
         >
           {grid.map((row, y) =>
@@ -157,19 +160,23 @@ export default function GameStageView({
                       e.preventDefault();
                     }
                   }}
-                  className={`w-full aspect-square relative border border-zinc-900/30 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
-                    activeEditor ? "hover:bg-zinc-700/50" : ""
+                  className={`w-full aspect-square relative border border-[#6fa832]/60 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
+                    activeEditor ? "hover:bg-[#a8e050]/40" : ""
                   }`}
                 >
-                  {/* Inner grid styling scanline effect */}
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] pointer-events-none" />
+                  {/* Inner grid subtle highlight */}
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06)_0%,transparent_50%)] pointer-events-none" />
 
                   {/* Render grid cell elements */}
                   {cell !== BLOCK_EMPTY && (
                     <div
-                      className={`w-[88%] h-[88%] transform active:scale-95 transition-transform ${
+                      className={`transform active:scale-95 transition-transform ${
                         flashingBlocks[`${y},${x}`] ? "animate-match-flash pointer-events-none" : ""
                       }`}
+                      style={{
+                        width: `${STAGE_BLOCK_SIZE_PERCENT}%`,
+                        height: `${STAGE_BLOCK_SIZE_PERCENT}%`,
+                      }}
                     >
                       <BlockRenderer id={cell} x={x} y={y} grid={grid} />
                     </div>

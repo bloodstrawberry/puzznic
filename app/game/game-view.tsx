@@ -753,13 +753,13 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-zinc-950 retro-bricks overflow-hidden relative font-press-start select-none">
+    <div className="flex min-h-screen items-center justify-center p-1 md:p-4 bg-zinc-950 retro-bricks overflow-hidden relative font-press-start select-none">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-0 pointer-events-none" />
 
       {/* Main Container */}
       <div className="relative z-10 w-full max-w-6xl flex flex-col items-center">
         {/* Navigation Bar */}
-        <div className="w-[96%] bg-zinc-900 border-4 border-b-0 border-zinc-800 rounded-t-2xl px-6 py-4 flex items-center justify-between shadow-[inset_0_4px_10px_rgba(255,255,255,0.15)] select-none">
+        <div className="w-[96%] bg-zinc-900 border-4 border-b-0 border-zinc-800 rounded-t-2xl px-2 md:px-6 py-4 flex items-center justify-between shadow-[inset_0_4px_10px_rgba(255,255,255,0.15)] select-none">
           <div className="flex gap-4 items-center">
             <Link
               href="/home"
@@ -815,9 +815,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         </div>
 
         {/* CRT cabinet Bezel */}
-        <div className="w-full bg-zinc-900 border-[14px] border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-4 relative">
+        <div className="w-full bg-zinc-900 border-[6px] md:border-[14px] border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-1 md:p-4 relative">
           {/* CRT Screen wrapper */}
-          <div className="crt-screen crt-glow-effect bg-[#050511] w-full min-h-[480px] rounded-lg border-[6px] border-black flex flex-col md:flex-row p-4 md:p-6 text-white relative">
+          <div className="crt-screen crt-glow-effect farm-grass-bg w-full min-h-[480px] rounded-lg border-[3px] md:border-[6px] border-black flex flex-col md:flex-row p-1 md:p-6 text-white relative">
             {/* LEFT COLUMN: STATS AND HUD */}
             <div className="w-full md:w-[260px] flex flex-col justify-between pr-4 border-b md:border-b-0 md:border-r border-zinc-900 pb-4 md:pb-0 md:mr-6">
               {/* Retro HUD stats */}

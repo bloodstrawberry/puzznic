@@ -39,6 +39,26 @@ body {
   background-size: 60px 30px;
 }
 
+/* Farm/grass themed background for game stage area */
+.farm-grass-bg {
+  background: #9bcb3c;
+  position: relative;
+}
+
+.farm-grass-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    /* Soft lighter patches for natural variation */
+    radial-gradient(ellipse 50% 40% at 25% 30%, rgba(180, 230, 100, 0.25), transparent 70%),
+    radial-gradient(ellipse 40% 50% at 75% 70%, rgba(160, 220, 90, 0.2), transparent 70%),
+    radial-gradient(ellipse 60% 30% at 50% 50%, rgba(200, 240, 130, 0.15), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+
 /* CRT Screen scanline and curvature effects */
 .crt-screen {
   position: relative;
