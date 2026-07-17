@@ -819,7 +819,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
           {/* CRT Screen wrapper */}
           <div className="crt-screen crt-glow-effect farm-grass-bg w-full min-h-[480px] rounded-lg border-[3px] md:border-[6px] border-black flex flex-col md:flex-row p-1 md:p-6 text-white relative">
             {/* LEFT COLUMN: STATS AND HUD */}
-            <div className="w-full md:w-[260px] flex flex-col justify-between pr-4 border-b md:border-b-0 md:border-r border-zinc-900 pb-4 md:pb-0 md:mr-6">
+            <div className="w-full md:w-[260px] flex flex-col justify-between pr-4 border-b md:border-b-0 md:border-r border-[#5a8a2a]/50 pb-4 md:pb-0 md:mr-6">
               {/* Retro HUD stats */}
               <div className="flex flex-col gap-4 text-[10px] text-zinc-400">
                 <div className="flex flex-col gap-1.5">

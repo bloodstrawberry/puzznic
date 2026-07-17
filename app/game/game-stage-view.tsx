@@ -160,7 +160,7 @@ export default function GameStageView({
                       e.preventDefault();
                     }
                   }}
-                  className={`w-full aspect-square relative border border-[#6fa832]/60 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
+                  className={`w-full aspect-square relative border border-[#5a8a2a]/20 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
                     activeEditor ? "hover:bg-[#a8e050]/40" : ""
                   }`}
                 >
@@ -168,7 +168,18 @@ export default function GameStageView({
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06)_0%,transparent_50%)] pointer-events-none" />
 
                   {/* Render grid cell elements */}
-                  {cell !== BLOCK_EMPTY && (
+                  {cell === BLOCK_EMPTY ? (
+                    /* Empty slot placeholder */
+                    <div
+                      className="rounded-sm pointer-events-none"
+                      style={{
+                        width: `${STAGE_BLOCK_SIZE_PERCENT}%`,
+                        height: `${STAGE_BLOCK_SIZE_PERCENT}%`,
+                        backgroundColor: "rgba(0,0,0,0.08)",
+                        border: "1px solid rgba(0,0,0,0.06)",
+                      }}
+                    />
+                  ) : (
                     <div
                       className={`transform active:scale-95 transition-transform ${
                         flashingBlocks[`${y},${x}`] ? "animate-match-flash pointer-events-none" : ""
