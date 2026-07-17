@@ -23,31 +23,32 @@ import {
 export type CellType = BlockId;
 
 export interface KeyCombo {
-  key: string;      // e.g., 'ArrowLeft', 'z', 'b', 'c', 'e', '1', 'Tab'
-  ctrl?: boolean;   // true if Ctrl key is required
-  shift?: boolean;  // true if Shift key is required
-  alt?: boolean;    // true if Alt key is required
+  key: string; // e.g., 'ArrowLeft', 'z', 'b', 'c', 'e', '1', 'Tab'
+  ctrl?: boolean; // true if Ctrl key is required
+  shift?: boolean; // true if Shift key is required
+  alt?: boolean; // true if Alt key is required
 }
 
 export interface HotkeyConfig {
   prevStage: KeyCombo;
   nextStage: KeyCombo;
-  addStage: KeyCombo;         // 'N'
+  addStage: KeyCombo; // 'N'
   undo: KeyCombo;
   borderWall: KeyCombo;
   clearGrid: KeyCombo;
   exportJson: KeyCombo;
-  selectBrick: KeyCombo;      // '1'
-  selectBlock2: KeyCombo;     // '2'
-  selectBlock3: KeyCombo;     // '3'
-  selectBlock4: KeyCombo;     // '4'
-  selectBlock5: KeyCombo;     // '5'
-  selectBlock6: KeyCombo;     // '6'
-  selectBlock7: KeyCombo;     // '7'
-  selectBlock8: KeyCombo;     // '8'
-  selectBlock9: KeyCombo;     // '9'
-  selectNextBlock: KeyCombo;  // 'Tab'
-  selectPrevBlock: KeyCombo;  // 'Shift + Tab'
+  selectBrick: KeyCombo; // '1'
+  selectBlock2: KeyCombo; // '2'
+  selectBlock3: KeyCombo; // '3'
+  selectBlock4: KeyCombo; // '4'
+  selectBlock5: KeyCombo; // '5'
+  selectBlock6: KeyCombo; // '6'
+  selectBlock7: KeyCombo; // '7'
+  selectBlock8: KeyCombo; // '8'
+  selectBlock9: KeyCombo; // '9'
+  selectNextBlock: KeyCombo; // 'Tab'
+  selectPrevBlock: KeyCombo; // 'Shift + Tab'
+  togglePlayTest: KeyCombo; // 'F8'
 }
 
 // Default Hotkey Mappings - Edit this object to change default keyboard shortcuts
@@ -70,6 +71,7 @@ export const DEFAULT_HOTKEYS: HotkeyConfig = {
   selectBlock9: { key: "9" },
   selectNextBlock: { key: "Tab" },
   selectPrevBlock: { key: "Tab", shift: true },
+  togglePlayTest: { key: "F8" },
 };
 
 // All paint tools in sequence for selection cycling (Tab/Shift+Tab)
@@ -94,6 +96,7 @@ export const ALL_PAINT_TOOLS: (CellType | "eraser")[] = [
 
 interface UseEditorHotkeysProps {
   active: boolean;
+  playTestMode?: boolean;
   handlers: {
     onPrevStage: () => void;
     onNextStage: () => void;
@@ -105,12 +108,14 @@ interface UseEditorHotkeysProps {
     onSelectNextBlock: () => void;
     onSelectPrevBlock: () => void;
     onAddStage: () => void;
+    onTogglePlayTest?: () => void;
   };
   config?: HotkeyConfig;
 }
 
 export function useEditorHotkeys({
   active,
+  playTestMode = false,
   handlers,
   config = DEFAULT_HOTKEYS,
 }: UseEditorHotkeysProps) {
@@ -149,6 +154,16 @@ export function useEditorHotkeys({
       }
 
       const curHandlers = handlersRef.current;
+
+      if (matchesCombo(e, config.togglePlayTest)) {
+        if (curHandlers.onTogglePlayTest) {
+          e.preventDefault();
+          curHandlers.onTogglePlayTest();
+          return;
+        }
+      }
+
+      if (playTestMode) return;
 
       if (matchesCombo(e, config.prevStage)) {
         e.preventDefault();

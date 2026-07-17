@@ -984,6 +984,8 @@ export const useGameEngine = (
     editorClearGrid: editor.editorClearGrid,
     editorResizeGrid: editor.editorResizeGrid,
     editorFillBorder: editor.editorFillBorder,
+    editorDeleteRow: editor.editorDeleteRow,
+    editorDeleteCol: editor.editorDeleteCol,
     muted,
     setMuted,
     grabbed,

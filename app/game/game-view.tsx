@@ -1,14 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import {
-  useGameEngine,
-  CellType,
-  BUILTIN_LEVELS,
-} from "./game-engine";
+import { useGameEngine, CellType, BUILTIN_LEVELS } from "./game-engine";
 import GameStageView from "./game-stage-view";
 import Link from "next/link";
 import { useEditorHotkeys, ALL_PAINT_TOOLS } from "./hot-key";
+import { useToast } from "@toss/tds-mobile";
 import BlockRenderer, {
   BLOCK_EMPTY,
   BLOCK_WALL,
@@ -137,8 +134,6 @@ const playSound = (
   }
 };
 
-
-
 // Always return 0 for SSR/hydration consistency.
 // The actual stage from URL params is loaded via useEffect after mount.
 const getInitialStageIndex = (): number => {
@@ -158,6 +153,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
   const activeEditor = isEditor && !playTestMode;
 
   const [initialStageIdx] = useState(getInitialStageIndex);
+  const toast = useToast();
 
   const {
     grid,
@@ -176,6 +172,8 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     editorClearGrid,
     editorResizeGrid,
     editorFillBorder,
+    editorDeleteRow,
+    editorDeleteCol,
     muted,
     setMuted,
     grabbed,
@@ -282,7 +280,10 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       if (stageParam) {
         const stageIdx = parseInt(stageParam, 10) - 1;
         if (stageIdx >= 0 && stageIdx < BUILTIN_LEVELS.length) {
-          const maxUnlocked = parseInt(localStorage.getItem("puzznic_max_unlocked") || "1", 10);
+          const maxUnlocked = parseInt(
+            localStorage.getItem("puzznic_max_unlocked") || "1",
+            10,
+          );
           if (isEditor || stageIdx + 1 <= maxUnlocked) {
             loadLevel(stageIdx);
           } else {
@@ -327,7 +328,10 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       if (typeof window !== "undefined") {
         const nextLevel = levelIndex + 2; // index 0 cleared -> stage 2 unlocked
         if (nextLevel <= BUILTIN_LEVELS.length) {
-          const maxUnlocked = parseInt(localStorage.getItem("puzznic_max_unlocked") || "1", 10);
+          const maxUnlocked = parseInt(
+            localStorage.getItem("puzznic_max_unlocked") || "1",
+            10,
+          );
           if (nextLevel > maxUnlocked) {
             localStorage.setItem("puzznic_max_unlocked", nextLevel.toString());
           }
@@ -425,30 +429,30 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       // 2. Grabbing slide actions
       if (curGrabbed) {
         const cell = curGrid[curCursor.y]?.[curCursor.x];
-          if (cell === BLOCK_WALL_V) {
-            if (e.key === "ArrowUp") {
-              e.preventDefault();
-              curMoveBlock(curCursor.x, curCursor.y, 0, -1);
-            } else if (e.key === "ArrowDown") {
-              e.preventDefault();
-              curMoveBlock(curCursor.x, curCursor.y, 0, 1);
-            } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-              e.preventDefault();
-              playSound("error", curMuted);
-            }
-          } else {
-            if (e.key === "ArrowLeft") {
-              e.preventDefault();
-              curMoveBlock(curCursor.x, curCursor.y, -1, 0);
-            } else if (e.key === "ArrowRight") {
-              e.preventDefault();
-              curMoveBlock(curCursor.x, curCursor.y, 1, 0);
-            } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-              e.preventDefault();
-              playSound("error", curMuted);
-            }
+        if (cell === BLOCK_WALL_V) {
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            curMoveBlock(curCursor.x, curCursor.y, 0, -1);
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            curMoveBlock(curCursor.x, curCursor.y, 0, 1);
+          } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+            e.preventDefault();
+            playSound("error", curMuted);
           }
-          return;
+        } else {
+          if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            curMoveBlock(curCursor.x, curCursor.y, -1, 0);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            curMoveBlock(curCursor.x, curCursor.y, 1, 0);
+          } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+            e.preventDefault();
+            playSound("error", curMuted);
+          }
+        }
+        return;
       }
 
       // 3. Normal navigation (when not grabbed)
@@ -689,8 +693,10 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
   };
 
   useEditorHotkeys({
-    active: activeEditor,
+    active: isEditor,
+    playTestMode: playTestMode,
     handlers: {
+      onTogglePlayTest: togglePlayTest,
       onPrevStage: () => {
         if (editorActiveIndex > 0) {
           playSound("select", muted);
@@ -714,9 +720,10 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       },
       onExportJson: () => {
         const jsonStr = formatLevelsJSON(editorLevels);
-        navigator.clipboard.writeText(jsonStr)
+        navigator.clipboard
+          .writeText(jsonStr)
           .then(() => {
-            alert("Level data JSON copied to clipboard directly!");
+            toast.openToast("클립보드에 복사되었습니다!");
             playSound("start", muted);
           })
           .catch((err) => {
@@ -743,7 +750,8 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       },
       onSelectPrevBlock: () => {
         const idx = ALL_PAINT_TOOLS.indexOf(selectedPaint);
-        const prevIdx = (idx - 1 + ALL_PAINT_TOOLS.length) % ALL_PAINT_TOOLS.length;
+        const prevIdx =
+          (idx - 1 + ALL_PAINT_TOOLS.length) % ALL_PAINT_TOOLS.length;
         setSelectedPaint(ALL_PAINT_TOOLS[prevIdx]);
         playSound("select", muted);
       },
@@ -784,10 +792,11 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
             {isEditor && (
               <button
                 onClick={togglePlayTest}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all border ${playTestMode
-                  ? "bg-red-600 hover:bg-red-500 border-red-700 text-white"
-                  : "bg-emerald-600 hover:bg-emerald-500 border-emerald-700 text-white animate-pulse"
-                  }`}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
+                  playTestMode
+                    ? "bg-red-600 hover:bg-red-500 border-red-700 text-white"
+                    : "bg-emerald-600 hover:bg-emerald-500 border-emerald-700 text-white animate-pulse"
+                }`}
               >
                 {playTestMode ? "⏹ 테스트 중단" : "▶ 레벨 테스트"}
               </button>
@@ -825,8 +834,12 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
               {/* Retro HUD stats */}
               <div className="flex flex-col gap-4 text-xs text-zinc-400">
                 <div className="flex flex-col gap-1">
-                  <span className="text-[#3182f6] font-semibold tracking-wider">PLAYER 1</span>
-                  <span className="text-white text-lg font-bold tracking-wider">0</span>
+                  <span className="text-[#3182f6] font-semibold tracking-wider">
+                    PLAYER 1
+                  </span>
+                  <span className="text-white text-lg font-bold tracking-wider">
+                    0
+                  </span>
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -844,7 +857,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                               handleStageInputChange(e.currentTarget);
                             }
                           }}
-                          onBlur={(e) => handleStageInputChange(e.currentTarget)}
+                          onBlur={(e) =>
+                            handleStageInputChange(e.currentTarget)
+                          }
                           className="w-10 bg-zinc-900 border border-zinc-800 text-emerald-400 text-xs font-bold text-center focus:outline-none focus:border-emerald-500 py-0.5 rounded"
                         />{" "}
                         / {editorLevels.length}
@@ -941,10 +956,11 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                         </span>
                         <div className="flex-1 h-2 bg-zinc-950 border border-zinc-900 rounded-full overflow-hidden">
                           <div
-                            className={`h-full transition-all duration-1000 rounded-full ${timeLeft > 20
-                              ? "bg-emerald-500"
-                              : "bg-red-500 animate-pulse"
-                              }`}
+                            className={`h-full transition-all duration-1000 rounded-full ${
+                              timeLeft > 20
+                                ? "bg-emerald-500"
+                                : "bg-red-500 animate-pulse"
+                            }`}
                             style={{
                               width: `${(timeLeft / (BUILTIN_LEVELS[levelIndex]?.timeLimit || 180)) * 100}%`,
                             }}
@@ -1014,6 +1030,8 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
               handleMouseDown={handleMouseDown}
               handleMouseEnter={handleMouseEnter}
               handleCellClick={handleCellClick}
+              editorDeleteRow={editorDeleteRow}
+              editorDeleteCol={editorDeleteCol}
             />
           </div>
         </div>
@@ -1025,7 +1043,8 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
             <div className="flex flex-col gap-3 font-sans">
               <div className="text-xs text-zinc-400 border-b border-zinc-800/50 pb-2 flex justify-between items-center font-semibold">
                 <span>
-                  그리기 도구를 선택하고 격자 셀을 클릭하거나 드래그하여 그려보세요.
+                  그리기 도구를 선택하고 격자 셀을 클릭하거나 드래그하여
+                  그려보세요.
                 </span>
                 <span className="text-[#3182f6]">에디터 팔레트</span>
               </div>
@@ -1035,10 +1054,11 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Eraser */}
                 <button
                   onClick={() => setSelectedPaint("eraser")}
-                  className={`px-3 py-2 rounded-xl text-xs border cursor-pointer flex items-center gap-1.5 transition-all ${selectedPaint === "eraser"
-                    ? "bg-red-600 border-red-700 text-white shadow-lg scale-102 font-bold"
-                    : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
-                    }`}
+                  className={`px-3 py-2 rounded-xl text-xs border cursor-pointer flex items-center gap-1.5 transition-all ${
+                    selectedPaint === "eraser"
+                      ? "bg-red-600 border-red-700 text-white shadow-lg scale-102 font-bold"
+                      : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                  }`}
                 >
                   🧹 지우개
                 </button>
@@ -1046,10 +1066,11 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Wall block */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_WALL
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                 >
                   <BlockRenderer id={BLOCK_WALL} />
                 </button>
@@ -1059,10 +1080,11 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                   <button
                     key={type}
                     onClick={() => setSelectedPaint(type)}
-                    className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === type
-                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                      }`}
+                    className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                      selectedPaint === type
+                        ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                        : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                    }`}
                   >
                     <BlockRenderer id={type} />
                   </button>
@@ -1071,10 +1093,11 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Bomb block */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_BOMB)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_BOMB
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_BOMB
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Bomb Block"
                 >
                   <BlockRenderer id={BLOCK_BOMB} />
@@ -1083,40 +1106,44 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Moving slider walls */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL_V)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL_V
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_WALL_V
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Vertical Moving Wall"
                 >
                   <BlockRenderer id={BLOCK_WALL_V} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_WALL_H)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_WALL_H
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_WALL_H
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Horizontal Moving Wall"
                 >
                   <BlockRenderer id={BLOCK_WALL_H} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_AUTO_WALL_V)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_AUTO_WALL_V
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_AUTO_WALL_V
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Vertical Auto-Moving Wall"
                 >
                   <BlockRenderer id={BLOCK_AUTO_WALL_V} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_AUTO_WALL_H)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_AUTO_WALL_H
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_AUTO_WALL_H
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Horizontal Auto-Moving Wall"
                 >
                   <BlockRenderer id={BLOCK_AUTO_WALL_H} />
@@ -1125,40 +1152,44 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Shooter blocks */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_L)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_L
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SHOOTER_L
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Shooter Left (Repeated)"
                 >
                   <BlockRenderer id={BLOCK_SHOOTER_L} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_R)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_R
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SHOOTER_R
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Shooter Right (Repeated)"
                 >
                   <BlockRenderer id={BLOCK_SHOOTER_R} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_L_ONCE)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_L_ONCE
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SHOOTER_L_ONCE
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Shooter Left (Once)"
                 >
                   <BlockRenderer id={BLOCK_SHOOTER_L_ONCE} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SHOOTER_R_ONCE)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SHOOTER_R_ONCE
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SHOOTER_R_ONCE
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Shooter Right (Once)"
                 >
                   <BlockRenderer id={BLOCK_SHOOTER_R_ONCE} />
@@ -1167,40 +1198,44 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 {/* Spike blocks */}
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_U)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_U
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SPIKE_U
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Spike Up"
                 >
                   <BlockRenderer id={BLOCK_SPIKE_U} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_D)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_D
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SPIKE_D
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Spike Down"
                 >
                   <BlockRenderer id={BLOCK_SPIKE_D} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_L)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_L
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SPIKE_L
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Spike Left"
                 >
                   <BlockRenderer id={BLOCK_SPIKE_L} />
                 </button>
                 <button
                   onClick={() => setSelectedPaint(BLOCK_SPIKE_R)}
-                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${selectedPaint === BLOCK_SPIKE_R
-                    ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
-                    : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
-                    }`}
+                  className={`w-9 h-9 p-1 rounded-xl border cursor-pointer transition-all ${
+                    selectedPaint === BLOCK_SPIKE_R
+                      ? "border-[#3182f6] bg-zinc-900 scale-105 shadow-md"
+                      : "border-zinc-800 hover:border-zinc-700 bg-zinc-900/40"
+                  }`}
                   title="Spike Right"
                 >
                   <BlockRenderer id={BLOCK_SPIKE_R} />
@@ -1300,11 +1335,13 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 <div className="text-xs text-zinc-400 leading-relaxed max-w-[500px] text-center sm:text-left font-medium">
                   {playTestMode ? (
                     <span className="text-[#3182f6] font-bold">
-                      [테스트 모드] 이동: [방향키] | 블록 선택/해제: [Space] | 밀기: [왼쪽/오른쪽 방향키]
+                      [테스트 모드] 이동: [방향키] | 블록 선택/해제: [Space] |
+                      밀기: [왼쪽/오른쪽 방향키]
                     </span>
                   ) : (
                     <span>
-                      선택 이동: [방향키] | 블록 잡기/놓기: [Space] | 블록 밀기: [왼쪽/오른쪽 방향키] | 단계 재시작: [R]
+                      선택 이동: [방향키] | 블록 잡기/놓기: [Space] | 블록 밀기:
+                      [왼쪽/오른쪽 방향키] | 단계 재시작: [R]
                     </span>
                   )}
                 </div>
@@ -1358,8 +1395,12 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                         : "bg-[#3182f6] border-[#2272e6] hover:bg-[#1b64da] text-white"
                     }`}
                   >
-                    <span className="text-[13px] tracking-wide font-bold">{grabbed ? "놓기" : "잡기"}</span>
-                    <span className="text-[8px] text-zinc-300 mt-0.5 font-normal tracking-wide">{grabbed ? "RELEASE" : "SPACE"}</span>
+                    <span className="text-[13px] tracking-wide font-bold">
+                      {grabbed ? "놓기" : "잡기"}
+                    </span>
+                    <span className="text-[8px] text-zinc-300 mt-0.5 font-normal tracking-wide">
+                      {grabbed ? "RELEASE" : "SPACE"}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -1383,11 +1424,17 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
             <p className="text-sm font-bold text-yellow-400 uppercase tracking-wide">
               주소창 입력을 통한 스테이지 건너뛰기가 감지되었습니다.
             </p>
-            
+
             <p className="text-xs text-zinc-400 leading-relaxed">
               잠겨있는 스테이지에는 바로 입장하실 수 없습니다.
-              <br /><br />
-              <span className="text-red-500 font-bold">진행 상황 패널티:</span> 처음 레벨로 <span className="text-white font-bold underline">초기화</span>됩니다!
+              <br />
+              <br />
+              <span className="text-red-500 font-bold">
+                진행 상황 패널티:
+              </span>{" "}
+              처음 레벨로{" "}
+              <span className="text-white font-bold underline">초기화</span>
+              됩니다!
             </p>
 
             <div className="flex justify-center mt-2">
@@ -1459,7 +1506,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(exportModalContent);
-                      alert("클립보드에 복사되었습니다!");
+                      toast.openToast("클립보드에 복사되었습니다!");
                       playSound("select", muted);
                     }}
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs cursor-pointer"
@@ -1493,5 +1540,11 @@ export default function GameView({ isEditor = false }: GameViewProps) {
     setResetKey((prev) => prev + 1);
   };
 
-  return <GameContent key={resetKey} isEditor={isEditor} onFullReset={handleFullReset} />;
+  return (
+    <GameContent
+      key={resetKey}
+      isEditor={isEditor}
+      onFullReset={handleFullReset}
+    />
+  );
 }

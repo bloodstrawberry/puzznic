@@ -104,6 +104,8 @@ interface GameStageViewProps {
   handleMouseDown: (e: React.MouseEvent, x: number, y: number) => void;
   handleMouseEnter: (x: number, y: number) => void;
   handleCellClick: (x: number, y: number) => void;
+  editorDeleteRow?: (y: number) => void;
+  editorDeleteCol?: (x: number) => void;
 }
 
 export default function GameStageView({
@@ -127,7 +129,11 @@ export default function GameStageView({
   handleMouseDown,
   handleMouseEnter,
   handleCellClick,
+  editorDeleteRow,
+  editorDeleteCol,
 }: GameStageViewProps) {
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const [hoveredCol, setHoveredCol] = useState<number | null>(null);
   return (
     <div className="flex-1 flex flex-col items-center justify-center mt-6 md:mt-0 relative animate-fade-in w-full h-full select-none">
       {/* Decorative lawn details around the stage (clover, sprouts, and tiny wildflowers) */}
@@ -157,45 +163,120 @@ export default function GameStageView({
       </div>
 
       {/* Seamless Game Stage Grid Container */}
-      <div className="relative p-2 md:p-4 flex items-center justify-center w-full z-10">
-        {/* Dynamic Play Grid */}
-        <div
-          className="grid relative z-10 w-full justify-center animate-fade-in"
-          style={{
-            gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
-            maxWidth: `${(grid[0]?.length || 8) * 44}px`,
-            gap: `${STAGE_GRID_GAP_REM}rem`,
-          }}
-        >
-          {grid.map((row, y) =>
-            row.map((cell, x) => {
-              const isCursor =
-                cursor.x === x && cursor.y === y && !activeEditor;
+      <div className="relative p-2 md:p-4 flex flex-col items-center justify-center w-full z-10">
+        
+        {/* Top: Column delete buttons */}
+        {activeEditor && (
+          <div className="flex w-full justify-center mb-1">
+            {/* Left spacer to align with the grid (offsetting the row delete buttons column) */}
+            <div className="w-[32px] md:w-[36px] mr-1 flex-shrink-0" />
+            <div
+              className="grid w-full"
+              style={{
+                gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
+                maxWidth: `${(grid[0]?.length || 8) * 44}px`,
+                gap: `${STAGE_GRID_GAP_REM}rem`,
+              }}
+            >
+              {Array.from({ length: grid[0]?.length || 8 }).map((_, x) => {
+                const isColEmpty = grid.every(row => row[x] === BLOCK_EMPTY);
+                return (
+                  <button
+                    key={`col-del-${x}`}
+                    onClick={() => editorDeleteCol?.(x)}
+                    onMouseEnter={() => setHoveredCol(x)}
+                    onMouseLeave={() => setHoveredCol(null)}
+                    className={`w-full aspect-square rounded-[22%] flex items-center justify-center transition-all border text-[9px] md:text-[10px] font-bold cursor-pointer shadow-sm select-none ${
+                      isColEmpty 
+                        ? "bg-red-950/40 hover:bg-red-900/60 border-red-900/50 text-red-300 hover:text-white" 
+                        : "bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 hover:border-zinc-700"
+                    }`}
+                    title={isColEmpty ? "이 열 완전히 지우기" : "이 열 비우기"}
+                  >
+                    {isColEmpty ? "❌" : "⬇️"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-              return (
-                <div
-                  key={`${y}-${x}`}
-                  onMouseDown={(e) => handleMouseDown(e, x, y)}
-                  onMouseEnter={() => handleMouseEnter(x, y)}
-                  onClick={() => handleCellClick(x, y)}
-                  onContextMenu={(e) => {
-                    if (activeEditor && !playTestMode) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className={`w-full aspect-square relative rounded-[22%] flex items-center justify-center transition-all cursor-pointer overflow-visible select-none ${
-                    activeEditor
-                      ? "hover:bg-emerald-500/30 hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.15),0_0_8px_rgba(52,211,153,0.5)]"
-                      : ""
-                  }`}
-                  style={{
-                    background:
-                      "linear-gradient(150deg, rgba(16, 50, 16, 0.25) 0%, rgba(8, 30, 8, 0.4) 100%)",
-                    boxShadow:
-                      "inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(255, 255, 255, 0.05)",
-                    border: "1px solid rgba(34, 197, 94, 0.15)",
-                  }}
-                >
+        {/* Middle: Row delete buttons + Grid */}
+        <div className="flex items-stretch justify-center w-full">
+          {/* Left: Row delete buttons */}
+          {activeEditor && (
+            <div
+              className="grid mr-1 flex-shrink-0 w-[32px] md:w-[36px]"
+              style={{
+                gridTemplateRows: `repeat(${grid.length || 8}, minmax(0, 1fr))`,
+                gap: `${STAGE_GRID_GAP_REM}rem`,
+              }}
+            >
+              {Array.from({ length: grid.length || 8 }).map((_, y) => {
+                const isRowEmpty = grid[y]?.every(cell => cell === BLOCK_EMPTY);
+                return (
+                  <button
+                    key={`row-del-${y}`}
+                    onClick={() => editorDeleteRow?.(y)}
+                    onMouseEnter={() => setHoveredRow(y)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                    className={`w-full aspect-square rounded-[22%] flex items-center justify-center transition-all border text-[9px] md:text-[10px] font-bold cursor-pointer shadow-sm select-none ${
+                      isRowEmpty 
+                        ? "bg-red-950/40 hover:bg-red-900/60 border-red-900/50 text-red-300 hover:text-white" 
+                        : "bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 hover:border-zinc-700"
+                    }`}
+                    title={isRowEmpty ? "이 행 완전히 지우기" : "이 행 비우기"}
+                  >
+                    {isRowEmpty ? "❌" : "➡️"}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Dynamic Play Grid */}
+          <div
+            className="grid relative z-10 w-full justify-center animate-fade-in"
+            style={{
+              gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
+              maxWidth: `${(grid[0]?.length || 8) * 44}px`,
+              gap: `${STAGE_GRID_GAP_REM}rem`,
+            }}
+          >
+            {grid.map((row, y) =>
+              row.map((cell, x) => {
+                const isCursor =
+                  cursor.x === x && cursor.y === y && !activeEditor;
+                const isHighlighted = hoveredRow === y || hoveredCol === x;
+
+                return (
+                  <div
+                    key={`${y}-${x}`}
+                    onMouseDown={(e) => handleMouseDown(e, x, y)}
+                    onMouseEnter={() => handleMouseEnter(x, y)}
+                    onClick={() => handleCellClick(x, y)}
+                    onContextMenu={(e) => {
+                      if (activeEditor && !playTestMode) {
+                        e.preventDefault();
+                      }
+                    }}
+                    className={`w-full aspect-square relative rounded-[22%] flex items-center justify-center transition-all cursor-pointer overflow-visible select-none ${
+                      activeEditor
+                        ? "hover:bg-emerald-500/30 hover:shadow-[inset_0_2px_4px_rgba(0,0,0,0.15),0_0_8px_rgba(52,211,153,0.5)]"
+                        : ""
+                    } ${isHighlighted ? "shadow-[0_0_8px_rgba(239,68,68,0.2)]" : ""}`}
+                    style={{
+                      background:
+                        isHighlighted
+                          ? "rgba(239, 68, 68, 0.12)"
+                          : "linear-gradient(150deg, rgba(16, 50, 16, 0.25) 0%, rgba(8, 30, 8, 0.4) 100%)",
+                      boxShadow:
+                        "inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(255, 255, 255, 0.05)",
+                      border: isHighlighted
+                        ? "1px solid rgba(239, 68, 68, 0.35)"
+                        : "1px solid rgba(34, 197, 94, 0.15)",
+                    }}
+                  >
                   {/* Render grid cell elements (blocks inside the indented slot) */}
                   {cell !== BLOCK_EMPTY && (
                     <div
@@ -238,6 +319,7 @@ export default function GameStageView({
           ))}
         </div>
       </div>
+    </div>
 
       {/* Success Notification Overlay (Cleared) */}
       {isLevelCleared && (

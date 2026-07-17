@@ -360,6 +360,90 @@ export const useEditorEngine = (
     [isEditorMode, updateBlockCounts, updateEditorLevelGrid, grid, editorPushHistory, setGrid, setCursor],
   );
 
+  const editorDeleteRow = useCallback(
+    (y: number) => {
+      if (!isEditorMode) return;
+
+      const targetRow = grid[y];
+      if (!targetRow) return;
+
+      const isRowEmpty = targetRow.every((cell) => cell === BLOCK_EMPTY);
+
+      editorPushHistory(grid);
+
+      if (!isRowEmpty) {
+        // Not empty: make the whole row empty
+        const nextGrid = grid.map((row, idx) =>
+          idx === y ? row.map(() => BLOCK_EMPTY) : [...row]
+        );
+        setGrid(nextGrid);
+        updateBlockCounts(nextGrid);
+        updateEditorLevelGrid(nextGrid);
+        playEngineSound("select", muted);
+      } else {
+        // Already empty: remove the row itself
+        if (grid.length <= 4) {
+          playEngineSound("error", muted);
+          return;
+        }
+        const nextGrid = grid.filter((_, idx) => idx !== y);
+        setGrid(nextGrid);
+
+        // Adjust cursor
+        setCursor((prev) => ({
+          x: prev.x,
+          y: Math.max(0, Math.min(nextGrid.length - 1, prev.y)),
+        }));
+
+        updateBlockCounts(nextGrid);
+        updateEditorLevelGrid(nextGrid);
+        playEngineSound("break", muted);
+      }
+    },
+    [isEditorMode, grid, muted, setGrid, setCursor, updateBlockCounts, updateEditorLevelGrid, editorPushHistory]
+  );
+
+  const editorDeleteCol = useCallback(
+    (x: number) => {
+      if (!isEditorMode) return;
+
+      const isColEmpty = grid.every((row) => row[x] === BLOCK_EMPTY);
+
+      editorPushHistory(grid);
+
+      if (!isColEmpty) {
+        // Not empty: make the whole column empty
+        const nextGrid = grid.map((row) =>
+          row.map((cell, idx) => (idx === x ? BLOCK_EMPTY : cell))
+        );
+        setGrid(nextGrid);
+        updateBlockCounts(nextGrid);
+        updateEditorLevelGrid(nextGrid);
+        playEngineSound("select", muted);
+      } else {
+        // Already empty: remove the column itself
+        const currentCols = grid[0]?.length || 0;
+        if (currentCols <= 4) {
+          playEngineSound("error", muted);
+          return;
+        }
+        const nextGrid = grid.map((row) => row.filter((_, idx) => idx !== x));
+        setGrid(nextGrid);
+
+        // Adjust cursor
+        setCursor((prev) => ({
+          x: Math.max(0, Math.min(nextGrid[0].length - 1, prev.x)),
+          y: prev.y,
+        }));
+
+        updateBlockCounts(nextGrid);
+        updateEditorLevelGrid(nextGrid);
+        playEngineSound("break", muted);
+      }
+    },
+    [isEditorMode, grid, muted, setGrid, setCursor, updateBlockCounts, updateEditorLevelGrid, editorPushHistory]
+  );
+
   return {
     editorLevels,
     setEditorLevels,
@@ -377,5 +461,7 @@ export const useEditorEngine = (
     editorFillBorder,
     editorResizeGrid,
     editorPushHistory,
+    editorDeleteRow,
+    editorDeleteCol,
   };
 };
