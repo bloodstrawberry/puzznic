@@ -129,9 +129,9 @@ export default function GameStageView({
   return (
     <div className="flex-1 flex flex-col items-center justify-center mt-6 md:mt-0 relative animate-fade-in">
       {/* Visual Stone outer border block framework */}
-      <div className="relative p-3 bg-zinc-950 border-[6px] border-zinc-800 rounded-lg shadow-2xl flex items-center justify-center">
+      <div className="relative p-1 bg-zinc-950 border-4 border-zinc-800 rounded-lg shadow-2xl flex items-center justify-center">
         {/* Board grid inner shadow backdrop */}
-        <div className="absolute inset-2 bg-zinc-800 z-0 pointer-events-none" />
+        <div className="absolute inset-0.5 bg-zinc-800 z-0 pointer-events-none" />
 
         {/* Dynamic Play Grid */}
         <div
@@ -157,7 +157,7 @@ export default function GameStageView({
                       e.preventDefault();
                     }
                   }}
-                  className={`w-9 sm:w-11 aspect-square relative border border-zinc-900/30 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
+                  className={`w-full aspect-square relative border border-zinc-900/30 flex items-center justify-center transition-all cursor-pointer overflow-visible ${
                     activeEditor ? "hover:bg-zinc-700/50" : ""
                   }`}
                 >

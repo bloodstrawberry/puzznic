@@ -39,3 +39,9 @@ export const PUZZLE_BLOCK_TYPES: BlockId[] = [
   BLOCK_MOON,
   BLOCK_CROSS,
 ];
+
+// Sizing and spacing constants for blocks on the stage play board
+// Adjust these to change the visual padding/spacing between blocks.
+export const STAGE_BLOCK_SIZE_PERCENT = 88; // Block size percentage relative to the grid cell (e.g. 88% width/height, leaving 12% padding)
+export const STAGE_GRID_GAP_REM = 0.125;   // Gap between grid cells in rem (0.125rem = 2px, equivalent to Tailwind's gap-0.5)
+
