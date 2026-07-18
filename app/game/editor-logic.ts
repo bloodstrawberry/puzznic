@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import {
   BLOCK_EMPTY,
   BLOCK_WALL,
@@ -444,6 +444,24 @@ export const useEditorEngine = (
     [isEditorMode, grid, muted, setGrid, setCursor, updateBlockCounts, updateEditorLevelGrid, editorPushHistory]
   );
 
+  const editorFlipHorizontal = useCallback(() => {
+    if (!isEditorMode) return;
+    setGrabbed(false);
+    editorPushHistory(grid);
+    const nextGrid = grid.map((row) => [...row].reverse());
+
+    // Flip cursor position horizontally
+    setCursor((prev) => ({
+      x: (grid[0]?.length || 8) - 1 - prev.x,
+      y: prev.y,
+    }));
+
+    setGrid(nextGrid);
+    updateBlockCounts(nextGrid);
+    updateEditorLevelGrid(nextGrid);
+    playEngineSound("select", muted);
+  }, [isEditorMode, muted, updateBlockCounts, updateEditorLevelGrid, setGrabbed, grid, editorPushHistory, setGrid, setCursor]);
+
   return {
     editorLevels,
     setEditorLevels,
@@ -463,5 +481,6 @@ export const useEditorEngine = (
     editorPushHistory,
     editorDeleteRow,
     editorDeleteCol,
+    editorFlipHorizontal,
   };
 };

@@ -986,6 +986,7 @@ export const useGameEngine = (
     editorFillBorder: editor.editorFillBorder,
     editorDeleteRow: editor.editorDeleteRow,
     editorDeleteCol: editor.editorDeleteCol,
+    editorFlipHorizontal: editor.editorFlipHorizontal,
     muted,
     setMuted,
     grabbed,

@@ -174,6 +174,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     editorFillBorder,
     editorDeleteRow,
     editorDeleteCol,
+    editorFlipHorizontal,
     muted,
     setMuted,
     grabbed,
@@ -1305,6 +1306,12 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                     className="px-3.5 py-1.5 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-900/60 rounded-xl text-xs font-semibold cursor-pointer"
                   >
                     🧱 테두리 벽 채우기
+                  </button>
+                  <button
+                    onClick={editorFlipHorizontal}
+                    className="px-3.5 py-1.5 bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-900/60 rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    ↔️ 좌우 뒤집기
                   </button>
                   <button
                     onClick={editorClearGrid}
