@@ -46,6 +46,8 @@ export interface Bullet {
   targetX: number;
   targetY: number;
   dir: number;
+  ignoreNextCell?: boolean;
+  firedAt?: number;
 }
 
 // ── Constants ──

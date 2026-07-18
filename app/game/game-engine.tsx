@@ -54,6 +54,7 @@ export const useGameEngine = (
   const autoWallDirections = useRef<Record<string, number>>({});
   const autoWallDelays = useRef<Record<string, number>>({});
   const physicsLoopIdRef = useRef<number>(0);
+  const prevGridRef = useRef<CellType[][]>([]);
 
   const [grid, setGrid] = useState<CellType[][]>(() => {
     if (isEditorMode) {
@@ -116,6 +117,7 @@ export const useGameEngine = (
     isEditorMode: boolean;
     muted: boolean;
     flashingBlocks: Record<string, boolean>;
+    bullets: Bullet[];
     triggerShot: (
       x: number,
       y: number,
@@ -134,6 +136,7 @@ export const useGameEngine = (
     isEditorMode: false,
     muted: false,
     flashingBlocks: {},
+    bullets: [],
     triggerShot: (x, y, dirX, curGrid, curMuted) =>
       triggerShotRef.current(x, y, dirX, curGrid, curMuted),
   });
@@ -150,6 +153,7 @@ export const useGameEngine = (
       isEditorMode,
       muted,
       flashingBlocks,
+      bullets,
       triggerShot: (x, y, dirX, curGrid, curMuted) =>
         triggerShotRef.current(x, y, dirX, curGrid, curMuted),
     };
@@ -164,6 +168,7 @@ export const useGameEngine = (
     isEditorMode,
     muted,
     flashingBlocks,
+    bullets,
   ]);
 
   const updateCursor = useCallback(
@@ -291,6 +296,7 @@ export const useGameEngine = (
       cooldownsRef.current = {};
       autoWallDirections.current = {};
       autoWallDelays.current = {};
+      prevGridRef.current = [];
       setHasMovedFirstBlock(false);
       updateBlockCounts(level.grid);
       playEngineSound("start", muted);
@@ -309,6 +315,7 @@ export const useGameEngine = (
     autoWallDirections.current = {};
     autoWallDelays.current = {};
     setHasMovedFirstBlock(false);
+    prevGridRef.current = [];
     if (isEditorPage) {
       const activeLvl = editor.editorLevels[editor.editorActiveIndex];
       if (activeLvl) {
@@ -543,18 +550,26 @@ export const useGameEngine = (
         targetX: tx,
         targetY: y,
         dir: dirX,
+        firedAt: Date.now(),
       };
 
       setBullets((prev) => [...prev, newBullet]);
 
       setTimeout(() => {
+        // Read the latest state of this bullet to check if ignoreNextCell is true
+        const latestBullet = stateRef.current?.bullets.find((b) => b.id === bulletId);
+        const shouldIgnoreNextCell = latestBullet?.ignoreNextCell || false;
+
         setBullets((prev) => prev.filter((b) => b.id !== bulletId));
 
         setGrid((prevGrid) => {
           const currentW = prevGrid[0]?.length || 8;
           let hitX = x + dirX;
           while (hitX >= 0 && hitX < currentW) {
-            if (hitX === tx || prevGrid[y][hitX] !== BLOCK_EMPTY) {
+            const isNextCell = hitX === x + dirX;
+            const shouldIgnore = isNextCell && shouldIgnoreNextCell;
+
+            if (hitX === tx || (prevGrid[y][hitX] !== BLOCK_EMPTY && !shouldIgnore)) {
               break;
             }
             hitX += dirX;
@@ -899,6 +914,50 @@ export const useGameEngine = (
 
     return () => clearInterval(interval);
   }, [isEditorMode, runPhysicsLoop, updateCursor, checkAndReleaseGrabbed]);
+
+  // Watch grid changes to detect when a block leaves a shooter
+  useEffect(() => {
+    if (isEditorMode) return;
+    const prevGrid = prevGridRef.current;
+    if (
+      prevGrid.length === 0 ||
+      prevGrid.length !== grid.length ||
+      (grid.length > 0 && prevGrid[0]?.length !== grid[0]?.length)
+    ) {
+      prevGridRef.current = copyGrid(grid);
+      return;
+    }
+
+    const H = grid.length;
+    const W = grid[0]?.length || 0;
+
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const cell = grid[y][x];
+        const isShooter =
+          cell === BLOCK_SHOOTER_L ||
+          cell === BLOCK_SHOOTER_R ||
+          cell === BLOCK_SHOOTER_L_ONCE ||
+          cell === BLOCK_SHOOTER_R_ONCE;
+
+        if (isShooter && y > 0) {
+          const wasOccupied = prevGrid[y - 1]?.[x] !== BLOCK_EMPTY;
+          const isOccupied = grid[y - 1]?.[x] !== BLOCK_EMPTY;
+          if (wasOccupied && !isOccupied) {
+            // Block was on top of the shooter but has now left
+            setBullets((prev) =>
+              prev.map((b) =>
+                b.startX === x && b.startY === y
+                  ? { ...b, ignoreNextCell: true }
+                  : b
+              )
+            );
+          }
+        }
+      }
+    }
+    prevGridRef.current = copyGrid(grid);
+  }, [grid, isEditorMode]);
 
   // Interval timer for shooter blocks
   useEffect(() => {
