@@ -902,7 +902,7 @@ export const useGameEngine = (
 
   // Interval timer for shooter blocks
   useEffect(() => {
-    if (isEditorMode || !hasMovedFirstBlock) return;
+    if (isEditorMode) return;
 
     const interval = setInterval(() => {
       const {
@@ -961,7 +961,7 @@ export const useGameEngine = (
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isEditorMode, hasMovedFirstBlock]);
+  }, [isEditorMode]);
 
   return {
     grid,
