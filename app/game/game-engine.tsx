@@ -966,15 +966,14 @@ export const useGameEngine = (
     const interval = setInterval(() => {
       const {
         grid: curGrid,
-        isProcessing: curProcessing,
         isGameOver: curGameOver,
         isLevelCleared: curLevelCleared,
         muted: curMuted,
         triggerShot: curTriggerShot,
       } = stateRef.current;
 
-      // Skip this tick if the game is over, cleared, or currently resolving physics
-      if (curGameOver || curLevelCleared || curProcessing) return;
+      // Skip this tick if the game is over or cleared
+      if (curGameOver || curLevelCleared) return;
 
       // Scan grid for shooters and trigger shooting if button is pressed
       const H = curGrid.length;
