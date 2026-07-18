@@ -218,7 +218,18 @@ export const useGameEngine = (
       if (!curLock) return;
       const cell = targetGrid[curPos.y]?.[curPos.x];
       const curFlashing = customFlashing || stateFlashing || {};
-      if (!isNonWallBlock(cell) || curFlashing[`${curPos.y},${curPos.x}`]) {
+      const isGrabable =
+        cell !== undefined &&
+        cell !== BLOCK_EMPTY &&
+        cell !== BLOCK_WALL &&
+        cell !== BLOCK_AUTO_WALL_V &&
+        cell !== BLOCK_AUTO_WALL_H &&
+        cell !== BLOCK_SPIKE_U &&
+        cell !== BLOCK_SPIKE_D &&
+        cell !== BLOCK_SPIKE_L &&
+        cell !== BLOCK_SPIKE_R;
+
+      if (!isGrabable || curFlashing[`${curPos.y},${curPos.x}`]) {
         updateGrabbed(false);
       }
     },
