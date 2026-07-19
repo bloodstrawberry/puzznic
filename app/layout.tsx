@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Press_Start_2P, VT323 } from "next/font/google";
 import { Providers } from "./providers";
+import { TossBannerAd } from "./toss-banner-ad";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,9 +41,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${pressStart2P.variable} ${vt323.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="h-screen flex flex-col bg-[#0f0f10] overflow-hidden">
         <Providers>
-          {children}
+          <TossBannerAd />
+          <div className="flex-1 min-h-0 overflow-y-auto relative">
+            {children}
+          </div>
         </Providers>
       </body>
     </html>

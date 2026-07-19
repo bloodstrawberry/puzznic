@@ -41,7 +41,7 @@ export function Providers({ children }: ProvidersProps) {
 
   useEffect(() => {
     setupConstantHandlerFallbacks();
-    setIsMounted(true);
+    setTimeout(() => setIsMounted(true), 0);
   }, []);
 
   if (!isMounted) {

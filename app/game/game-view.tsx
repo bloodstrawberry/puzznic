@@ -516,93 +516,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     };
   }, []);
 
-  const handleDpadDirection = (direction: "up" | "down" | "left" | "right") => {
-    const {
-      grid: curGrid,
-      cursor: curCursor,
-      grabbed: curGrabbed,
-      isGameOver: curGameOver,
-      isLevelCleared: curLevelCleared,
-      activeEditor: curActiveEditor,
-      muted: curMuted,
-      moveBlock: curMoveBlock,
-      setCursor: curSetCursor,
-    } = gameViewRef.current;
 
-    if (curLevelCleared || curActiveEditor || curGameOver) return;
-
-    let dx = 0;
-    let dy = 0;
-
-    if (direction === "left") dx = -1;
-    else if (direction === "right") dx = 1;
-    else if (direction === "up") dy = -1;
-    else if (direction === "down") dy = 1;
-
-    // Grabbing state
-    if (curGrabbed) {
-      const cell = curGrid[curCursor.y]?.[curCursor.x];
-      if (cell === BLOCK_WALL_V) {
-        if (direction === "up") {
-          curMoveBlock(curCursor.x, curCursor.y, 0, -1);
-        } else if (direction === "down") {
-          curMoveBlock(curCursor.x, curCursor.y, 0, 1);
-        } else {
-          playSound("error", curMuted);
-        }
-      } else {
-        if (direction === "left") {
-          curMoveBlock(curCursor.x, curCursor.y, -1, 0);
-        } else if (direction === "right") {
-          curMoveBlock(curCursor.x, curCursor.y, 1, 0);
-        } else {
-          playSound("error", curMuted);
-        }
-      }
-    } else {
-      // Normal moving selection cursor
-      curSetCursor((prev) => {
-        const cols = curGrid[0]?.length || 8;
-        const rows = curGrid.length || 8;
-        const nx = Math.max(0, Math.min(cols - 1, prev.x + dx));
-        const ny = Math.max(0, Math.min(rows - 1, prev.y + dy));
-        playSound("select", curMuted);
-        return { x: nx, y: ny };
-      });
-    }
-  };
-
-  const handleDpadGrab = () => {
-    const {
-      grid: curGrid,
-      cursor: curCursor,
-      grabbed: curGrabbed,
-      isGameOver: curGameOver,
-      isLevelCleared: curLevelCleared,
-      activeEditor: curActiveEditor,
-      muted: curMuted,
-      setGrabbed: curSetGrabbed,
-    } = gameViewRef.current;
-
-    if (curLevelCleared || curActiveEditor || curGameOver) return;
-
-    const cell = curGrid[curCursor.y]?.[curCursor.x];
-    const isPuzzleBlock =
-      cell !== undefined &&
-      getBlockProperties(cell, curGrid)?.canSelect;
-
-    if (curGrabbed) {
-      curSetGrabbed(false);
-      playSound("select", curMuted);
-    } else {
-      if (isPuzzleBlock) {
-        curSetGrabbed(true);
-        playSound("select", curMuted);
-      } else {
-        playSound("error", curMuted);
-      }
-    }
-  };
 
   const handleMouseDown = (e: React.MouseEvent, x: number, y: number) => {
     if (!activeEditor) return;
@@ -632,9 +546,38 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       cell !== undefined &&
       getBlockProperties(cell, grid)?.canSelect;
 
-    if (grabbed && cursor.x === x && cursor.y === y) {
-      setGrabbed(false);
-      playSound("select", muted);
+    if (grabbed) {
+      if (isPuzzleBlock) {
+        if (cursor.x === x && cursor.y === y) {
+          setGrabbed(false);
+          playSound("select", muted);
+        } else {
+          setCursor({ x, y });
+          setGrabbed(true);
+          playSound("select", muted);
+        }
+      } else {
+        // 빈 곳이나 벽 등 선택 불가능한 셀 클릭 시 -> 이동 명령
+        if (x > cursor.x) {
+          const grabbedCell = grid[cursor.y]?.[cursor.x];
+          if (grabbedCell === BLOCK_WALL_V || grabbedCell === BLOCK_AUTO_WALL_V) {
+            moveBlock(cursor.x, cursor.y, 0, 1);
+          } else {
+            moveBlock(cursor.x, cursor.y, 1, 0);
+          }
+        } else if (x < cursor.x) {
+          const grabbedCell = grid[cursor.y]?.[cursor.x];
+          if (grabbedCell === BLOCK_WALL_V || grabbedCell === BLOCK_AUTO_WALL_V) {
+            moveBlock(cursor.x, cursor.y, 0, -1);
+          } else {
+            moveBlock(cursor.x, cursor.y, -1, 0);
+          }
+        } else {
+          // 같은 열 클릭 시 -> 잡기 해제
+          setGrabbed(false);
+          playSound("select", muted);
+        }
+      }
     } else {
       setCursor({ x, y });
       if (isPuzzleBlock) {
@@ -644,6 +587,18 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         setGrabbed(false);
         playSound("select", muted);
       }
+    }
+  };
+
+  const handleBackgroundClick = (clientX: number) => {
+    if (activeEditor || !grabbed) return;
+    const cell = grid[cursor.y]?.[cursor.x];
+    const isRight = clientX > window.innerWidth / 2;
+
+    if (cell === BLOCK_WALL_V || cell === BLOCK_AUTO_WALL_V) {
+      moveBlock(cursor.x, cursor.y, 0, isRight ? 1 : -1);
+    } else {
+      moveBlock(cursor.x, cursor.y, isRight ? 1 : -1, 0);
     }
   };
 
@@ -774,12 +729,12 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
   });
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-0 md:p-6 bg-[#0f0f10] text-[#f9fafb] overflow-hidden relative font-sans select-none">
+    <div className="flex min-h-full items-center justify-center p-0 md:py-2 md:px-6 bg-[#0f0f10] text-[#f9fafb] overflow-hidden relative font-sans select-none">
       {/* Subtle modern background gradient overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-950/15 via-zinc-950/20 to-zinc-950 pointer-events-none z-0" />
 
       {/* Main Container */}
-      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center p-1 md:p-4">
+      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center py-1 md:py-2 px-1 md:px-4">
         {/* Navigation / HUD Bar */}
         <div className="w-full bg-[#17171c]/90 backdrop-blur-md border border-zinc-900 rounded-t-[24px] px-3 md:px-6 py-3 flex items-center justify-between shadow-sm select-none relative z-30">
           {/* STAGE Info */}
@@ -1013,9 +968,15 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         </div>
 
         {/* Toss Style Game Board Container */}
-        <div className="w-full bg-[#17171c] border border-t-0 border-zinc-900 rounded-b-[24px] shadow-2xl p-1 md:p-6 relative">
+        <div className="w-full bg-[#17171c] border border-t-0 border-zinc-900 rounded-b-[24px] shadow-2xl py-1 md:py-3 px-1 md:px-6 relative">
           {/* Farm Board Area */}
-          <div className="farm-grass-bg w-full min-h-[400px] md:min-h-[480px] rounded-2xl border border-zinc-800/40 flex flex-col items-center justify-center p-2 md:p-6 text-white relative shadow-inner">
+          <div 
+            onClick={(e) => {
+              if (activeEditor) return;
+              handleBackgroundClick(e.clientX);
+            }}
+            className="farm-grass-bg w-full min-h-[240px] sm:min-h-[300px] md:min-h-[440px] rounded-2xl border border-zinc-800/40 flex flex-col items-center justify-center py-1 md:py-3 px-1 md:px-6 text-white relative shadow-inner"
+          >
             {isEditor && (
               <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/50 p-3 rounded-2xl mb-4 flex flex-col shadow-sm">
                 <div className="text-[10px] text-zinc-400 font-bold text-center mb-2 uppercase tracking-wider pb-1.5 border-b border-zinc-800/40">
@@ -1078,7 +1039,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         </div>
 
         {/* BOTTOM SECTION: EDITOR PALETTE & LEVEL SELECTORS */}
-        <div className="w-full bg-[#17171c] border border-t-0 border-zinc-900 rounded-b-[24px] p-4 flex flex-col gap-4 shadow-xl">
+        <div className="w-full md:bg-[#17171c] md:border md:border-t-0 md:border-zinc-900 md:rounded-b-[24px] py-1 md:py-3 px-1 md:px-4 flex flex-col gap-1 md:gap-3 md:shadow-xl">
           {activeEditor ? (
             // Editor Toolbar
             <div className="flex flex-col gap-3 font-sans">
@@ -1394,62 +1355,45 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                 </div>
               </div>
 
-              {/* Mobile Virtual D-Pad UI */}
-              <div className="flex md:hidden items-center justify-center gap-6 py-4 bg-zinc-900/30 border border-zinc-900 rounded-[24px] px-5 mt-1">
-                {/* Cross Direction Buttons */}
-                <div className="relative w-28 h-28 flex items-center justify-center bg-zinc-950/60 rounded-full border border-zinc-900 shadow-[inset_0_2px_8px_rgba(0,0,0,0.8)]">
-                  {/* Up */}
-                  <button
-                    onClick={() => handleDpadDirection("up")}
-                    className="absolute top-1 w-9 h-9 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800 rounded-xl flex items-center justify-center text-xs cursor-pointer font-bold text-zinc-300 shadow"
-                  >
-                    ▲
-                  </button>
-                  {/* Left */}
-                  <button
-                    onClick={() => handleDpadDirection("left")}
-                    className="absolute left-1 w-9 h-9 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800 rounded-xl flex items-center justify-center text-xs cursor-pointer font-bold text-zinc-300 shadow"
-                  >
-                    ◀
-                  </button>
-                  {/* Center deco */}
-                  <div className="w-8 h-8 bg-zinc-950 border border-zinc-900 rounded-full z-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-2 h-2 bg-zinc-800 rounded-full" />
-                  </div>
-                  {/* Right */}
-                  <button
-                    onClick={() => handleDpadDirection("right")}
-                    className="absolute right-1 w-9 h-9 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800 rounded-xl flex items-center justify-center text-xs cursor-pointer font-bold text-zinc-300 shadow"
-                  >
-                    ▶
-                  </button>
-                  {/* Down */}
-                  <button
-                    onClick={() => handleDpadDirection("down")}
-                    className="absolute bottom-1 w-9 h-9 bg-zinc-900 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800 rounded-xl flex items-center justify-center text-xs cursor-pointer font-bold text-zinc-300 shadow"
-                  >
-                    ▼
-                  </button>
-                </div>
+              {/* Mobile Virtual Left/Right Buttons UI */}
+              <div className="flex md:hidden items-center justify-center gap-4 py-0 px-2 mt-0.5 w-full select-none">
+                {/* Left Button (<-) */}
+                <button
+                  onClick={() => {
+                    if (!grabbed) {
+                      playSound("error", muted);
+                      return;
+                    }
+                    const cell = grid[cursor.y]?.[cursor.x];
+                    if (cell === BLOCK_WALL_V || cell === BLOCK_AUTO_WALL_V) {
+                      moveBlock(cursor.x, cursor.y, 0, -1);
+                    } else {
+                      moveBlock(cursor.x, cursor.y, -1, 0);
+                    }
+                  }}
+                  className="flex-1 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800/80 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-300 shadow-sm cursor-pointer transition-transform active:scale-95"
+                >
+                  ◀
+                </button>
 
-                {/* GRAB Button */}
-                <div className="flex flex-col items-center justify-center">
-                  <button
-                    onClick={handleDpadGrab}
-                    className={`w-20 h-20 rounded-full flex flex-col items-center justify-center border-2 font-bold cursor-pointer transition-all shadow-lg active:scale-95 ${
-                      grabbed
-                        ? "bg-emerald-500 border-emerald-600 hover:bg-emerald-450 text-white shadow-[0_0_12px_rgba(16,185,129,0.35)]"
-                        : "bg-[#3182f6] border-[#2272e6] hover:bg-[#1b64da] text-white"
-                    }`}
-                  >
-                    <span className="text-[13px] tracking-wide font-bold">
-                      {grabbed ? "놓기" : "잡기"}
-                    </span>
-                    <span className="text-[8px] text-zinc-300 mt-0.5 font-normal tracking-wide">
-                      {grabbed ? "RELEASE" : "SPACE"}
-                    </span>
-                  </button>
-                </div>
+                {/* Right Button (->) */}
+                <button
+                  onClick={() => {
+                    if (!grabbed) {
+                      playSound("error", muted);
+                      return;
+                    }
+                    const cell = grid[cursor.y]?.[cursor.x];
+                    if (cell === BLOCK_WALL_V || cell === BLOCK_AUTO_WALL_V) {
+                      moveBlock(cursor.x, cursor.y, 0, 1);
+                    } else {
+                      moveBlock(cursor.x, cursor.y, 1, 0);
+                    }
+                  }}
+                  className="flex-1 py-1.5 bg-zinc-900/80 hover:bg-zinc-800 active:bg-zinc-750 border border-zinc-800/80 rounded-lg flex items-center justify-center text-xs font-bold text-zinc-300 shadow-sm cursor-pointer transition-transform active:scale-95"
+                >
+                  ▶
+                </button>
               </div>
             </div>
           )}

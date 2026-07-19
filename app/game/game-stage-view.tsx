@@ -238,11 +238,12 @@ export default function GameStageView({
 
           {/* Dynamic Play Grid */}
           <div
+            onClick={(e) => e.stopPropagation()}
             className="grid relative z-10 w-full justify-center animate-fade-in"
             style={{
               gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
               width: "100%",
-              maxWidth: activeEditor ? `${(grid[0]?.length || 8) * 44}px` : `min(100%, ${(grid[0]?.length || 8) * 54}px)`,
+              maxWidth: activeEditor ? `${(grid[0]?.length || 8) * 44}px` : `min(76vw, ${(grid[0]?.length || 8) * 44}px)`,
               gap: `${STAGE_GRID_GAP_REM}rem`,
             }}
           >

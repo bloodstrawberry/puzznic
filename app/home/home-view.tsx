@@ -501,7 +501,7 @@ export default function HomeView() {
   ]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-0 md:p-6 bg-[#0f0f10] text-[#f9fafb] overflow-hidden relative font-sans">
+    <div className="flex min-h-full items-center justify-center p-0 md:py-2 md:px-6 bg-[#0f0f10] text-[#f9fafb] overflow-hidden relative font-sans">
       
       {/* Subtle modern background gradient overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/10 via-zinc-950/20 to-zinc-950 pointer-events-none z-0" />
