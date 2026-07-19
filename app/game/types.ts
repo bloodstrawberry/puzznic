@@ -65,7 +65,13 @@ const realMap: RawLevelData[] = typeof window !== "undefined"
       : [])
   : (require("../level/real-map.json") as RawLevelData[]);
 
-export { realMap };
+const testMap: RawLevelData[] = typeof window !== "undefined"
+  ? (!window.location.pathname.includes("/editor") || process.env.NEXT_PUBLIC_APP_ENV === "LOCAL"
+      ? (require("../level/test-map.json") as RawLevelData[])
+      : [])
+  : (require("../level/test-map.json") as RawLevelData[]);
+
+export { realMap, testMap };
 
 export const BUILTIN_LEVELS: LevelData[] = realMap as LevelData[];
 

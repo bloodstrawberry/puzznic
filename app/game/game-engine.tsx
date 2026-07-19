@@ -50,6 +50,7 @@ export const useGameEngine = (
   isEditorMode = false,
   isEditorPage = false,
 ) => {
+  const [editorMapType, setEditorMapType] = useState<"real" | "test">("real");
   const [levelIndex, setLevelIndex] = useState<number>(initialLevelIndex);
   const autoWallDirections = useRef<Record<string, number>>({});
   const autoWallDelays = useRef<Record<string, number>>({});
@@ -1076,5 +1077,8 @@ export const useGameEngine = (
     editorRestoreLevel: editor.editorRestoreLevel,
     editorUndo: editor.editorUndo,
     editorPushHistory: editor.editorPushHistory,
+    editorMapType,
+    setEditorMapType,
+    changeMapType: editor.changeMapType,
   };
 };

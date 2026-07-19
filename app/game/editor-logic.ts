@@ -11,6 +11,7 @@ import {
   LevelData,
   copyGrid,
   realMap,
+  testMap,
 } from "./types";
 import { playEngineSound } from "./sound";
 
@@ -55,6 +56,37 @@ export const useEditorEngine = (
   });
   const [editorActiveIndex, setEditorActiveIndex] = useState<number>(0);
   const [, setEditorHistory] = useState<CellType[][][]>([]);
+
+  const changeMapType = useCallback((mapType: "real" | "test") => {
+    if (!isEditorMode) return;
+    const selectedMap = mapType === "test" ? testMap : realMap;
+    const newLevels = selectedMap.length === 0
+      ? [
+          {
+            name: "LEVEL 1-1",
+            grid: Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY)),
+            timeLimit: 180,
+          },
+        ]
+      : selectedMap.map((lvl) => ({
+          name: lvl.name,
+          grid: copyGrid(lvl.grid as CellType[][]),
+          timeLimit: lvl.timeLimit ?? 180,
+        }));
+
+    setEditorLevels(newLevels);
+    setEditorActiveIndex(0);
+
+    const lvl = newLevels[0];
+    setGrid(copyGrid(lvl.grid));
+    setTimeLeft(lvl.timeLimit);
+    setCursor({
+      x: Math.floor(lvl.grid[0].length / 2),
+      y: lvl.grid.length - 1,
+    });
+    updateBlockCounts(lvl.grid);
+    setEditorHistory([]);
+  }, [isEditorMode, setGrid, setTimeLeft, setCursor, updateBlockCounts]);
 
   const editorPushHistory = useCallback((customGrid?: CellType[][]) => {
     const gridToSave = customGrid || grid;
@@ -486,5 +518,6 @@ export const useEditorEngine = (
     editorDeleteRow,
     editorDeleteCol,
     editorFlipHorizontal,
+    changeMapType,
   };
 };

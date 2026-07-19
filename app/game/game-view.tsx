@@ -192,6 +192,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     editorRestoreLevel,
     editorUndo,
     editorPushHistory,
+    editorMapType,
+    setEditorMapType,
+    changeMapType,
   } = useGameEngine(initialStageIdx, activeEditor, isEditor);
 
   const [selectedPaint, setSelectedPaint] = useState<CellType | "eraser">(
@@ -675,7 +678,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "real-map.json";
+    link.download = editorMapType === "test" ? "test-map.json" : "real-map.json";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -792,16 +795,54 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
 
           <div className="flex gap-4 items-center">
             {isEditor && (
-              <button
-                onClick={togglePlayTest}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
-                  playTestMode
-                    ? "bg-red-600 hover:bg-red-500 border-red-700 text-white"
-                    : "bg-emerald-600 hover:bg-emerald-500 border-emerald-700 text-white animate-pulse"
-                }`}
-              >
-                {playTestMode ? "⏹ 테스트 중단" : "▶ 레벨 테스트"}
-              </button>
+              <>
+                {!playTestMode && (
+                  <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl p-0.5 select-none">
+                    <button
+                      onClick={() => {
+                        if (editorMapType !== "real") {
+                          setEditorMapType("real");
+                          changeMapType("real");
+                          playSound("select", muted);
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                        editorMapType === "real"
+                          ? "bg-zinc-800 text-emerald-400"
+                          : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      REAL
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (editorMapType !== "test") {
+                          setEditorMapType("test");
+                          changeMapType("test");
+                          playSound("select", muted);
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                        editorMapType === "test"
+                          ? "bg-zinc-800 text-emerald-400"
+                          : "text-zinc-500 hover:text-zinc-300"
+                      }`}
+                    >
+                      TEST
+                    </button>
+                  </div>
+                )}
+                <button
+                  onClick={togglePlayTest}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
+                    playTestMode
+                      ? "bg-red-600 hover:bg-red-500 border-red-700 text-white"
+                      : "bg-emerald-600 hover:bg-emerald-500 border-emerald-700 text-white animate-pulse"
+                  }`}
+                >
+                  {playTestMode ? "⏹ 테스트 중단" : "▶ 레벨 테스트"}
+                </button>
+              </>
             )}
             <button
               onClick={() => {
