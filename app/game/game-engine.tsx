@@ -661,17 +661,9 @@ export const useGameEngine = (
             let ky = y - 1;
             while (ky >= 0) {
               const above = nextGrid[ky][x];
-              if (
-                above === BLOCK_EMPTY ||
-                above === BLOCK_WALL ||
-                above === BLOCK_WALL_V ||
-                above === BLOCK_WALL_H ||
-                above === BLOCK_SPIKE_U ||
-                above === BLOCK_SPIKE_D ||
-                above === BLOCK_SPIKE_L ||
-                above === BLOCK_SPIKE_R
-              )
+              if (above === BLOCK_EMPTY || !getBlockProperties(above, nextGrid)?.canSelect) {
                 break;
+              }
               stack.push({ x, y: ky });
               ky--;
             }
@@ -789,25 +781,41 @@ export const useGameEngine = (
             const hasDelayKey = autoWallDelays.current[dirKey] !== undefined;
             const currentDelay = hasDelayKey ? autoWallDelays.current[dirKey] : 0;
 
-            // Collect stack above this auto-wall
-            const stack: Position[] = [{ x, y }];
-            let ky = y - 1;
-            while (ky >= 0) {
-              const above = nextGrid[ky][x];
-              if (
-                above === BLOCK_EMPTY ||
-                above === BLOCK_WALL ||
-                above === BLOCK_WALL_V ||
-                above === BLOCK_WALL_H ||
-                above === BLOCK_SPIKE_U ||
-                above === BLOCK_SPIKE_D ||
-                above === BLOCK_SPIKE_L ||
-                above === BLOCK_SPIKE_R
-              )
-                break;
-              stack.push({ x, y: ky });
-              ky--;
-            }
+            // Helper to get stack based on direction
+            const getVStack = (currentDy: number): Position[] => {
+              const s: Position[] = [{ x, y }];
+              if (currentDy === -1) {
+                let ky = y - 1;
+                while (ky >= 0) {
+                  const above = nextGrid[ky][x];
+                  if (above === BLOCK_EMPTY || !getBlockProperties(above, nextGrid)?.canSelect) {
+                    break;
+                  }
+                  s.push({ x, y: ky });
+                  ky--;
+                }
+              }
+              return s;
+            };
+
+            // Helper to check if the stack can move in the given direction
+            const checkCanMove = (s: Position[], currentDy: number): boolean => {
+              for (const item of s) {
+                const nx = item.x;
+                const ny = item.y + currentDy;
+                if (ny < 0 || ny >= H) {
+                  return false;
+                }
+                const destCell = nextGrid[ny][nx];
+                const isSelf = s.some((pos) => pos.x === nx && pos.y === ny);
+                if (destCell !== BLOCK_EMPTY && !isSelf) {
+                  return false;
+                }
+              }
+              return true;
+            };
+
+            let stack = getVStack(dy);
 
             const hasFlashing = stack.some((item) => curFlashingBlocks[`${item.y},${item.x}`]);
             if (hasFlashing) {
@@ -818,21 +826,7 @@ export const useGameEngine = (
             }
 
             // Check if stack can move vertically
-            let canMove = true;
-            for (const item of stack) {
-              const nx = item.x;
-              const ny = item.y + dy;
-              if (ny < 0 || ny >= H) {
-                canMove = false;
-                break;
-              }
-              const destCell = nextGrid[ny][nx];
-              const isSelf = stack.some((s) => s.x === nx && s.y === ny);
-              if (destCell !== BLOCK_EMPTY && !isSelf) {
-                canMove = false;
-                break;
-              }
-            }
+            let canMove = checkCanMove(stack, dy);
 
             if (!canMove) {
               if (!hasDelayKey && AUTO_WALL_TURN_DELAY_TICKS > 0) {
@@ -846,21 +840,8 @@ export const useGameEngine = (
               } else {
                 // Reverse direction and try again
                 dy = -dy;
-                canMove = true;
-                for (const item of stack) {
-                  const nx = item.x;
-                  const ny = item.y + dy;
-                  if (ny < 0 || ny >= H) {
-                    canMove = false;
-                    break;
-                  }
-                  const destCell = nextGrid[ny][nx];
-                  const isSelf = stack.some((s) => s.x === nx && s.y === ny);
-                  if (destCell !== BLOCK_EMPTY && !isSelf) {
-                    canMove = false;
-                    break;
-                  }
-                }
+                stack = getVStack(dy);
+                canMove = checkCanMove(stack, dy);
               }
             }
 
