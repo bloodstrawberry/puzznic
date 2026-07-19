@@ -45,3 +45,36 @@ export const PUZZLE_BLOCK_TYPES: BlockId[] = [
 export const STAGE_BLOCK_SIZE_PERCENT = 100; // Block size percentage relative to the grid cell (e.g. 88% width/height, leaving 12% padding)
 export const STAGE_GRID_GAP_REM = 0.0;   // Gap between grid cells in rem (0.125rem = 2px, equivalent to Tailwind's gap-0.5)
 
+export interface BlockProperties {
+  canSelect: boolean;
+  canBeDestroyedByShooter: boolean;
+  canFall: boolean;
+}
+
+export const BLOCK_PROPERTIES: Record<BlockId, BlockProperties> = {
+  [BLOCK_EMPTY]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_WALL]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_SPHERE]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_DIAMOND]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_CUBE]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_CONE]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_STAR]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_CYLINDER]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_TRIANGLE_DOWN]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_HEART]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_MOON]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_CROSS]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_WALL_V]: { canSelect: true, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_WALL_H]: { canSelect: true, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_AUTO_WALL_V]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_AUTO_WALL_H]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_BOMB]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_SHOOTER_L]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_SHOOTER_R]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_SHOOTER_L_ONCE]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_SHOOTER_R_ONCE]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_SPIKE_U]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_SPIKE_D]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_SPIKE_L]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_SPIKE_R]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+};

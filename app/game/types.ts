@@ -16,6 +16,7 @@ import {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
+  BLOCK_PROPERTIES,
 } from "../object/constants";
 
 // ── Raw JSON shape ──
@@ -73,31 +74,12 @@ export const copyGrid = (src: CellType[][]): CellType[][] => {
   return src.map((row) => [...row]);
 };
 
-export const isNonWallBlock = (id: BlockId): boolean => {
-  return (
-    id !== BLOCK_EMPTY &&
-    id !== BLOCK_WALL &&
-    id !== BLOCK_WALL_V &&
-    id !== BLOCK_WALL_H &&
-    id !== BLOCK_AUTO_WALL_V &&
-    id !== BLOCK_AUTO_WALL_H &&
-    id !== BLOCK_SHOOTER_L &&
-    id !== BLOCK_SHOOTER_R &&
-    id !== BLOCK_SHOOTER_L_ONCE &&
-    id !== BLOCK_SHOOTER_R_ONCE &&
-    id !== BLOCK_SPIKE_U &&
-    id !== BLOCK_SPIKE_D &&
-    id !== BLOCK_SPIKE_L &&
-    id !== BLOCK_SPIKE_R
-  );
-};
-
 export const findInitialCursor = (grid: CellType[][]): Position => {
   const h = grid.length;
   const w = grid[0]?.length ?? 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (isNonWallBlock(grid[y][x])) {
+      if (BLOCK_PROPERTIES[grid[y][x]]?.canSelect) {
         return { x, y };
       }
     }

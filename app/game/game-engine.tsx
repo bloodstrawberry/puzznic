@@ -17,6 +17,7 @@ import {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
+  BLOCK_PROPERTIES,
 } from "../object/constants";
 
 // ── Re-export public types & constants from modules ──
@@ -32,7 +33,6 @@ import {
   SHOOTER_INTERVAL,
   realMap,
   copyGrid,
-  isNonWallBlock,
   findInitialCursor,
 } from "./types";
 import { playEngineSound } from "./sound";
@@ -221,14 +221,7 @@ export const useGameEngine = (
       const curFlashing = customFlashing || stateFlashing || {};
       const isGrabable =
         cell !== undefined &&
-        cell !== BLOCK_EMPTY &&
-        cell !== BLOCK_WALL &&
-        cell !== BLOCK_AUTO_WALL_V &&
-        cell !== BLOCK_AUTO_WALL_H &&
-        cell !== BLOCK_SPIKE_U &&
-        cell !== BLOCK_SPIKE_D &&
-        cell !== BLOCK_SPIKE_L &&
-        cell !== BLOCK_SPIKE_R;
+        BLOCK_PROPERTIES[cell]?.canSelect;
 
       if (!isGrabable || curFlashing[`${curPos.y},${curPos.x}`]) {
         updateGrabbed(false);
@@ -244,7 +237,7 @@ export const useGameEngine = (
     const counts: Record<string, number> = {};
     initialGrid.forEach((row) => {
       row.forEach((cell) => {
-        if (isNonWallBlock(cell)) {
+        if (BLOCK_PROPERTIES[cell]?.canBeDestroyedByShooter) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -257,7 +250,7 @@ export const useGameEngine = (
     const counts: Record<string, number> = {};
     board.forEach((row) => {
       row.forEach((cell) => {
-        if (isNonWallBlock(cell)) {
+        if (BLOCK_PROPERTIES[cell]?.canBeDestroyedByShooter) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -398,7 +391,7 @@ export const useGameEngine = (
             const oldCell = currentGrid[curCursor.y]?.[curCursor.x];
             const newCell = gravityResult.grid[curCursor.y + 1]?.[curCursor.x];
             const oldCellNowEmpty = gravityResult.grid[curCursor.y]?.[curCursor.x] === BLOCK_EMPTY;
-            if (isNonWallBlock(oldCell) && newCell === oldCell && oldCellNowEmpty) {
+            if (BLOCK_PROPERTIES[oldCell]?.canFall && newCell === oldCell && oldCellNowEmpty) {
               const nextCursor = { x: curCursor.x, y: curCursor.y + 1 };
               updateCursor(nextCursor);
             }
@@ -593,7 +586,7 @@ export const useGameEngine = (
 
           if (hitX >= 0 && hitX < currentW) {
             const currentCell = prevGrid[y][hitX];
-            if (isNonWallBlock(currentCell)) {
+            if (BLOCK_PROPERTIES[currentCell]?.canBeDestroyedByShooter) {
               const nextGrid = copyGrid(prevGrid);
               nextGrid[y][hitX] = BLOCK_EMPTY;
               if (stateRef.current) {

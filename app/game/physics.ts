@@ -10,9 +10,10 @@ import {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
+  BLOCK_PROPERTIES,
 } from "../object/constants";
 
-import { CellType, Position, copyGrid, isNonWallBlock } from "./types";
+import { CellType, Position, copyGrid } from "./types";
 
 // ── Physics step results ──
 
@@ -50,7 +51,7 @@ export const applyGravity = (grid: CellType[][]): GravityResult => {
   for (let y = grid.length - 2; y >= 0; y--) {
     for (let x = 0; x < grid[y].length; x++) {
       const cell = nextGrid[y][x];
-      if (isNonWallBlock(cell)) {
+      if (BLOCK_PROPERTIES[cell]?.canFall) {
         if (nextGrid[y + 1][x] === BLOCK_EMPTY) {
           nextGrid[y + 1][x] = cell;
           nextGrid[y][x] = BLOCK_EMPTY;
@@ -72,22 +73,22 @@ export const applySpikes = (grid: CellType[][]): SpikeResult => {
     for (let x = 0; x < grid[y].length; x++) {
       const cell = grid[y][x];
       if (cell === BLOCK_SPIKE_U) {
-        if (y > 0 && isNonWallBlock(nextGrid[y - 1][x])) {
+        if (y > 0 && BLOCK_PROPERTIES[nextGrid[y - 1][x]]?.canBeDestroyedByShooter) {
           nextGrid[y - 1][x] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_D) {
-        if (y < grid.length - 1 && isNonWallBlock(nextGrid[y + 1][x])) {
+        if (y < grid.length - 1 && BLOCK_PROPERTIES[nextGrid[y + 1][x]]?.canBeDestroyedByShooter) {
           nextGrid[y + 1][x] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_L) {
-        if (x > 0 && isNonWallBlock(nextGrid[y][x - 1])) {
+        if (x > 0 && BLOCK_PROPERTIES[nextGrid[y][x - 1]]?.canBeDestroyedByShooter) {
           nextGrid[y][x - 1] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_R) {
-        if (x < grid[y].length - 1 && isNonWallBlock(nextGrid[y][x + 1])) {
+        if (x < grid[y].length - 1 && BLOCK_PROPERTIES[nextGrid[y][x + 1]]?.canBeDestroyedByShooter) {
           nextGrid[y][x + 1] = BLOCK_EMPTY;
           changed = true;
         }
@@ -109,7 +110,8 @@ export const findMatches = (grid: CellType[][]): MatchResult => {
   for (let y = 0; y < grid.length; y++) {
     for (let x = 0; x < grid[y].length; x++) {
       const cell = grid[y][x];
-      if (isNonWallBlock(cell)) {
+      // Only destroyable blocks (puzzle blocks + bombs) can match
+      if (BLOCK_PROPERTIES[cell]?.canBeDestroyedByShooter) {
         // Check neighbors
         for (let i = 0; i < 4; i++) {
           const ny = y + dy[i];
@@ -121,7 +123,7 @@ export const findMatches = (grid: CellType[][]): MatchResult => {
             nx < grid[0].length
           ) {
             const neighbor = grid[ny][nx];
-            if (isNonWallBlock(neighbor)) {
+            if (BLOCK_PROPERTIES[neighbor]?.canBeDestroyedByShooter) {
               if (
                 cell === neighbor ||
                 cell === BLOCK_BOMB ||
@@ -177,12 +179,7 @@ export const tryMoveBlock = (
 
   if (
     block === undefined ||
-    block === BLOCK_EMPTY ||
-    block === BLOCK_WALL ||
-    block === BLOCK_SPIKE_U ||
-    block === BLOCK_SPIKE_D ||
-    block === BLOCK_SPIKE_L ||
-    block === BLOCK_SPIKE_R
+    !BLOCK_PROPERTIES[block]?.canSelect
   ) {
     return fail;
   }
@@ -207,11 +204,7 @@ export const tryMoveBlock = (
       const aboveBlock = currentGrid[ky][x];
       if (
         aboveBlock === BLOCK_EMPTY ||
-        aboveBlock === BLOCK_WALL ||
-        aboveBlock === BLOCK_SPIKE_U ||
-        aboveBlock === BLOCK_SPIKE_D ||
-        aboveBlock === BLOCK_SPIKE_L ||
-        aboveBlock === BLOCK_SPIKE_R
+        !BLOCK_PROPERTIES[aboveBlock]?.canSelect
       ) {
         break;
       }
