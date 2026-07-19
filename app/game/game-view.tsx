@@ -23,6 +23,7 @@ import BlockRenderer, {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
+  BLOCK_PROPERTIES,
 } from "../object";
 
 // Retro sound synthesizer proxy
@@ -391,14 +392,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         const cell = curGrid[curCursor.y]?.[curCursor.x];
         const isPuzzleBlock =
           cell !== undefined &&
-          cell !== BLOCK_EMPTY &&
-          cell !== BLOCK_WALL &&
-          cell !== BLOCK_AUTO_WALL_V &&
-          cell !== BLOCK_AUTO_WALL_H &&
-          cell !== BLOCK_SPIKE_U &&
-          cell !== BLOCK_SPIKE_D &&
-          cell !== BLOCK_SPIKE_L &&
-          cell !== BLOCK_SPIKE_R;
+          BLOCK_PROPERTIES[cell]?.canSelect;
         if (curGrabbed) {
           curSetGrabbed(false);
           playSound("select", curMuted);
@@ -417,14 +411,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       const currentCellAtCursor = curGrid[curCursor.y]?.[curCursor.x];
       const isCursorPuzzleBlock =
         currentCellAtCursor !== undefined &&
-        currentCellAtCursor !== BLOCK_EMPTY &&
-        currentCellAtCursor !== BLOCK_WALL &&
-        currentCellAtCursor !== BLOCK_AUTO_WALL_V &&
-        currentCellAtCursor !== BLOCK_AUTO_WALL_H &&
-        currentCellAtCursor !== BLOCK_SPIKE_U &&
-        currentCellAtCursor !== BLOCK_SPIKE_D &&
-        currentCellAtCursor !== BLOCK_SPIKE_L &&
-        currentCellAtCursor !== BLOCK_SPIKE_R;
+        BLOCK_PROPERTIES[currentCellAtCursor]?.canSelect;
 
       if (curGrabbed && !isCursorPuzzleBlock && !curProcessing) {
         curSetGrabbed(false);
@@ -590,14 +577,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     const cell = curGrid[curCursor.y]?.[curCursor.x];
     const isPuzzleBlock =
       cell !== undefined &&
-      cell !== BLOCK_EMPTY &&
-      cell !== BLOCK_WALL &&
-      cell !== BLOCK_AUTO_WALL_V &&
-      cell !== BLOCK_AUTO_WALL_H &&
-      cell !== BLOCK_SPIKE_U &&
-      cell !== BLOCK_SPIKE_D &&
-      cell !== BLOCK_SPIKE_L &&
-      cell !== BLOCK_SPIKE_R;
+      BLOCK_PROPERTIES[cell]?.canSelect;
 
     if (curGrabbed) {
       curSetGrabbed(false);
