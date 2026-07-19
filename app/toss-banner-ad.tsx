@@ -13,8 +13,15 @@ export function TossBannerAd() {
       return;
     }
 
+    let isAdSupported = false;
     try {
-      if (!TossAds.initialize.isSupported()) {
+      isAdSupported = TossAds.initialize.isSupported();
+    } catch {
+      // Ignored: TossAds is not supported in standard browsers
+    }
+
+    try {
+      if (!isAdSupported) {
         console.warn("Toss Ads is not supported in this environment.");
         setTimeout(() => setIsSupported(false), 0);
         return;
