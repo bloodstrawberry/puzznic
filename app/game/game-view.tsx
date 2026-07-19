@@ -23,7 +23,7 @@ import BlockRenderer, {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
-  BLOCK_PROPERTIES,
+  getBlockProperties,
 } from "../object";
 
 // Retro sound synthesizer proxy
@@ -392,7 +392,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         const cell = curGrid[curCursor.y]?.[curCursor.x];
         const isPuzzleBlock =
           cell !== undefined &&
-          BLOCK_PROPERTIES[cell]?.canSelect;
+          getBlockProperties(cell, curGrid)?.canSelect;
         if (curGrabbed) {
           curSetGrabbed(false);
           playSound("select", curMuted);
@@ -411,7 +411,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       const currentCellAtCursor = curGrid[curCursor.y]?.[curCursor.x];
       const isCursorPuzzleBlock =
         currentCellAtCursor !== undefined &&
-        BLOCK_PROPERTIES[currentCellAtCursor]?.canSelect;
+        getBlockProperties(currentCellAtCursor, curGrid)?.canSelect;
 
       if (curGrabbed && !isCursorPuzzleBlock && !curProcessing) {
         curSetGrabbed(false);
@@ -577,7 +577,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     const cell = curGrid[curCursor.y]?.[curCursor.x];
     const isPuzzleBlock =
       cell !== undefined &&
-      BLOCK_PROPERTIES[cell]?.canSelect;
+      getBlockProperties(cell, curGrid)?.canSelect;
 
     if (curGrabbed) {
       curSetGrabbed(false);

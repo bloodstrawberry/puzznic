@@ -2,21 +2,7 @@ declare const require: (path: string) => unknown;
 
 import {
   BlockId,
-  BLOCK_EMPTY,
-  BLOCK_WALL,
-  BLOCK_WALL_V,
-  BLOCK_WALL_H,
-  BLOCK_AUTO_WALL_V,
-  BLOCK_AUTO_WALL_H,
-  BLOCK_SHOOTER_L,
-  BLOCK_SHOOTER_R,
-  BLOCK_SHOOTER_L_ONCE,
-  BLOCK_SHOOTER_R_ONCE,
-  BLOCK_SPIKE_U,
-  BLOCK_SPIKE_D,
-  BLOCK_SPIKE_L,
-  BLOCK_SPIKE_R,
-  BLOCK_PROPERTIES,
+  getBlockProperties,
 } from "../object/constants";
 
 // ── Raw JSON shape ──
@@ -85,7 +71,7 @@ export const findInitialCursor = (grid: CellType[][]): Position => {
   const w = grid[0]?.length ?? 0;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (BLOCK_PROPERTIES[grid[y][x]]?.canSelect) {
+      if (getBlockProperties(grid[y][x], grid)?.canSelect) {
         return { x, y };
       }
     }

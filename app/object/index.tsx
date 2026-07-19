@@ -24,6 +24,18 @@ import {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
+  BLOCK_NUM_1,
+  BLOCK_NUM_2,
+  BLOCK_NUM_3,
+  BLOCK_NUM_4,
+  BLOCK_NUM_5,
+  isBlockActive,
+  BLOCK_LETTER_A,
+  BLOCK_LETTER_B,
+  BLOCK_LETTER_C,
+  BLOCK_LETTER_D,
+  BLOCK_LETTER_E,
+  isLetterBlockActive,
 } from "./constants";
 import Wall from "./wall";
 import Spike from "./spike";
@@ -43,6 +55,8 @@ import WallAutoV from "./wall-auto-v";
 import WallAutoH from "./wall-auto-h";
 import Bomb from "./bomb";
 import Shooter from "./shooter";
+import NumBlock from "./num-block";
+import LetterBlock from "./letter-block";
 
 export { default as Wall } from "./wall";
 export { default as Sphere } from "./sphere";
@@ -62,6 +76,8 @@ export { default as WallAutoH } from "./wall-auto-h";
 export { default as Bomb } from "./bomb";
 export { default as Shooter } from "./shooter";
 export { default as Spike } from "./spike";
+export { default as NumBlock } from "./num-block";
+export { default as LetterBlock } from "./letter-block";
 export * from "./constants";
 
 interface BlockRendererProps {
@@ -75,6 +91,9 @@ interface BlockRendererProps {
 export default function BlockRenderer({ id, x, y, grid, firedOnce }: BlockRendererProps) {
   const key = `${y},${x}`;
   const isFiredOnce = firedOnce !== undefined && firedOnce[key] === true;
+
+  const active = isBlockActive(id, grid);
+  const letterActive = isLetterBlockActive(id, grid);
 
   const isPressed =
     isFiredOnce ||
@@ -134,6 +153,26 @@ export default function BlockRenderer({ id, x, y, grid, firedOnce }: BlockRender
       return <Spike direction="left" />;
     case BLOCK_SPIKE_R:
       return <Spike direction="right" />;
+    case BLOCK_NUM_1:
+      return <NumBlock num={1} active={active} />;
+    case BLOCK_NUM_2:
+      return <NumBlock num={2} active={active} />;
+    case BLOCK_NUM_3:
+      return <NumBlock num={3} active={active} />;
+    case BLOCK_NUM_4:
+      return <NumBlock num={4} active={active} />;
+    case BLOCK_NUM_5:
+      return <NumBlock num={5} active={active} />;
+    case BLOCK_LETTER_A:
+      return <LetterBlock letter="A" active={letterActive} />;
+    case BLOCK_LETTER_B:
+      return <LetterBlock letter="B" active={letterActive} />;
+    case BLOCK_LETTER_C:
+      return <LetterBlock letter="C" active={letterActive} />;
+    case BLOCK_LETTER_D:
+      return <LetterBlock letter="D" active={letterActive} />;
+    case BLOCK_LETTER_E:
+      return <LetterBlock letter="E" active={letterActive} />;
     default:
       return null;
   }

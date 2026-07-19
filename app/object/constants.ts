@@ -24,6 +24,18 @@ export const BLOCK_SPIKE_D = 41;
 export const BLOCK_SPIKE_L = 42;
 export const BLOCK_SPIKE_R = 43;
 
+export const BLOCK_NUM_1 = 71;
+export const BLOCK_NUM_2 = 72;
+export const BLOCK_NUM_3 = 73;
+export const BLOCK_NUM_4 = 74;
+export const BLOCK_NUM_5 = 75;
+
+export const BLOCK_LETTER_A = 81;
+export const BLOCK_LETTER_B = 82;
+export const BLOCK_LETTER_C = 83;
+export const BLOCK_LETTER_D = 84;
+export const BLOCK_LETTER_E = 85;
+
 export type BlockId = number;
 
 // Array of matchable puzzle block types (10 types in total)
@@ -38,6 +50,16 @@ export const PUZZLE_BLOCK_TYPES: BlockId[] = [
   BLOCK_HEART,
   BLOCK_MOON,
   BLOCK_CROSS,
+  BLOCK_NUM_1,
+  BLOCK_NUM_2,
+  BLOCK_NUM_3,
+  BLOCK_NUM_4,
+  BLOCK_NUM_5,
+  BLOCK_LETTER_A,
+  BLOCK_LETTER_B,
+  BLOCK_LETTER_C,
+  BLOCK_LETTER_D,
+  BLOCK_LETTER_E,
 ];
 
 // Sizing and spacing constants for blocks on the stage play board
@@ -77,4 +99,84 @@ export const BLOCK_PROPERTIES: Record<BlockId, BlockProperties> = {
   [BLOCK_SPIKE_D]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
   [BLOCK_SPIKE_L]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
   [BLOCK_SPIKE_R]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
+  [BLOCK_NUM_1]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_NUM_2]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_NUM_3]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_NUM_4]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_NUM_5]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_LETTER_A]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_LETTER_B]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_LETTER_C]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_LETTER_D]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_LETTER_E]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
 };
+
+export function isBlockActive(id: BlockId, grid?: BlockId[][]): boolean {
+  if (id < BLOCK_NUM_1 || id > BLOCK_NUM_5) {
+    return true;
+  }
+  if (!grid) {
+    return true; // Default to active if grid is not provided (e.g. editor panel)
+  }
+
+  // Active if there are no smaller number blocks present on the grid.
+  for (let prevId = BLOCK_NUM_1; prevId < id; prevId++) {
+    for (let r = 0; r < grid.length; r++) {
+      if (grid[r].includes(prevId)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+export function getBlockProperties(id: BlockId, grid?: BlockId[][]): BlockProperties {
+  const staticProps = BLOCK_PROPERTIES[id] ?? {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  };
+
+  if (id >= BLOCK_NUM_1 && id <= BLOCK_NUM_5) {
+    if (grid) {
+      const active = isBlockActive(id, grid);
+      if (active) {
+        return { canSelect: true, canBeDestroyedByShooter: true, canFall: true };
+      } else {
+        return { canSelect: false, canBeDestroyedByShooter: false, canFall: false };
+      }
+    }
+  }
+
+  if (id >= BLOCK_LETTER_A && id <= BLOCK_LETTER_E) {
+    if (grid) {
+      const active = isLetterBlockActive(id, grid);
+      return {
+        canSelect: true,
+        canBeDestroyedByShooter: active,
+        canFall: true,
+      };
+    }
+  }
+
+  return staticProps;
+}
+
+export function isLetterBlockActive(id: BlockId, grid?: BlockId[][]): boolean {
+  if (id < BLOCK_LETTER_A || id > BLOCK_LETTER_E) {
+    return true;
+  }
+  if (!grid) {
+    return true; // Default to active if grid is not provided
+  }
+
+  // Active (can be destroyed) if there are no smaller letter blocks present on the grid.
+  for (let prevId = BLOCK_LETTER_A; prevId < id; prevId++) {
+    for (let r = 0; r < grid.length; r++) {
+      if (grid[r].includes(prevId)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}

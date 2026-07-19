@@ -17,7 +17,7 @@ import {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
-  BLOCK_PROPERTIES,
+  getBlockProperties,
 } from "../object/constants";
 
 // ── Re-export public types & constants from modules ──
@@ -222,7 +222,7 @@ export const useGameEngine = (
       const curFlashing = customFlashing || stateFlashing || {};
       const isGrabable =
         cell !== undefined &&
-        BLOCK_PROPERTIES[cell]?.canSelect;
+        getBlockProperties(cell, targetGrid)?.canSelect;
 
       if (!isGrabable || curFlashing[`${curPos.y},${curPos.x}`]) {
         updateGrabbed(false);
@@ -238,7 +238,7 @@ export const useGameEngine = (
     const counts: Record<string, number> = {};
     initialGrid.forEach((row) => {
       row.forEach((cell) => {
-        if (BLOCK_PROPERTIES[cell]?.canBeDestroyedByShooter) {
+        if (getBlockProperties(cell)?.canBeDestroyedByShooter) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -251,7 +251,7 @@ export const useGameEngine = (
     const counts: Record<string, number> = {};
     board.forEach((row) => {
       row.forEach((cell) => {
-        if (BLOCK_PROPERTIES[cell]?.canBeDestroyedByShooter) {
+        if (getBlockProperties(cell)?.canBeDestroyedByShooter) {
           counts[cell] = (counts[cell] || 0) + 1;
         }
       });
@@ -392,7 +392,7 @@ export const useGameEngine = (
             const oldCell = currentGrid[curCursor.y]?.[curCursor.x];
             const newCell = gravityResult.grid[curCursor.y + 1]?.[curCursor.x];
             const oldCellNowEmpty = gravityResult.grid[curCursor.y]?.[curCursor.x] === BLOCK_EMPTY;
-            if (BLOCK_PROPERTIES[oldCell]?.canFall && newCell === oldCell && oldCellNowEmpty) {
+            if (getBlockProperties(oldCell, currentGrid)?.canFall && newCell === oldCell && oldCellNowEmpty) {
               const nextCursor = { x: curCursor.x, y: curCursor.y + 1 };
               updateCursor(nextCursor);
             }
@@ -587,7 +587,7 @@ export const useGameEngine = (
 
           if (hitX >= 0 && hitX < currentW) {
             const currentCell = prevGrid[y][hitX];
-            if (BLOCK_PROPERTIES[currentCell]?.canBeDestroyedByShooter) {
+            if (getBlockProperties(currentCell, prevGrid)?.canBeDestroyedByShooter) {
               const nextGrid = copyGrid(prevGrid);
               nextGrid[y][hitX] = BLOCK_EMPTY;
               if (stateRef.current) {

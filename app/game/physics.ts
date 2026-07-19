@@ -1,6 +1,5 @@
 import {
   BLOCK_EMPTY,
-  BLOCK_WALL,
   BLOCK_WALL_V,
   BLOCK_WALL_H,
   BLOCK_AUTO_WALL_V,
@@ -10,7 +9,7 @@ import {
   BLOCK_SPIKE_D,
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
-  BLOCK_PROPERTIES,
+  getBlockProperties,
 } from "../object/constants";
 
 import { CellType, Position, copyGrid } from "./types";
@@ -51,7 +50,7 @@ export const applyGravity = (grid: CellType[][]): GravityResult => {
   for (let y = grid.length - 2; y >= 0; y--) {
     for (let x = 0; x < grid[y].length; x++) {
       const cell = nextGrid[y][x];
-      if (BLOCK_PROPERTIES[cell]?.canFall) {
+      if (getBlockProperties(cell, nextGrid)?.canFall) {
         if (nextGrid[y + 1][x] === BLOCK_EMPTY) {
           nextGrid[y + 1][x] = cell;
           nextGrid[y][x] = BLOCK_EMPTY;
@@ -73,22 +72,22 @@ export const applySpikes = (grid: CellType[][]): SpikeResult => {
     for (let x = 0; x < grid[y].length; x++) {
       const cell = grid[y][x];
       if (cell === BLOCK_SPIKE_U) {
-        if (y > 0 && BLOCK_PROPERTIES[nextGrid[y - 1][x]]?.canBeDestroyedByShooter) {
+        if (y > 0 && getBlockProperties(nextGrid[y - 1][x], nextGrid)?.canBeDestroyedByShooter) {
           nextGrid[y - 1][x] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_D) {
-        if (y < grid.length - 1 && BLOCK_PROPERTIES[nextGrid[y + 1][x]]?.canBeDestroyedByShooter) {
+        if (y < grid.length - 1 && getBlockProperties(nextGrid[y + 1][x], nextGrid)?.canBeDestroyedByShooter) {
           nextGrid[y + 1][x] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_L) {
-        if (x > 0 && BLOCK_PROPERTIES[nextGrid[y][x - 1]]?.canBeDestroyedByShooter) {
+        if (x > 0 && getBlockProperties(nextGrid[y][x - 1], nextGrid)?.canBeDestroyedByShooter) {
           nextGrid[y][x - 1] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_R) {
-        if (x < grid[y].length - 1 && BLOCK_PROPERTIES[nextGrid[y][x + 1]]?.canBeDestroyedByShooter) {
+        if (x < grid[y].length - 1 && getBlockProperties(nextGrid[y][x + 1], nextGrid)?.canBeDestroyedByShooter) {
           nextGrid[y][x + 1] = BLOCK_EMPTY;
           changed = true;
         }
@@ -111,7 +110,7 @@ export const findMatches = (grid: CellType[][]): MatchResult => {
     for (let x = 0; x < grid[y].length; x++) {
       const cell = grid[y][x];
       // Only destroyable blocks (puzzle blocks + bombs) can match
-      if (BLOCK_PROPERTIES[cell]?.canBeDestroyedByShooter) {
+      if (getBlockProperties(cell, grid)?.canBeDestroyedByShooter) {
         // Check neighbors
         for (let i = 0; i < 4; i++) {
           const ny = y + dy[i];
@@ -123,7 +122,7 @@ export const findMatches = (grid: CellType[][]): MatchResult => {
             nx < grid[0].length
           ) {
             const neighbor = grid[ny][nx];
-            if (BLOCK_PROPERTIES[neighbor]?.canBeDestroyedByShooter) {
+            if (getBlockProperties(neighbor, grid)?.canBeDestroyedByShooter) {
               if (
                 cell === neighbor ||
                 cell === BLOCK_BOMB ||
@@ -179,7 +178,7 @@ export const tryMoveBlock = (
 
   if (
     block === undefined ||
-    !BLOCK_PROPERTIES[block]?.canSelect
+    !getBlockProperties(block, currentGrid)?.canSelect
   ) {
     return fail;
   }
@@ -204,7 +203,7 @@ export const tryMoveBlock = (
       const aboveBlock = currentGrid[ky][x];
       if (
         aboveBlock === BLOCK_EMPTY ||
-        !BLOCK_PROPERTIES[aboveBlock]?.canSelect
+        !getBlockProperties(aboveBlock, currentGrid)?.canSelect
       ) {
         break;
       }
