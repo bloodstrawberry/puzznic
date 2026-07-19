@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - master
+      - master # 기준 브랜치 (master) 유지
   workflow_dispatch:
 
 permissions:
@@ -28,24 +28,25 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
-          cache: "yarn" # 💡 npm 대신 yarn 캐시를 사용하도록 변경
+          node-version: "24" # 명시하신 Node 24 버전 유지
+          cache: "yarn"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        run: yarn install --immutable # 💡 npm ci 대신 yarn 명령어 사용
+        run: yarn install --immutable
 
       - name: Build with Next.js
-        run: yarn build # 💡 npm run build 대신 yarn build 사용
+        run: yarn build
         env:
+          # 여기서 /puzznic 경로를 넘겨줍니다.
           NEXT_PUBLIC_BASE_PATH: /puzznic
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./out # 💡 next.config.js의 output: 'export' 결과물 경로
+          path: ./out
 
       - name: Deploy to GitHub Pages
         id: deployment
