@@ -33,6 +33,8 @@ export const useEditorEngine = (
   stateRef: React.MutableRefObject<{ flashingBlocks: Record<string, boolean> } | undefined>,
   setHasMovedFirstBlock: React.Dispatch<React.SetStateAction<boolean>>,
   updateGrabbed: (updater: boolean | ((prev: boolean) => boolean)) => void,
+  setFiredOnce: React.Dispatch<React.SetStateAction<Record<string, boolean>>>,
+  firedOnceRef: React.MutableRefObject<Record<string, boolean>>,
 ) => {
   // Editor level states
   const [editorLevels, setEditorLevels] = useState<LevelData[]>(() => {
@@ -261,7 +263,9 @@ export const useEditorEngine = (
     if (stateRef.current) stateRef.current.flashingBlocks = {};
     setHasMovedFirstBlock(false);
     updateGrabbed(false);
-  }, [editorActiveIndex, editorLevels, updateBlockCounts, updateGrabbed, setGrid, setTimeLeft, setIsGameOver, setIsLevelCleared, setIsProcessing, setBullets, setFlashingBlocks, stateRef, setHasMovedFirstBlock]);
+    setFiredOnce({});
+    firedOnceRef.current = {};
+  }, [editorActiveIndex, editorLevels, updateBlockCounts, updateGrabbed, setGrid, setTimeLeft, setIsGameOver, setIsLevelCleared, setIsProcessing, setBullets, setFlashingBlocks, stateRef, setHasMovedFirstBlock, setFiredOnce, firedOnceRef]);
 
   const editorPlaceBlock = useCallback(
     (x: number, y: number, blockType: CellType) => {

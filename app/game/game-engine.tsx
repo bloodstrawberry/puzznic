@@ -285,6 +285,8 @@ export const useGameEngine = (
     stateRef as React.MutableRefObject<{ flashingBlocks: Record<string, boolean> }>,
     setHasMovedFirstBlock,
     updateGrabbed,
+    setFiredOnce,
+    firedOnceRef,
   );
 
   // Initialize and Reset levels
