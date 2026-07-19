@@ -181,6 +181,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     setGrabbed,
     flashingBlocks,
     bullets,
+    firedOnce,
     editorLevels,
     editorActiveIndex,
     selectEditorLevel,
@@ -1018,6 +1019,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
               grabbed={grabbed}
               flashingBlocks={flashingBlocks}
               bullets={bullets}
+              firedOnce={firedOnce}
               isLevelCleared={isLevelCleared}
               isGameOver={isGameOver}
               levelIndex={levelIndex}

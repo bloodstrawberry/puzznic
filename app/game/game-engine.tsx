@@ -92,6 +92,7 @@ export const useGameEngine = (
     {},
   );
   const [bullets, setBullets] = useState<Bullet[]>([]);
+  const [firedOnce, setFiredOnce] = useState<Record<string, boolean>>({});
 
   const firedOnceRef = useRef<Record<string, boolean>>({});
   const cooldownsRef = useRef<Record<string, number>>({});
@@ -303,6 +304,7 @@ export const useGameEngine = (
       setFlashingBlocks({});
       if (stateRef.current) stateRef.current.flashingBlocks = {};
       setBullets([]);
+      setFiredOnce({});
       firedOnceRef.current = {};
       cooldownsRef.current = {};
       autoWallDirections.current = {};
@@ -321,6 +323,7 @@ export const useGameEngine = (
     setFlashingBlocks({});
     if (stateRef.current) stateRef.current.flashingBlocks = {};
     setBullets([]);
+    setFiredOnce({});
     firedOnceRef.current = {};
     cooldownsRef.current = {};
     autoWallDirections.current = {};
@@ -1018,12 +1021,14 @@ export const useGameEngine = (
                 const dirX = cell === BLOCK_SHOOTER_L_ONCE ? -1 : 1;
                 curTriggerShot(x, y, dirX, curGrid, curMuted);
                 firedOnceRef.current[key] = true;
+                setFiredOnce((prev) => ({ ...prev, [key]: true }));
               }
             }
           } else {
             // Reset state when block is removed/empty
-            firedOnceRef.current[key] = false;
-            cooldownsRef.current[key] = 0;
+            if (cell === BLOCK_SHOOTER_L || cell === BLOCK_SHOOTER_R) {
+              cooldownsRef.current[key] = 0;
+            }
           }
         }
       }
@@ -1063,6 +1068,7 @@ export const useGameEngine = (
     hasMovedFirstBlock,
     flashingBlocks,
     bullets,
+    firedOnce,
     editorLevels: editor.editorLevels,
     setEditorLevels: editor.setEditorLevels,
     editorActiveIndex: editor.editorActiveIndex,

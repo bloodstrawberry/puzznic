@@ -69,16 +69,21 @@ interface BlockRendererProps {
   x?: number;
   y?: number;
   grid?: number[][];
+  firedOnce?: Record<string, boolean>;
 }
 
-export default function BlockRenderer({ id, x, y, grid }: BlockRendererProps) {
+export default function BlockRenderer({ id, x, y, grid, firedOnce }: BlockRendererProps) {
+  const key = `${y},${x}`;
+  const isFiredOnce = firedOnce !== undefined && firedOnce[key] === true;
+
   const isPressed =
-    grid !== undefined &&
-    y !== undefined &&
-    x !== undefined &&
-    y > 0 &&
-    grid[y - 1]?.[x] !== undefined &&
-    grid[y - 1][x] !== 0; // BLOCK_EMPTY = 0
+    isFiredOnce ||
+    (grid !== undefined &&
+      y !== undefined &&
+      x !== undefined &&
+      y > 0 &&
+      grid[y - 1]?.[x] !== undefined &&
+      grid[y - 1][x] !== 0); // BLOCK_EMPTY = 0
 
   switch (id) {
     case BLOCK_WALL:

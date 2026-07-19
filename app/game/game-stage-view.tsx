@@ -80,6 +80,7 @@ interface GameStageViewProps {
   grabbed: boolean;
   flashingBlocks: Record<string, boolean>;
   bullets: BulletType[];
+  firedOnce?: Record<string, boolean>;
   isLevelCleared: boolean;
   isGameOver: boolean;
   levelIndex: number;
@@ -116,6 +117,7 @@ export default function GameStageView({
   grabbed,
   flashingBlocks,
   bullets,
+  firedOnce,
   isLevelCleared,
   isGameOver,
   levelIndex,
@@ -288,7 +290,7 @@ export default function GameStageView({
                         height: `${STAGE_BLOCK_SIZE_PERCENT}%`,
                       }}
                     >
-                      <BlockRenderer id={cell} x={x} y={y} grid={grid} />
+                      <BlockRenderer id={cell} x={x} y={y} grid={grid} firedOnce={firedOnce} />
                     </div>
                   )}
 
