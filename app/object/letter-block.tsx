@@ -6,7 +6,7 @@ interface LetterBlockProps {
   active: boolean;
 }
 
-export default function LetterBlock({ letter, active }: LetterBlockProps) {
+export default function LetterBlock({ letter }: LetterBlockProps) {
   return (
     <div className="w-full h-full relative select-none">
       <Image
