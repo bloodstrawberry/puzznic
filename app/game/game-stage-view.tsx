@@ -241,7 +241,8 @@ export default function GameStageView({
             className="grid relative z-10 w-full justify-center animate-fade-in"
             style={{
               gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
-              maxWidth: `${(grid[0]?.length || 8) * 44}px`,
+              width: "100%",
+              maxWidth: activeEditor ? `${(grid[0]?.length || 8) * 44}px` : `min(100%, ${(grid[0]?.length || 8) * 54}px)`,
               gap: `${STAGE_GRID_GAP_REM}rem`,
             }}
           >

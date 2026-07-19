@@ -201,6 +201,18 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
   const [selectedPaint, setSelectedPaint] = useState<CellType | "eraser">(
     BLOCK_WALL,
   );
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
   const [exportModalContent, setExportModalContent] = useState<string | null>(
     null,
   );
@@ -615,9 +627,24 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
   // Click handler on cells
   const handleCellClick = (x: number, y: number) => {
     if (activeEditor) return;
-    setGrabbed(false);
-    setCursor({ x, y });
-    playSound("select", muted);
+    const cell = grid[y]?.[x];
+    const isPuzzleBlock =
+      cell !== undefined &&
+      getBlockProperties(cell, grid)?.canSelect;
+
+    if (grabbed && cursor.x === x && cursor.y === y) {
+      setGrabbed(false);
+      playSound("select", muted);
+    } else {
+      setCursor({ x, y });
+      if (isPuzzleBlock) {
+        setGrabbed(true);
+        playSound("select", muted);
+      } else {
+        setGrabbed(false);
+        playSound("select", muted);
+      }
+    }
   };
 
   // Switch to Play Test Mode using editor grid
@@ -752,285 +779,275 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-emerald-950/15 via-zinc-950/20 to-zinc-950 pointer-events-none z-0" />
 
       {/* Main Container */}
-      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center p-2 md:p-4">
-        {/* Navigation Bar */}
-        <div className="w-full bg-[#17171c]/90 backdrop-blur-md border border-zinc-900 rounded-t-[24px] px-4 md:px-6 py-4 flex items-center justify-between shadow-sm select-none">
-          <div className="flex gap-4 items-center">
-            <Link
-              href="/home"
-              onClick={() => playSound("select", muted)}
-              className="text-zinc-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
-            >
-              ◀ 메인 메뉴로
-            </Link>
-            <span className="text-xs text-zinc-700">|</span>
-            <span className="text-zinc-300 text-xs font-semibold">
-              {isEditor
-                ? playTestMode
-                  ? "맵 에디터 (테스트 중)"
-                  : "맵 에디터 모드"
-                : "퍼즐 플레이"}
+      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center p-1 md:p-4">
+        {/* Navigation / HUD Bar */}
+        <div className="w-full bg-[#17171c]/90 backdrop-blur-md border border-zinc-900 rounded-t-[24px] px-3 md:px-6 py-3 flex items-center justify-between shadow-sm select-none relative z-30">
+          {/* STAGE Info */}
+          <div className="flex items-center gap-2">
+            <span className="text-emerald-400 text-xs md:text-sm font-bold flex items-center gap-1.5">
+              {isEditor ? (
+                <>
+                  단계{" "}
+                  <input
+                    key={editorActiveIndex}
+                    type="text"
+                    defaultValue={editorActiveIndex + 1}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleStageInputChange(e.currentTarget);
+                      }
+                    }}
+                    onBlur={(e) =>
+                      handleStageInputChange(e.currentTarget)
+                    }
+                    className="w-10 bg-zinc-900 border border-zinc-800 text-emerald-400 text-xs font-bold text-center focus:outline-none focus:border-emerald-500 py-0.5 rounded"
+                  />{" "}
+                  / {editorLevels.length}
+                </>
+              ) : (
+                `STAGE ${levelIndex + 1}`
+              )}
             </span>
+            {activeEditor && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    playSound("select", muted);
+                    selectEditorLevel(editorActiveIndex - 1);
+                  }}
+                  disabled={editorActiveIndex === 0}
+                  className="px-1.5 py-0.5 bg-zinc-805 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[9px] md:text-[10px] rounded cursor-pointer text-white font-bold"
+                  title="Previous Stage"
+                >
+                  ◀
+                </button>
+                <button
+                  onClick={() => {
+                    playSound("select", muted);
+                    selectEditorLevel(editorActiveIndex + 1);
+                  }}
+                  disabled={editorActiveIndex === editorLevels.length - 1}
+                  className="px-1.5 py-0.5 bg-zinc-805 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[9px] md:text-[10px] rounded cursor-pointer text-white font-bold"
+                  title="Next Stage"
+                >
+                  ▶
+                </button>
+                <button
+                  onClick={() => {
+                    editorAddLevel();
+                  }}
+                  className="px-1.5 py-0.5 bg-emerald-800 border border-emerald-700 hover:bg-emerald-700 text-[9px] md:text-[10px] rounded cursor-pointer text-white font-bold"
+                  title="Add Stage"
+                >
+                  ➕
+                </button>
+                <button
+                  onClick={() => {
+                    editorDeleteLevel();
+                  }}
+                  disabled={editorLevels.length <= 1}
+                  className="px-1.5 py-0.5 bg-red-800 border border-red-700 hover:bg-red-700 disabled:opacity-40 text-[9px] md:text-[10px] rounded cursor-pointer text-white font-bold"
+                  title="Delete Stage"
+                >
+                  🗑️
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="flex gap-4 items-center">
-            {isEditor && (
-              <>
-                {!playTestMode && (
-                  <div className="flex items-center bg-zinc-900 border border-zinc-800 rounded-xl p-0.5 select-none">
-                    <button
-                      onClick={() => {
-                        if (editorMapType !== "real") {
-                          setEditorMapType("real");
-                          changeMapType("real");
-                          playSound("select", muted);
-                        }
-                      }}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                        editorMapType === "real"
-                          ? "bg-zinc-800 text-emerald-400"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      }`}
-                    >
-                      REAL
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (editorMapType !== "test") {
-                          setEditorMapType("test");
-                          changeMapType("test");
-                          playSound("select", muted);
-                        }
-                      }}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                        editorMapType === "test"
-                          ? "bg-zinc-800 text-emerald-400"
-                          : "text-zinc-500 hover:text-zinc-300"
-                      }`}
-                    >
-                      TEST
-                    </button>
-                  </div>
-                )}
+          {/* Time Left Progress Bar (No text label "제한 시간") */}
+          <div className="flex-1 max-w-[140px] sm:max-w-[240px] md:max-w-[340px] mx-2 sm:mx-4 flex items-center gap-1.5 sm:gap-2">
+            {activeEditor ? (
+              <div className="flex items-center gap-1 justify-center w-full">
                 <button
-                  onClick={togglePlayTest}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition-all border ${
-                    playTestMode
-                      ? "bg-red-600 hover:bg-red-500 border-red-700 text-white"
-                      : "bg-emerald-600 hover:bg-emerald-500 border-emerald-700 text-white animate-pulse"
-                  }`}
+                  onClick={() => {
+                    playSound("select", muted);
+                    editorUpdateTimeLimit(timeLeft - 10);
+                  }}
+                  disabled={timeLeft <= 10}
+                  className="px-1 py-0.5 bg-zinc-800 border border-zinc-750 rounded text-[9px] md:text-[10px] cursor-pointer text-white font-bold disabled:opacity-40"
+                  title="Decrease Time Limit"
                 >
-                  {playTestMode ? "⏹ 테스트 중단" : "▶ 레벨 테스트"}
+                  -10s
                 </button>
+                <span className="text-yellow-400 text-[10px] md:text-xs font-bold w-10 text-center">
+                  {timeLeft}s
+                </span>
+                <button
+                  onClick={() => {
+                    playSound("select", muted);
+                    editorUpdateTimeLimit(timeLeft + 10);
+                  }}
+                  className="px-1 py-0.5 bg-zinc-800 border border-zinc-750 rounded text-[9px] md:text-[10px] cursor-pointer text-white font-bold"
+                  title="Increase Time Limit"
+                >
+                  +10s
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className="text-yellow-400 text-xs font-bold w-10 text-center flex-shrink-0">
+                  {timeLeft}s
+                </span>
+                <div className="flex-1 h-2 bg-zinc-950 border border-zinc-900 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-1000 rounded-full ${
+                      timeLeft > 20
+                        ? "bg-emerald-500"
+                        : "bg-red-500 animate-pulse"
+                    }`}
+                    style={{
+                      width: `${(timeLeft / (BUILTIN_LEVELS[levelIndex]?.timeLimit || 180)) * 100}%`,
+                    }}
+                  />
+                </div>
               </>
             )}
+          </div>
+
+          {/* Menu Dropdown Button */}
+          <div className="relative" ref={menuRef}>
             <button
               onClick={() => {
-                setGrabbed(false);
-                if (!isEditor && onFullReset) {
-                  onFullReset();
-                } else {
-                  resetLevel();
-                }
+                setIsMenuOpen(!isMenuOpen);
                 playSound("select", muted);
               }}
-              className="text-zinc-400 hover:text-zinc-200 text-xs font-semibold cursor-pointer focus:outline-none flex items-center gap-1"
+              className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1 text-zinc-300 hover:text-white transition-colors"
             >
-              🔄 다시 도전
+              ☰ 목록
             </button>
-            <span className="text-xs text-zinc-700">|</span>
-            <button
-              onClick={() => setMuted(!muted)}
-              className="text-zinc-400 hover:text-zinc-200 text-xs font-semibold cursor-pointer focus:outline-none"
-            >
-              {muted ? "🔊 소리 켜기" : "🔇 음소거"}
-            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-44 bg-[#1c1c1e] border border-zinc-800 rounded-2xl shadow-2xl z-50 py-1.5 flex flex-col gap-0.5 select-none">
+                <button
+                  onClick={() => {
+                    setGrabbed(false);
+                    if (!isEditor && onFullReset) {
+                      onFullReset();
+                    } else {
+                      resetLevel();
+                    }
+                    playSound("select", muted);
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 hover:bg-zinc-800/60 text-left text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  🔄 다시 도전
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMuted(!muted);
+                    playSound("select", !muted);
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 hover:bg-zinc-800/60 text-left text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  {muted ? "🔊 소리 켜기" : "🔇 음소거"}
+                </button>
+
+                {isEditor && (
+                  <>
+                    <div className="border-t border-zinc-800 my-1" />
+                    <div className="px-4 py-1 flex items-center justify-between">
+                      <span className="text-[10px] text-zinc-500 font-bold">타입</span>
+                      <div className="flex items-center bg-zinc-950 border border-zinc-900 rounded-lg p-0.5">
+                        <button
+                          onClick={() => {
+                            if (editorMapType !== "real") {
+                              setEditorMapType("real");
+                              changeMapType("real");
+                              playSound("select", muted);
+                            }
+                          }}
+                          className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all cursor-pointer ${
+                            editorMapType === "real"
+                              ? "bg-zinc-800 text-emerald-400"
+                              : "text-zinc-500 hover:text-zinc-300"
+                          }`}
+                        >
+                          REAL
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (editorMapType !== "test") {
+                              setEditorMapType("test");
+                              changeMapType("test");
+                              playSound("select", muted);
+                            }
+                          }}
+                          className={`px-1.5 py-0.5 rounded text-[8px] font-bold transition-all cursor-pointer ${
+                            editorMapType === "test"
+                              ? "bg-zinc-800 text-emerald-400"
+                              : "text-zinc-500 hover:text-zinc-300"
+                          }`}
+                        >
+                          TEST
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        togglePlayTest();
+                        setIsMenuOpen(false);
+                      }}
+                      className="w-full px-4 py-2 hover:bg-zinc-800/60 text-left text-xs font-bold transition-colors cursor-pointer flex items-center gap-2 text-emerald-400 hover:text-emerald-300"
+                    >
+                      {playTestMode ? "⏹ 테스트 중단" : "▶ 레벨 테스트"}
+                    </button>
+                  </>
+                )}
+
+                <div className="border-t border-zinc-800 my-1" />
+                <Link
+                  href="/home"
+                  onClick={() => playSound("select", muted)}
+                  className="w-full px-4 py-2 hover:bg-zinc-800/60 text-left text-xs font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  ◀ 메인 메뉴로
+                </Link>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Toss Style Game Board Container */}
-        <div className="w-full bg-[#17171c] border border-t-0 border-zinc-900 rounded-b-[24px] shadow-2xl p-2 md:p-6 relative">
+        <div className="w-full bg-[#17171c] border border-t-0 border-zinc-900 rounded-b-[24px] shadow-2xl p-1 md:p-6 relative">
           {/* Farm Board Area */}
-          <div className="farm-grass-bg w-full min-h-[480px] rounded-2xl border border-zinc-800/40 flex flex-col md:flex-row p-4 md:p-6 text-white relative shadow-inner">
-            {/* LEFT COLUMN: STATS AND HUD */}
-            <div className="w-full md:w-[260px] flex flex-col justify-between pr-0 md:pr-4 border-b md:border-b-0 md:border-r border-zinc-800/40 pb-4 md:pb-0 md:mr-6">
-              {/* Retro HUD stats */}
-              <div className="flex flex-col gap-4 text-xs text-zinc-400">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[#3182f6] font-semibold tracking-wider">
-                    PLAYER 1
-                  </span>
-                  <span className="text-white text-lg font-bold tracking-wider">
-                    0
-                  </span>
+          <div className="farm-grass-bg w-full min-h-[400px] md:min-h-[480px] rounded-2xl border border-zinc-800/40 flex flex-col items-center justify-center p-2 md:p-6 text-white relative shadow-inner">
+            {isEditor && (
+              <div className="w-full max-w-md bg-zinc-900/60 border border-zinc-800/50 p-3 rounded-2xl mb-4 flex flex-col shadow-sm">
+                <div className="text-[10px] text-zinc-400 font-bold text-center mb-2 uppercase tracking-wider pb-1.5 border-b border-zinc-800/40">
+                  제거해야 할 블록
                 </div>
-
-                <div className="flex flex-col gap-1">
-                  <span className="text-zinc-400 font-medium">STAGE</span>
-                  <span className="text-emerald-400 text-sm font-bold flex items-center gap-1.5">
-                    {isEditor ? (
-                      <>
-                        단계{" "}
-                        <input
-                          key={editorActiveIndex}
-                          type="text"
-                          defaultValue={editorActiveIndex + 1}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleStageInputChange(e.currentTarget);
-                            }
-                          }}
-                          onBlur={(e) =>
-                            handleStageInputChange(e.currentTarget)
-                          }
-                          className="w-10 bg-zinc-900 border border-zinc-800 text-emerald-400 text-xs font-bold text-center focus:outline-none focus:border-emerald-500 py-0.5 rounded"
-                        />{" "}
-                        / {editorLevels.length}
-                      </>
-                    ) : (
-                      `LEVEL ${levelIndex + 1}`
-                    )}
-                  </span>
-                  {activeEditor ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <button
-                        onClick={() => {
-                          playSound("select", muted);
-                          selectEditorLevel(editorActiveIndex - 1);
-                        }}
-                        disabled={editorActiveIndex === 0}
-                        className="px-2 py-1 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[10px] rounded-lg cursor-pointer text-white font-bold"
-                        title="Previous Stage"
-                      >
-                        ◀
-                      </button>
-                      <button
-                        onClick={() => {
-                          playSound("select", muted);
-                          selectEditorLevel(editorActiveIndex + 1);
-                        }}
-                        disabled={editorActiveIndex === editorLevels.length - 1}
-                        className="px-2 py-1 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 disabled:opacity-40 text-[10px] rounded-lg cursor-pointer text-white font-bold"
-                        title="Next Stage"
-                      >
-                        ▶
-                      </button>
-                      <button
-                        onClick={() => {
-                          editorAddLevel();
-                        }}
-                        className="px-2 py-1 bg-emerald-800 border border-emerald-700 hover:bg-emerald-700 text-[10px] rounded-lg cursor-pointer text-white font-bold"
-                        title="Add Stage"
-                      >
-                        ➕
-                      </button>
-                      <button
-                        onClick={() => {
-                          editorDeleteLevel();
-                        }}
-                        disabled={editorLevels.length <= 1}
-                        className="px-2 py-1 bg-red-800 border border-red-700 hover:bg-red-700 disabled:opacity-40 text-[10px] rounded-lg cursor-pointer text-white font-bold"
-                        title="Delete Stage"
-                      >
-                        🗑️
-                      </button>
+                <div className="flex flex-wrap justify-center gap-4 py-1">
+                  {Object.keys(blockCounts).length === 0 ? (
+                    <div className="text-center text-xs text-zinc-500 font-semibold">
+                      남은 블록 없음
                     </div>
                   ) : (
-                    <span className="text-zinc-500 text-[10px]">
-                      {isEditor ? "[테스트 모드]" : `[1-${levelIndex + 1}]`}
-                    </span>
+                    Object.entries(blockCounts).map(([typeStr, count]) => {
+                      const type = Number(typeStr);
+                      const isCleared = count === 0;
+                      return (
+                        <div
+                          key={type}
+                          className={`flex items-center gap-1.5 ${isCleared ? "opacity-25 line-through" : ""}`}
+                        >
+                          <div className="w-5 h-5 flex-shrink-0">
+                            <BlockRenderer id={type} />
+                          </div>
+                          <span className="text-xs text-zinc-300 font-bold">
+                            x{count}
+                          </span>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-zinc-400 font-medium">제한 시간</span>
-                  <div className="flex items-center gap-1.5">
-                    {activeEditor ? (
-                      <>
-                        <button
-                          onClick={() => {
-                            playSound("select", muted);
-                            editorUpdateTimeLimit(timeLeft - 10);
-                          }}
-                          disabled={timeLeft <= 10}
-                          className="px-2 py-1 bg-zinc-850 border border-zinc-800 rounded-lg text-[10px] cursor-pointer text-white font-bold disabled:opacity-40"
-                          title="Decrease Time Limit"
-                        >
-                          -10초
-                        </button>
-                        <span className="text-yellow-400 text-xs font-bold w-12 text-center">
-                          {timeLeft}초
-                        </span>
-                        <button
-                          onClick={() => {
-                            playSound("select", muted);
-                            editorUpdateTimeLimit(timeLeft + 10);
-                          }}
-                          className="px-2 py-1 bg-zinc-850 border border-zinc-800 rounded-lg text-[10px] cursor-pointer text-white font-bold"
-                          title="Increase Time Limit"
-                        >
-                          +10초
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-yellow-400 text-xs font-bold w-10 text-center">
-                          {timeLeft}초
-                        </span>
-                        <div className="flex-1 h-2 bg-zinc-950 border border-zinc-900 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full transition-all duration-1000 rounded-full ${
-                              timeLeft > 20
-                                ? "bg-emerald-500"
-                                : "bg-red-500 animate-pulse"
-                            }`}
-                            style={{
-                              width: `${(timeLeft / (BUILTIN_LEVELS[levelIndex]?.timeLimit || 180)) * 100}%`,
-                            }}
-                          />
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
               </div>
-
-              {/* Target Blocks box */}
-              <div className="flex-1 flex flex-col justify-end mt-4">
-                <div className="bg-zinc-900/60 border border-zinc-800 p-4 rounded-[20px] flex flex-col min-h-[160px] shadow-sm">
-                  <div className="text-[11px] text-zinc-400 font-bold text-center mb-3 uppercase tracking-wider border-b border-zinc-800/40 pb-2">
-                    제거해야 할 블록
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-x-2 gap-y-3.5 mt-1 overflow-y-auto max-h-[160px] pr-1">
-                    {Object.keys(blockCounts).length === 0 ? (
-                      <div className="col-span-2 text-center text-xs text-zinc-500 mt-6 font-semibold">
-                        남은 블록 없음
-                      </div>
-                    ) : (
-                      Object.entries(blockCounts).map(([typeStr, count]) => {
-                        const type = Number(typeStr);
-                        const isCleared = count === 0;
-                        return (
-                          <div
-                            key={type}
-                            className={`flex items-center gap-2 ${isCleared ? "opacity-25 line-through" : ""}`}
-                          >
-                            <div className="w-6 h-6 flex-shrink-0">
-                              <BlockRenderer id={type} />
-                            </div>
-                            <span className="text-[12px] text-zinc-300 font-bold">
-                              x{count}
-                            </span>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
+            )}
             {/* CENTER/RIGHT COLUMN: PLAY BOARD GRID */}
             <GameStageView
               grid={grid}
