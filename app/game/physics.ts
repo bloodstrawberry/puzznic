@@ -72,22 +72,38 @@ export const applySpikes = (grid: CellType[][]): SpikeResult => {
     for (let x = 0; x < grid[y].length; x++) {
       const cell = grid[y][x];
       if (cell === BLOCK_SPIKE_U) {
-        if (y > 0 && getBlockProperties(nextGrid[y - 1][x], nextGrid)?.canBeDestroyedByShooter) {
+        if (
+          y > 0 &&
+          getBlockProperties(nextGrid[y - 1][x], nextGrid)
+            ?.canBeDestroyedByShooter
+        ) {
           nextGrid[y - 1][x] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_D) {
-        if (y < grid.length - 1 && getBlockProperties(nextGrid[y + 1][x], nextGrid)?.canBeDestroyedByShooter) {
+        if (
+          y < grid.length - 1 &&
+          getBlockProperties(nextGrid[y + 1][x], nextGrid)
+            ?.canBeDestroyedByShooter
+        ) {
           nextGrid[y + 1][x] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_L) {
-        if (x > 0 && getBlockProperties(nextGrid[y][x - 1], nextGrid)?.canBeDestroyedByShooter) {
+        if (
+          x > 0 &&
+          getBlockProperties(nextGrid[y][x - 1], nextGrid)
+            ?.canBeDestroyedByShooter
+        ) {
           nextGrid[y][x - 1] = BLOCK_EMPTY;
           changed = true;
         }
       } else if (cell === BLOCK_SPIKE_R) {
-        if (x < grid[y].length - 1 && getBlockProperties(nextGrid[y][x + 1], nextGrid)?.canBeDestroyedByShooter) {
+        if (
+          x < grid[y].length - 1 &&
+          getBlockProperties(nextGrid[y][x + 1], nextGrid)
+            ?.canBeDestroyedByShooter
+        ) {
           nextGrid[y][x + 1] = BLOCK_EMPTY;
           changed = true;
         }
@@ -115,12 +131,7 @@ export const findMatches = (grid: CellType[][]): MatchResult => {
         for (let i = 0; i < 4; i++) {
           const ny = y + dy[i];
           const nx = x + dx[i];
-          if (
-            ny >= 0 &&
-            ny < grid.length &&
-            nx >= 0 &&
-            nx < grid[0].length
-          ) {
+          if (ny >= 0 && ny < grid.length && nx >= 0 && nx < grid[0].length) {
             const neighbor = grid[ny][nx];
             if (getBlockProperties(neighbor, grid)?.canBeDestroyedByShooter) {
               if (
@@ -189,6 +200,13 @@ export const tryMoveBlock = (
   // Standard match blocks can only slide horizontally
   if (block !== BLOCK_WALL_H && block !== BLOCK_WALL_V && dy !== 0) return fail;
 
+  // Blocks with gravity must be supported underneath to slide horizontally
+  if (getBlockProperties(block, currentGrid)?.canFall && dy === 0) {
+    const isSupported =
+      y === currentGrid.length - 1 || currentGrid[y + 1]?.[x] !== BLOCK_EMPTY;
+    if (!isSupported) return fail;
+  }
+
   // Collect stack of blocks sitting on top (only if the block is a moving wall)
   const isMovingWall =
     block === BLOCK_WALL_H ||
@@ -237,7 +255,16 @@ export const tryMoveBlock = (
     targetCoords.push({ x: tx, y: ty });
   }
 
-  if (blocked || coords.some((coord) => flashingBlocks[`${coord.y},${coord.x}`])) {
+  const matchResult = findMatches(currentGrid);
+
+  if (
+    blocked ||
+    coords.some(
+      (coord) =>
+        flashingBlocks[`${coord.y},${coord.x}`] ||
+        matchResult.toClearKeys.has(`${coord.y},${coord.x}`),
+    )
+  ) {
     return fail;
   }
 

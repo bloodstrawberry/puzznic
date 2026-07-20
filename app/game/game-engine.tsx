@@ -22,7 +22,11 @@ import {
 
 // ── Re-export public types & constants from modules ──
 export type { CellType, Position, LevelData, Bullet } from "./types";
-export { BUILTIN_LEVELS, AUTO_WALL_TURN_DELAY_TICKS, SHOOTER_INTERVAL } from "./types";
+export {
+  BUILTIN_LEVELS,
+  AUTO_WALL_TURN_DELAY_TICKS,
+  SHOOTER_INTERVAL,
+} from "./types";
 
 import {
   type CellType,
@@ -97,8 +101,30 @@ export const useGameEngine = (
 
   const firedOnceRef = useRef<Record<string, boolean>>({});
   const cooldownsRef = useRef<Record<string, number>>({});
+  const protectedBlocksRef = useRef<Map<string, number>>(new Map());
+
+  const isProtectedCell = useCallback((y: number, x: number): boolean => {
+    const key = `${y},${x}`;
+    const expire = protectedBlocksRef.current.get(key);
+    if (!expire) return false;
+    if (Date.now() > expire) {
+      protectedBlocksRef.current.delete(key);
+      return false;
+    }
+    return true;
+  }, []);
 
   const triggerShotRef = useRef<
+    (
+      x: number,
+      y: number,
+      dirX: number,
+      curGrid: CellType[][],
+      curMuted: boolean,
+    ) => void
+  >(() => {});
+
+  const fireShooterRef = useRef<
     (
       x: number,
       y: number,
@@ -127,6 +153,13 @@ export const useGameEngine = (
       curGrid: CellType[][],
       curMuted: boolean,
     ) => void;
+    fireShooter: (
+      x: number,
+      y: number,
+      dirX: number,
+      curGrid: CellType[][],
+      curMuted: boolean,
+    ) => void;
   }>({
     grid: [],
     cursor: { x: 0, y: 0 },
@@ -141,6 +174,8 @@ export const useGameEngine = (
     bullets: [],
     triggerShot: (x, y, dirX, curGrid, curMuted) =>
       triggerShotRef.current(x, y, dirX, curGrid, curMuted),
+    fireShooter: (x, y, dirX, curGrid, curMuted) =>
+      fireShooterRef.current(x, y, dirX, curGrid, curMuted),
   });
 
   useEffect(() => {
@@ -158,6 +193,8 @@ export const useGameEngine = (
       bullets,
       triggerShot: (x, y, dirX, curGrid, curMuted) =>
         triggerShotRef.current(x, y, dirX, curGrid, curMuted),
+      fireShooter: (x, y, dirX, curGrid, curMuted) =>
+        fireShooterRef.current(x, y, dirX, curGrid, curMuted),
     };
   }, [
     grid,
@@ -216,13 +253,16 @@ export const useGameEngine = (
   const checkAndReleaseGrabbed = useCallback(
     (targetGrid: CellType[][], customFlashing?: Record<string, boolean>) => {
       if (!stateRef.current) return;
-      const { cursor: curPos, grabbed: curLock, flashingBlocks: stateFlashing } = stateRef.current;
+      const {
+        cursor: curPos,
+        grabbed: curLock,
+        flashingBlocks: stateFlashing,
+      } = stateRef.current;
       if (!curLock) return;
       const cell = targetGrid[curPos.y]?.[curPos.x];
       const curFlashing = customFlashing || stateFlashing || {};
       const isGrabable =
-        cell !== undefined &&
-        getBlockProperties(cell, targetGrid)?.canSelect;
+        cell !== undefined && getBlockProperties(cell, targetGrid)?.canSelect;
 
       if (!isGrabable || curFlashing[`${curPos.y},${curPos.x}`]) {
         updateGrabbed(false);
@@ -233,7 +273,8 @@ export const useGameEngine = (
 
   const [blockCounts, setBlockCounts] = useState<Record<string, number>>(() => {
     const initialGrid = isEditorMode
-      ? (realMap[0]?.grid as CellType[][]) || Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
+      ? (realMap[0]?.grid as CellType[][]) ||
+        Array.from({ length: 8 }, () => Array(8).fill(BLOCK_EMPTY))
       : BUILTIN_LEVELS[initialLevelIndex].grid;
     const counts: Record<string, number> = {};
     initialGrid.forEach((row) => {
@@ -276,7 +317,9 @@ export const useGameEngine = (
     setIsProcessing,
     setBullets,
     setFlashingBlocks,
-    stateRef as React.MutableRefObject<{ flashingBlocks: Record<string, boolean> }>,
+    stateRef as React.MutableRefObject<{
+      flashingBlocks: Record<string, boolean>;
+    }>,
     setHasMovedFirstBlock,
     updateGrabbed,
     setFiredOnce,
@@ -303,6 +346,7 @@ export const useGameEngine = (
       setFiredOnce({});
       firedOnceRef.current = {};
       cooldownsRef.current = {};
+      protectedBlocksRef.current.clear();
       autoWallDirections.current = {};
       autoWallDelays.current = {};
       prevGridRef.current = [];
@@ -387,12 +431,38 @@ export const useGameEngine = (
         const gravityResult = applyGravity(currentGrid);
 
         if (gravityResult.changed) {
+          const nextProtected = new Map<string, number>();
+          const H = currentGrid.length;
+          const W = currentGrid[0]?.length || 0;
+          for (let y = H - 2; y >= 0; y--) {
+            for (let x = 0; x < W; x++) {
+              const key = `${y},${x}`;
+              const expire = protectedBlocksRef.current.get(key);
+              if (expire) {
+                if (
+                  gravityResult.grid[y + 1]?.[x] === currentGrid[y][x] &&
+                  gravityResult.grid[y][x] === BLOCK_EMPTY
+                ) {
+                  nextProtected.set(`${y + 1},${x}`, expire);
+                } else if (gravityResult.grid[y][x] === currentGrid[y][x]) {
+                  nextProtected.set(key, expire);
+                }
+              }
+            }
+          }
+          protectedBlocksRef.current = nextProtected;
+
           if (stateRef.current?.grabbed) {
             const { cursor: curCursor } = stateRef.current;
             const oldCell = currentGrid[curCursor.y]?.[curCursor.x];
             const newCell = gravityResult.grid[curCursor.y + 1]?.[curCursor.x];
-            const oldCellNowEmpty = gravityResult.grid[curCursor.y]?.[curCursor.x] === BLOCK_EMPTY;
-            if (getBlockProperties(oldCell, currentGrid)?.canFall && newCell === oldCell && oldCellNowEmpty) {
+            const oldCellNowEmpty =
+              gravityResult.grid[curCursor.y]?.[curCursor.x] === BLOCK_EMPTY;
+            if (
+              getBlockProperties(oldCell, currentGrid)?.canFall &&
+              newCell === oldCell &&
+              oldCellNowEmpty
+            ) {
               const nextCursor = { x: curCursor.x, y: curCursor.y + 1 };
               updateCursor(nextCursor);
             }
@@ -448,7 +518,9 @@ export const useGameEngine = (
 
           setFlashingBlocks({});
           if (stateRef.current) stateRef.current.flashingBlocks = {};
-          const baseGrid = stateRef.current?.grid ? stateRef.current.grid : currentGrid;
+          const baseGrid = stateRef.current?.grid
+            ? stateRef.current.grid
+            : currentGrid;
           currentGrid = clearMatches(baseGrid, matchResult.toClearKeys);
           setGrid(currentGrid);
           if (stateRef.current) stateRef.current.grid = currentGrid;
@@ -482,7 +554,13 @@ export const useGameEngine = (
       setIsProcessing(false);
       if (stateRef.current) stateRef.current.isProcessing = false;
     },
-    [isEditorMode, muted, updateBlockCounts, checkAndReleaseGrabbed, updateCursor],
+    [
+      isEditorMode,
+      muted,
+      updateBlockCounts,
+      checkAndReleaseGrabbed,
+      updateCursor,
+    ],
   );
 
   // Move Block left, right, up, or down
@@ -494,7 +572,6 @@ export const useGameEngine = (
         curState.isGameOver ||
         curState.isLevelCleared ||
         curState.isEditorMode ||
-        curState.isProcessing ||
         curState.flashingBlocks[`${y},${x}`]
       )
         return;
@@ -513,20 +590,47 @@ export const useGameEngine = (
         return;
       }
 
+      // Check if the block (or stack) being moved was sitting on top of a shooter
+      const isAboveShooter =
+        y < curState.grid.length - 1 &&
+        (curState.grid[y + 1][x] === BLOCK_SHOOTER_L ||
+          curState.grid[y + 1][x] === BLOCK_SHOOTER_R ||
+          curState.grid[y + 1][x] === BLOCK_SHOOTER_L_ONCE ||
+          curState.grid[y + 1][x] === BLOCK_SHOOTER_R_ONCE);
+
+      if (isAboveShooter) {
+        const now = Date.now();
+        const H = curState.grid.length;
+        const W = curState.grid[0]?.length || 0;
+        for (let ry = 0; ry < H; ry++) {
+          for (let rx = 0; rx < W; rx++) {
+            if (
+              curState.grid[ry][rx] !== BLOCK_EMPTY &&
+              result.grid[ry][rx] === BLOCK_EMPTY
+            ) {
+              const destY = ry + dy;
+              const destX = rx + dx;
+              protectedBlocksRef.current.set(`${destY},${destX}`, now + 1000);
+            }
+          }
+        }
+      }
+
       setHasMovedFirstBlock(true);
       setGrid(result.grid);
       if (stateRef.current) {
         stateRef.current.grid = result.grid;
         stateRef.current.hasMovedFirstBlock = true;
-        stateRef.current.cursor = { x: result.newCursorX, y: result.newCursorY };
+        stateRef.current.cursor = {
+          x: result.newCursorX,
+          y: result.newCursorY,
+        };
       }
       updateCursor({ x: result.newCursorX, y: result.newCursorY });
       playEngineSound("select", curState.muted);
 
-      // Start physics solver only if not already running
-      if (!curState.isProcessing) {
-        runPhysicsLoop(result.grid);
-      }
+      // Start physics solver
+      runPhysicsLoop(result.grid);
     },
     [runPhysicsLoop, updateCursor],
   );
@@ -546,7 +650,8 @@ export const useGameEngine = (
       let tx = x + dirX;
       while (tx >= 0 && tx < W) {
         const cell = curGrid[y][tx];
-        if (cell !== BLOCK_EMPTY) {
+        const isProtected = isProtectedCell(y, tx);
+        if (cell !== BLOCK_EMPTY && !isProtected) {
           break;
         }
         tx += dirX;
@@ -567,7 +672,9 @@ export const useGameEngine = (
 
       setTimeout(() => {
         // Read the latest state of this bullet to check if ignoreNextCell is true
-        const latestBullet = stateRef.current?.bullets.find((b) => b.id === bulletId);
+        const latestBullet = stateRef.current?.bullets.find(
+          (b) => b.id === bulletId,
+        );
         const shouldIgnoreNextCell = latestBullet?.ignoreNextCell || false;
 
         setBullets((prev) => prev.filter((b) => b.id !== bulletId));
@@ -577,9 +684,13 @@ export const useGameEngine = (
           let hitX = x + dirX;
           while (hitX >= 0 && hitX < currentW) {
             const isNextCell = hitX === x + dirX;
-            const shouldIgnore = isNextCell && shouldIgnoreNextCell;
+            const shouldIgnore =
+              (isNextCell && shouldIgnoreNextCell) || isProtectedCell(y, hitX);
 
-            if (hitX === tx || (prevGrid[y][hitX] !== BLOCK_EMPTY && !shouldIgnore)) {
+            if (
+              hitX === tx ||
+              (prevGrid[y][hitX] !== BLOCK_EMPTY && !shouldIgnore)
+            ) {
               break;
             }
             hitX += dirX;
@@ -587,7 +698,10 @@ export const useGameEngine = (
 
           if (hitX >= 0 && hitX < currentW) {
             const currentCell = prevGrid[y][hitX];
-            if (getBlockProperties(currentCell, prevGrid)?.canBeDestroyedByShooter) {
+            if (
+              !isProtectedCell(y, hitX) &&
+              getBlockProperties(currentCell, prevGrid)?.canBeDestroyedByShooter
+            ) {
               const nextGrid = copyGrid(prevGrid);
               nextGrid[y][hitX] = BLOCK_EMPTY;
               if (stateRef.current) {
@@ -595,9 +709,7 @@ export const useGameEngine = (
               }
               checkAndReleaseGrabbed(nextGrid);
               playEngineSound("break", curMuted);
-              if (!stateRef.current?.isProcessing) {
-                runPhysicsLoop(nextGrid);
-              }
+              runPhysicsLoop(nextGrid);
               return nextGrid;
             }
           }
@@ -605,12 +717,69 @@ export const useGameEngine = (
         });
       }, 300);
     },
-    [runPhysicsLoop, checkAndReleaseGrabbed],
+    [runPhysicsLoop, checkAndReleaseGrabbed, isProtectedCell],
+  );
+
+  const fireShooter = useCallback(
+    (
+      x: number,
+      y: number,
+      dirX: number,
+      curGrid: CellType[][],
+      curMuted: boolean,
+    ) => {
+      let activeGrid = curGrid;
+      const curFlashingBlocks = stateRef.current?.flashingBlocks || {};
+
+      if (y > 0 && curGrid[y - 1]?.[x] !== BLOCK_EMPTY) {
+        const moveResult = tryMoveBlock(
+          curGrid,
+          x,
+          y - 1,
+          dirX,
+          0,
+          curFlashingBlocks,
+        );
+
+        if (moveResult.success) {
+          activeGrid = moveResult.grid;
+
+          const now = Date.now();
+          const H = curGrid.length;
+          const W = curGrid[0]?.length || 0;
+          for (let ry = 0; ry < H; ry++) {
+            for (let rx = 0; rx < W; rx++) {
+              if (
+                curGrid[ry][rx] !== BLOCK_EMPTY &&
+                activeGrid[ry][rx] === BLOCK_EMPTY
+              ) {
+                const destY = ry;
+                const destX = rx + dirX;
+                protectedBlocksRef.current.set(`${destY},${destX}`, now + 1000);
+              }
+            }
+          }
+
+          setGrid(activeGrid);
+          if (stateRef.current) {
+            stateRef.current.grid = activeGrid;
+          }
+
+          if (!stateRef.current?.isProcessing) {
+            runPhysicsLoop(activeGrid);
+          }
+        }
+      }
+
+      triggerShot(x, y, dirX, activeGrid, curMuted);
+    },
+    [triggerShot, runPhysicsLoop],
   );
 
   useEffect(() => {
     triggerShotRef.current = triggerShot;
-  }, [triggerShot]);
+    fireShooterRef.current = fireShooter;
+  }, [triggerShot, fireShooter]);
 
   // Interval timer for auto-moving walls (patrol slabs)
   useEffect(() => {
@@ -654,21 +823,28 @@ export const useGameEngine = (
                 ? nextDirections[dirKey]
                 : -1;
             const hasDelayKey = autoWallDelays.current[dirKey] !== undefined;
-            const currentDelay = hasDelayKey ? autoWallDelays.current[dirKey] : 0;
+            const currentDelay = hasDelayKey
+              ? autoWallDelays.current[dirKey]
+              : 0;
 
             // Collect stack above this auto-wall
             const stack: Position[] = [{ x, y }];
             let ky = y - 1;
             while (ky >= 0) {
               const above = nextGrid[ky][x];
-              if (above === BLOCK_EMPTY || !getBlockProperties(above, nextGrid)?.canSelect) {
+              if (
+                above === BLOCK_EMPTY ||
+                !getBlockProperties(above, nextGrid)?.canSelect
+              ) {
                 break;
               }
               stack.push({ x, y: ky });
               ky--;
             }
 
-            const hasFlashing = stack.some((item) => curFlashingBlocks[`${item.y},${item.x}`]);
+            const hasFlashing = stack.some(
+              (item) => curFlashingBlocks[`${item.y},${item.x}`],
+            );
             if (hasFlashing) {
               if (hasDelayKey) {
                 nextDelays[dirKey] = currentDelay;
@@ -712,7 +888,11 @@ export const useGameEngine = (
                 // Reverse direction and try again
                 dx = -dx;
                 const rnx0 = w0.x + dx;
-                if (rnx0 >= 0 && rnx0 < W && nextGrid[w0.y][rnx0] === BLOCK_EMPTY) {
+                if (
+                  rnx0 >= 0 &&
+                  rnx0 < W &&
+                  nextGrid[w0.y][rnx0] === BLOCK_EMPTY
+                ) {
                   moveCount = 1;
                   for (let i = 1; i < stack.length; i++) {
                     const item = stack[i];
@@ -753,7 +933,10 @@ export const useGameEngine = (
               // Adjust cursor selector if it was on a block in this stack
               let cursorIndex = -1;
               for (let i = 0; i < movingStack.length; i++) {
-                if (movingStack[i].x === nextCursor.x && movingStack[i].y === nextCursor.y) {
+                if (
+                  movingStack[i].x === nextCursor.x &&
+                  movingStack[i].y === nextCursor.y
+                ) {
                   cursorIndex = i;
                   break;
                 }
@@ -779,7 +962,9 @@ export const useGameEngine = (
                 ? nextDirections[dirKey]
                 : -1;
             const hasDelayKey = autoWallDelays.current[dirKey] !== undefined;
-            const currentDelay = hasDelayKey ? autoWallDelays.current[dirKey] : 0;
+            const currentDelay = hasDelayKey
+              ? autoWallDelays.current[dirKey]
+              : 0;
 
             // Helper to get stack based on direction
             const getVStack = (currentDy: number): Position[] => {
@@ -788,7 +973,10 @@ export const useGameEngine = (
                 let ky = y - 1;
                 while (ky >= 0) {
                   const above = nextGrid[ky][x];
-                  if (above === BLOCK_EMPTY || !getBlockProperties(above, nextGrid)?.canSelect) {
+                  if (
+                    above === BLOCK_EMPTY ||
+                    !getBlockProperties(above, nextGrid)?.canSelect
+                  ) {
                     break;
                   }
                   s.push({ x, y: ky });
@@ -799,7 +987,10 @@ export const useGameEngine = (
             };
 
             // Helper to check if the stack can move in the given direction
-            const checkCanMove = (s: Position[], currentDy: number): boolean => {
+            const checkCanMove = (
+              s: Position[],
+              currentDy: number,
+            ): boolean => {
               for (const item of s) {
                 const nx = item.x;
                 const ny = item.y + currentDy;
@@ -817,7 +1008,9 @@ export const useGameEngine = (
 
             let stack = getVStack(dy);
 
-            const hasFlashing = stack.some((item) => curFlashingBlocks[`${item.y},${item.x}`]);
+            const hasFlashing = stack.some(
+              (item) => curFlashingBlocks[`${item.y},${item.x}`],
+            );
             if (hasFlashing) {
               if (hasDelayKey) {
                 nextDelays[dirKey] = currentDelay;
@@ -864,7 +1057,10 @@ export const useGameEngine = (
               // Adjust cursor selector if it was on a block in this stack
               let cursorIndex = -1;
               for (let i = 0; i < stack.length; i++) {
-                if (stack[i].x === nextCursor.x && stack[i].y === nextCursor.y) {
+                if (
+                  stack[i].x === nextCursor.x &&
+                  stack[i].y === nextCursor.y
+                ) {
                   cursorIndex = i;
                   break;
                 }
@@ -940,8 +1136,8 @@ export const useGameEngine = (
               prev.map((b) =>
                 b.startX === x && b.startY === y
                   ? { ...b, ignoreNextCell: true }
-                  : b
-              )
+                  : b,
+              ),
             );
           }
         }
