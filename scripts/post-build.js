@@ -33,6 +33,23 @@ function findWebRoot(filePath, baseDir) {
 }
 
 if (fs.existsSync(outDir)) {
+  console.log('Post-build: Creating .nojekyll file...');
+  fs.writeFileSync(path.join(outDir, '.nojekyll'), '');
+  if (fs.existsSync(path.join(outDir, 'web'))) {
+    fs.writeFileSync(path.join(outDir, 'web', '.nojekyll'), '');
+  }
+
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  const escapedBasePath = basePath ? basePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+  const basePathPrefixPattern = escapedBasePath ? `(?:${escapedBasePath})?` : '';
+
+  const reNextDouble = new RegExp(`(src|href|content|action)="${basePathPrefixPattern}\\/_next\\/`, 'g');
+  const reNextSingle = new RegExp(`(src|href|content|action)='${basePathPrefixPattern}\\/_next\\/`, 'g');
+  const reFavDouble = new RegExp(`(src|href)="${basePathPrefixPattern}\\/(favicon\\.ico|manifest\\.json)"`, 'g');
+  const reFavSingle = new RegExp(`(src|href)='${basePathPrefixPattern}\\/(favicon\\.ico|manifest\\.json)'`, 'g');
+  const reRawNext = new RegExp(`([,\\[:\\("'])${basePathPrefixPattern}\\/_next\\/`, 'g');
+  const reEscapedNext = new RegExp(`([,\\[:\\("'])${basePathPrefixPattern}\\\\/\\_next\\/`, 'g');
+
   console.log('Post-build: Converting absolute paths to relative paths in HTML files...');
   walkDir(outDir, (filePath) => {
     if (path.extname(filePath) === '.html') {
@@ -43,12 +60,12 @@ if (fs.existsSync(outDir)) {
       let content = fs.readFileSync(filePath, 'utf8');
       
       let updatedContent = content
-        .replace(/(src|href|content|action)="\/\_next\//g, `$1="${prefix}_next/`)
-        .replace(/(src|href|content|action)='\/_next\//g, `$1='${prefix}_next/`)
-        .replace(/(src|href)="\/(favicon\.ico|manifest\.json)"/g, `$1="${prefix}$2"`)
-        .replace(/(src|href)='\/(favicon\.ico|manifest\.json)'/g, `$1='${prefix}$2'`)
-        .replace(/([,\[:\("'])\/\_next\//g, `$1${prefix}_next/`)
-        .replace(/([,\[:\("'])\\\/\_next\//g, `$1\\/${prefix}_next/`);
+        .replace(reNextDouble, `$1="${prefix}_next/`)
+        .replace(reNextSingle, `$1='${prefix}_next/`)
+        .replace(reFavDouble, `$1="${prefix}$2"`)
+        .replace(reFavSingle, `$1='${prefix}$2'`)
+        .replace(reRawNext, `$1${prefix}_next/`)
+        .replace(reEscapedNext, `$1\\/${prefix}_next/`);
 
       if (content !== updatedContent) {
         fs.writeFileSync(filePath, updatedContent, 'utf8');

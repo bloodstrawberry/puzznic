@@ -49,8 +49,25 @@ export default function Spike({ direction }: SpikeProps) {
         />
 
         {/* Hazard/Warning Stripe on the base */}
-        <line x1="5" y1="18" x2="35" y2="18" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1="5" y1="18" x2="35" y2="18" stroke="#facc15" strokeWidth="2.5" strokeDasharray="4,4" strokeLinecap="round" />
+        <line
+          x1="5"
+          y1="18"
+          x2="35"
+          y2="18"
+          stroke="#ef4444"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+        />
+        <line
+          x1="5"
+          y1="18"
+          x2="35"
+          y2="18"
+          stroke="#facc15"
+          strokeWidth="2.5"
+          strokeDasharray="4,4"
+          strokeLinecap="round"
+        />
 
         {/* 3D Spikes pointing UP */}
         {/* Spike 1 (Left) */}
@@ -72,7 +89,14 @@ export default function Spike({ direction }: SpikeProps) {
         <path d="M 28 7 L 30 2 L 32 7 Z" fill="url(#tipGrad)" />
 
         {/* Shadow under the spikes on base */}
-        <rect x="4" y="14" width="32" height="2" fill="#111827" fillOpacity="0.4" />
+        <rect
+          x="4"
+          y="14"
+          width="32"
+          height="2"
+          fill="#111827"
+          fillOpacity="0.4"
+        />
       </g>
     </svg>
   );

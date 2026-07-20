@@ -1,13 +1,12 @@
-import Image from "next/image";
+import React from "react";
+import { getBlockAssetPath } from "./constants";
 
 export default function Moon() {
   return (
-    <Image
-      src="/block/moon.png"
+    <img
+      src={getBlockAssetPath("/block/moon.png")}
       alt="Moon"
-      className="w-full h-full object-contain"
-      width={40}
-      height={40}
+      className="w-full h-full object-contain pointer-events-none select-none"
     />
   );
 }

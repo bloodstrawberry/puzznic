@@ -1,14 +1,12 @@
 import React from "react";
-import Image from "next/image";
+import { getBlockAssetPath } from "./constants";
 
 function WallAutoH() {
   return (
-    <Image
-      src="/block/wall-auto-h.png"
+    <img
+      src={getBlockAssetPath("/block/wall-auto-h.png")}
       alt="WallAutoH"
-      className="w-full h-full object-contain"
-      width={40}
-      height={40}
+      className="w-full h-full object-contain pointer-events-none select-none"
     />
   );
 }

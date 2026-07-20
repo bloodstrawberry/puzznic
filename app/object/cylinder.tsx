@@ -1,13 +1,12 @@
-import Image from "next/image";
+import React from "react";
+import { getBlockAssetPath } from "./constants";
 
 export default function Cylinder() {
   return (
-    <Image
-      src="/block/cylinder.png"
+    <img
+      src={getBlockAssetPath("/block/cylinder.png")}
       alt="Cylinder"
-      className="w-full h-full object-contain"
-      width={40}
-      height={40}
+      className="w-full h-full object-contain pointer-events-none select-none"
     />
   );
 }

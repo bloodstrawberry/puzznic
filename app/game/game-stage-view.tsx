@@ -20,7 +20,12 @@ import BlockRenderer, {
   STAGE_BLOCK_SIZE_PERCENT,
   STAGE_GRID_GAP_REM,
 } from "../object";
-import { CellType, Position, Bullet as BulletType, BUILTIN_LEVELS } from "./types";
+import {
+  CellType,
+  Position,
+  Bullet as BulletType,
+  BUILTIN_LEVELS,
+} from "./types";
 
 interface BulletProps {
   bullet: BulletType;
@@ -144,7 +149,9 @@ export default function GameStageView({
         <div className="absolute top-[8%] left-[6%] flex items-center gap-1 opacity-80">
           <span className="text-[14px]">🌱</span>
           <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full shadow-sm" />
-          <span className="text-[10px] text-emerald-600 font-bold ml-0.5">🍀</span>
+          <span className="text-[10px] text-emerald-600 font-bold ml-0.5">
+            🍀
+          </span>
         </div>
         {/* Bottom left plants */}
         <div className="absolute bottom-[12%] left-[10%] flex items-end gap-1.5 opacity-75">
@@ -166,7 +173,6 @@ export default function GameStageView({
 
       {/* Seamless Game Stage Grid Container */}
       <div className="relative p-2 md:p-4 flex flex-col items-center justify-center w-full z-10">
-        
         {/* Top: Column delete buttons */}
         {activeEditor && (
           <div className="flex w-full justify-center mb-1">
@@ -181,7 +187,7 @@ export default function GameStageView({
               }}
             >
               {Array.from({ length: grid[0]?.length || 8 }).map((_, x) => {
-                const isColEmpty = grid.every(row => row[x] === BLOCK_EMPTY);
+                const isColEmpty = grid.every((row) => row[x] === BLOCK_EMPTY);
                 return (
                   <button
                     key={`col-del-${x}`}
@@ -189,8 +195,8 @@ export default function GameStageView({
                     onMouseEnter={() => setHoveredCol(x)}
                     onMouseLeave={() => setHoveredCol(null)}
                     className={`w-full aspect-square rounded-[22%] flex items-center justify-center transition-all border text-[9px] md:text-[10px] font-bold cursor-pointer shadow-sm select-none ${
-                      isColEmpty 
-                        ? "bg-red-950/40 hover:bg-red-900/60 border-red-900/50 text-red-300 hover:text-white" 
+                      isColEmpty
+                        ? "bg-red-950/40 hover:bg-red-900/60 border-red-900/50 text-red-300 hover:text-white"
                         : "bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 hover:border-zinc-700"
                     }`}
                     title={isColEmpty ? "이 열 완전히 지우기" : "이 열 비우기"}
@@ -215,7 +221,9 @@ export default function GameStageView({
               }}
             >
               {Array.from({ length: grid.length || 8 }).map((_, y) => {
-                const isRowEmpty = grid[y]?.every(cell => cell === BLOCK_EMPTY);
+                const isRowEmpty = grid[y]?.every(
+                  (cell) => cell === BLOCK_EMPTY,
+                );
                 return (
                   <button
                     key={`row-del-${y}`}
@@ -223,8 +231,8 @@ export default function GameStageView({
                     onMouseEnter={() => setHoveredRow(y)}
                     onMouseLeave={() => setHoveredRow(null)}
                     className={`w-full aspect-square rounded-[22%] flex items-center justify-center transition-all border text-[9px] md:text-[10px] font-bold cursor-pointer shadow-sm select-none ${
-                      isRowEmpty 
-                        ? "bg-red-950/40 hover:bg-red-900/60 border-red-900/50 text-red-300 hover:text-white" 
+                      isRowEmpty
+                        ? "bg-red-950/40 hover:bg-red-900/60 border-red-900/50 text-red-300 hover:text-white"
                         : "bg-zinc-900/90 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 hover:border-zinc-700"
                     }`}
                     title={isRowEmpty ? "이 행 완전히 지우기" : "이 행 비우기"}
@@ -243,7 +251,9 @@ export default function GameStageView({
             style={{
               gridTemplateColumns: `repeat(${grid[0]?.length || 8}, minmax(0, 1fr))`,
               width: "100%",
-              maxWidth: activeEditor ? `${(grid[0]?.length || 8) * 44}px` : `min(76vw, ${(grid[0]?.length || 8) * 44}px)`,
+              maxWidth: activeEditor
+                ? `${(grid[0]?.length || 8) * 44}px`
+                : `min(76vw, ${(grid[0]?.length || 8) * 44}px)`,
               gap: `${STAGE_GRID_GAP_REM}rem`,
             }}
           >
@@ -270,10 +280,9 @@ export default function GameStageView({
                         : ""
                     } ${isHighlighted ? "shadow-[0_0_8px_rgba(239,68,68,0.2)]" : ""}`}
                     style={{
-                      background:
-                        isHighlighted
-                          ? "rgba(239, 68, 68, 0.12)"
-                          : "linear-gradient(150deg, rgba(16, 50, 16, 0.25) 0%, rgba(8, 30, 8, 0.4) 100%)",
+                      background: isHighlighted
+                        ? "rgba(239, 68, 68, 0.12)"
+                        : "linear-gradient(150deg, rgba(16, 50, 16, 0.25) 0%, rgba(8, 30, 8, 0.4) 100%)",
                       boxShadow:
                         "inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(255, 255, 255, 0.05)",
                       border: isHighlighted
@@ -281,49 +290,70 @@ export default function GameStageView({
                         : "1px solid rgba(34, 197, 94, 0.15)",
                     }}
                   >
-                  {/* Render grid cell elements (blocks inside the indented slot) */}
-                  {cell !== BLOCK_EMPTY && (
-                    <div
-                      className={`transform active:scale-95 transition-transform relative z-10 ${
-                        flashingBlocks[`${y},${x}`] ? "animate-match-flash pointer-events-none" : ""
-                      }`}
-                      style={{
-                        width: `${STAGE_BLOCK_SIZE_PERCENT}%`,
-                        height: `${STAGE_BLOCK_SIZE_PERCENT}%`,
-                      }}
-                    >
-                      <BlockRenderer id={cell} x={x} y={y} grid={grid} firedOnce={firedOnce} />
-                    </div>
-                  )}
+                    {/* Render grid cell elements (blocks inside the indented slot) */}
+                    {cell !== BLOCK_EMPTY && (
+                      <div
+                        className={`transform active:scale-95 transition-transform relative z-10 ${
+                          flashingBlocks[`${y},${x}`]
+                            ? "animate-match-flash pointer-events-none"
+                            : ""
+                        }`}
+                        style={{
+                          width: `${STAGE_BLOCK_SIZE_PERCENT}%`,
+                          height: `${STAGE_BLOCK_SIZE_PERCENT}%`,
+                        }}
+                      >
+                        <BlockRenderer
+                          id={cell}
+                          x={x}
+                          y={y}
+                          grid={grid}
+                          firedOnce={firedOnce}
+                        />
+                      </div>
+                    )}
 
-                  {/* Render Cursor Selector outline (Pulsating green if grabbed, blue if free) */}
-                  {isCursor && (
-                    <div
-                      className={`absolute inset-0 border-2 rounded-[22%] pointer-events-none z-20 animate-pulse ${
-                        grabbed
-                          ? "border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-bounce"
-                          : "border-[#3182f6] shadow-[0_0_10px_rgba(49,130,246,0.7)]"
-                      }`}
-                    >
-                      {/* Glowing corner anchors */}
-                      <span className={`absolute top-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`} />
-                      <span className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`} />
-                      <span className={`absolute bottom-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`} />
-                      <span className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`} />
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
+                    {/* Render Cursor Selector outline (Pulsating green if grabbed, blue if free) */}
+                    {isCursor && (
+                      <div
+                        className={`absolute inset-0 border-2 rounded-[22%] pointer-events-none z-20 animate-pulse ${
+                          grabbed
+                            ? "border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-bounce"
+                            : "border-[#3182f6] shadow-[0_0_10px_rgba(49,130,246,0.7)]"
+                        }`}
+                      >
+                        {/* Glowing corner anchors */}
+                        <span
+                          className={`absolute top-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`}
+                        />
+                        <span
+                          className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`}
+                        />
+                        <span
+                          className={`absolute bottom-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`}
+                        />
+                        <span
+                          className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              }),
+            )}
 
-          {/* Render flying bullets */}
-          {bullets.map((bullet) => (
-            <Bullet key={bullet.id} bullet={bullet} W={grid[0]?.length || 8} H={grid.length || 8} />
-          ))}
+            {/* Render flying bullets */}
+            {bullets.map((bullet) => (
+              <Bullet
+                key={bullet.id}
+                bullet={bullet}
+                W={grid[0]?.length || 8}
+                H={grid.length || 8}
+              />
+            ))}
+          </div>
         </div>
       </div>
-    </div>
 
       {/* Success Notification Overlay (Cleared) */}
       {isLevelCleared && (
@@ -333,7 +363,7 @@ export default function GameStageView({
             <div className="w-14 h-14 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 text-3xl animate-bounce">
               🎉
             </div>
-            
+
             <div className="flex flex-col gap-1">
               <h2 className="text-[20px] font-bold text-white tracking-tight">
                 스테이지 클리어!

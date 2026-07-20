@@ -1,13 +1,12 @@
-import Image from "next/image";
+import React from "react";
+import { getBlockAssetPath } from "./constants";
 
 export default function Wall() {
   return (
-    <Image
-      src="/block/wall.png"
+    <img
+      src={getBlockAssetPath("/block/wall.png")}
       alt="Wall"
-      className="w-full h-full object-contain"
-      width={40}
-      height={40}
+      className="w-full h-full object-contain pointer-events-none select-none"
     />
   );
 }

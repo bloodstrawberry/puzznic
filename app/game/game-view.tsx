@@ -5,7 +5,19 @@ import { useGameEngine, CellType, BUILTIN_LEVELS } from "./game-engine";
 import GameStageView from "./game-stage-view";
 import Link from "next/link";
 import { useEditorHotkeys, ALL_PAINT_TOOLS } from "./hot-key";
-import { useToast } from "@toss/tds-mobile";
+
+function useToast() {
+  const [toastText, setToastText] = useState<string | null>(null);
+
+  const openToast = (msg: string) => {
+    setToastText(msg);
+    setTimeout(() => {
+      setToastText((current) => (current === msg ? null : current));
+    }, 2500);
+  };
+
+  return { openToast, toastText };
+}
 import BlockRenderer, {
   BLOCK_EMPTY,
   BLOCK_WALL,
@@ -403,8 +415,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         e.preventDefault();
         const cell = curGrid[curCursor.y]?.[curCursor.x];
         const isPuzzleBlock =
-          cell !== undefined &&
-          getBlockProperties(cell, curGrid)?.canSelect;
+          cell !== undefined && getBlockProperties(cell, curGrid)?.canSelect;
         if (curGrabbed) {
           curSetGrabbed(false);
           playSound("select", curMuted);
@@ -516,8 +527,6 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     };
   }, []);
 
-
-
   const handleMouseDown = (e: React.MouseEvent, x: number, y: number) => {
     if (!activeEditor) return;
     if (e.button !== 0 && e.button !== 2) return; // Left or Right click only
@@ -543,8 +552,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     if (activeEditor) return;
     const cell = grid[y]?.[x];
     const isPuzzleBlock =
-      cell !== undefined &&
-      getBlockProperties(cell, grid)?.canSelect;
+      cell !== undefined && getBlockProperties(cell, grid)?.canSelect;
 
     if (grabbed) {
       if (isPuzzleBlock) {
@@ -560,14 +568,20 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         // 빈 곳이나 벽 등 선택 불가능한 셀 클릭 시 -> 이동 명령
         if (x > cursor.x) {
           const grabbedCell = grid[cursor.y]?.[cursor.x];
-          if (grabbedCell === BLOCK_WALL_V || grabbedCell === BLOCK_AUTO_WALL_V) {
+          if (
+            grabbedCell === BLOCK_WALL_V ||
+            grabbedCell === BLOCK_AUTO_WALL_V
+          ) {
             moveBlock(cursor.x, cursor.y, 0, 1);
           } else {
             moveBlock(cursor.x, cursor.y, 1, 0);
           }
         } else if (x < cursor.x) {
           const grabbedCell = grid[cursor.y]?.[cursor.x];
-          if (grabbedCell === BLOCK_WALL_V || grabbedCell === BLOCK_AUTO_WALL_V) {
+          if (
+            grabbedCell === BLOCK_WALL_V ||
+            grabbedCell === BLOCK_AUTO_WALL_V
+          ) {
             moveBlock(cursor.x, cursor.y, 0, -1);
           } else {
             moveBlock(cursor.x, cursor.y, -1, 0);
@@ -640,7 +654,8 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = editorMapType === "test" ? "test-map.json" : "real-map.json";
+    link.download =
+      editorMapType === "test" ? "test-map.json" : "real-map.json";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -752,9 +767,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                         handleStageInputChange(e.currentTarget);
                       }
                     }}
-                    onBlur={(e) =>
-                      handleStageInputChange(e.currentTarget)
-                    }
+                    onBlur={(e) => handleStageInputChange(e.currentTarget)}
                     className="w-10 bg-zinc-900 border border-zinc-800 text-emerald-400 text-xs font-bold text-center focus:outline-none focus:border-emerald-500 py-0.5 rounded"
                   />{" "}
                   / {editorLevels.length}
@@ -905,7 +918,9 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
                   <>
                     <div className="border-t border-zinc-800 my-1" />
                     <div className="px-4 py-1 flex items-center justify-between">
-                      <span className="text-[10px] text-zinc-500 font-bold">타입</span>
+                      <span className="text-[10px] text-zinc-500 font-bold">
+                        타입
+                      </span>
                       <div className="flex items-center bg-zinc-950 border border-zinc-900 rounded-lg p-0.5">
                         <button
                           onClick={() => {
@@ -970,7 +985,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         {/* Toss Style Game Board Container */}
         <div className="w-full bg-[#17171c] border border-t-0 border-zinc-900 rounded-b-[24px] shadow-2xl py-1 md:py-3 px-1 md:px-6 relative">
           {/* Farm Board Area */}
-          <div 
+          <div
             onClick={(e) => {
               if (activeEditor) return;
               handleBackgroundClick(e.clientX);
@@ -1518,6 +1533,11 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
               )}
             </div>
           </div>
+        </div>
+      )}
+      {toast.toastText && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-zinc-900/95 text-white text-xs font-bold px-4 py-2.5 rounded-full border border-zinc-700/80 shadow-2xl z-50 pointer-events-none transition-all animate-bounce">
+          {toast.toastText}
         </div>
       )}
     </div>

@@ -95,7 +95,9 @@ export function TossBannerAd() {
               💙
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider">Toss Bank (더미 광고)</span>
+              <span className="text-[9px] text-blue-400 font-bold uppercase tracking-wider">
+                Toss Bank (더미 광고)
+              </span>
               <span className="text-[10px] text-zinc-300 font-bold leading-snug truncate">
                 지금 토스뱅크에서 매일 남은 이자를 받으세요
               </span>

@@ -65,7 +65,7 @@ export const PUZZLE_BLOCK_TYPES: BlockId[] = [
 // Sizing and spacing constants for blocks on the stage play board
 // Adjust these to change the visual padding/spacing between blocks.
 export const STAGE_BLOCK_SIZE_PERCENT = 100; // Block size percentage relative to the grid cell (e.g. 88% width/height, leaving 12% padding)
-export const STAGE_GRID_GAP_REM = 0.0;   // Gap between grid cells in rem (0.125rem = 2px, equivalent to Tailwind's gap-0.5)
+export const STAGE_GRID_GAP_REM = 0.0; // Gap between grid cells in rem (0.125rem = 2px, equivalent to Tailwind's gap-0.5)
 
 export interface BlockProperties {
   canSelect: boolean;
@@ -74,41 +74,181 @@ export interface BlockProperties {
 }
 
 export const BLOCK_PROPERTIES: Record<BlockId, BlockProperties> = {
-  [BLOCK_EMPTY]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_WALL]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_SPHERE]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_DIAMOND]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_CUBE]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_CONE]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_STAR]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_CYLINDER]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_TRIANGLE_DOWN]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_HEART]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_MOON]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_CROSS]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_WALL_V]: { canSelect: true, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_WALL_H]: { canSelect: true, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_AUTO_WALL_V]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_AUTO_WALL_H]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_BOMB]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_SHOOTER_L]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_SHOOTER_R]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_SHOOTER_L_ONCE]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_SHOOTER_R_ONCE]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_SPIKE_U]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_SPIKE_D]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_SPIKE_L]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_SPIKE_R]: { canSelect: false, canBeDestroyedByShooter: false, canFall: false },
-  [BLOCK_NUM_1]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_NUM_2]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_NUM_3]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_NUM_4]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_NUM_5]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_LETTER_A]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_LETTER_B]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_LETTER_C]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_LETTER_D]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
-  [BLOCK_LETTER_E]: { canSelect: true, canBeDestroyedByShooter: true, canFall: true },
+  [BLOCK_EMPTY]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_WALL]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_SPHERE]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_DIAMOND]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_CUBE]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_CONE]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_STAR]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_CYLINDER]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_TRIANGLE_DOWN]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_HEART]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_MOON]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_CROSS]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_WALL_V]: {
+    canSelect: true,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_WALL_H]: {
+    canSelect: true,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_AUTO_WALL_V]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_AUTO_WALL_H]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_BOMB]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_SHOOTER_L]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_SHOOTER_R]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_SHOOTER_L_ONCE]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_SHOOTER_R_ONCE]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_SPIKE_U]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_SPIKE_D]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_SPIKE_L]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_SPIKE_R]: {
+    canSelect: false,
+    canBeDestroyedByShooter: false,
+    canFall: false,
+  },
+  [BLOCK_NUM_1]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_NUM_2]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_NUM_3]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_NUM_4]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_NUM_5]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_LETTER_A]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_LETTER_B]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_LETTER_C]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_LETTER_D]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
+  [BLOCK_LETTER_E]: {
+    canSelect: true,
+    canBeDestroyedByShooter: true,
+    canFall: true,
+  },
 };
 
 export function isBlockActive(id: BlockId, grid?: BlockId[][]): boolean {
@@ -130,7 +270,10 @@ export function isBlockActive(id: BlockId, grid?: BlockId[][]): boolean {
   return true;
 }
 
-export function getBlockProperties(id: BlockId, grid?: BlockId[][]): BlockProperties {
+export function getBlockProperties(
+  id: BlockId,
+  grid?: BlockId[][],
+): BlockProperties {
   const staticProps = BLOCK_PROPERTIES[id] ?? {
     canSelect: false,
     canBeDestroyedByShooter: false,
@@ -141,9 +284,17 @@ export function getBlockProperties(id: BlockId, grid?: BlockId[][]): BlockProper
     if (grid) {
       const active = isBlockActive(id, grid);
       if (active) {
-        return { canSelect: true, canBeDestroyedByShooter: true, canFall: true };
+        return {
+          canSelect: true,
+          canBeDestroyedByShooter: true,
+          canFall: true,
+        };
       } else {
-        return { canSelect: false, canBeDestroyedByShooter: false, canFall: false };
+        return {
+          canSelect: false,
+          canBeDestroyedByShooter: false,
+          canFall: false,
+        };
       }
     }
   }
@@ -179,4 +330,14 @@ export function isLetterBlockActive(id: BlockId, grid?: BlockId[][]): boolean {
     }
   }
   return true;
+}
+
+export const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH || "").trim();
+
+export function getBlockAssetPath(path: string): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const base = (process.env.NEXT_PUBLIC_BASE_PATH || "").trim();
+  return `${base}${cleanPath}`;
 }

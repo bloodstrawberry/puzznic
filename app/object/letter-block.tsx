@@ -1,5 +1,5 @@
 import React from "react";
-import Image from "next/image";
+import { getBlockAssetPath } from "./constants";
 
 interface LetterBlockProps {
   letter: string;
@@ -9,12 +9,10 @@ interface LetterBlockProps {
 export default function LetterBlock({ letter }: LetterBlockProps) {
   return (
     <div className="w-full h-full relative select-none">
-      <Image
-        src={`/block/alphabet-${letter}.png`}
+      <img
+        src={getBlockAssetPath(`/block/alphabet-${letter}.png`)}
         alt={`Alphabet ${letter}`}
-        className="w-full h-full object-contain"
-        width={40}
-        height={40}
+        className="w-full h-full object-contain pointer-events-none select-none"
       />
     </div>
   );

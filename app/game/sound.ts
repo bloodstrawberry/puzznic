@@ -1,14 +1,7 @@
 // Sound player proxy matching the main application sound synthesis
 
 export type SoundType =
-  | "coin"
-  | "select"
-  | "start"
-  | "error"
-  | "match"
-  | "fall"
-  | "shoot"
-  | "break";
+  "coin" | "select" | "start" | "error" | "match" | "fall" | "shoot" | "break";
 
 let sharedAudioContext: AudioContext | null = null;
 const getAudioContext = (): AudioContext | null => {
@@ -25,10 +18,7 @@ const getAudioContext = (): AudioContext | null => {
   return sharedAudioContext;
 };
 
-export const playEngineSound = (
-  type: SoundType,
-  muted: boolean,
-) => {
+export const playEngineSound = (type: SoundType, muted: boolean) => {
   if (muted || typeof window === "undefined") return;
   try {
     const ctx = getAudioContext();

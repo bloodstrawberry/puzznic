@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { TDSMobileAITProvider } from "@toss/tds-mobile-ait";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -16,7 +15,10 @@ function setupConstantHandlerFallbacks() {
   if (typeof window === "undefined") return;
 
   const win = window as unknown as Record<string, unknown>;
-  if (!win.__CONSTANT_HANDLER_MAP || typeof win.__CONSTANT_HANDLER_MAP !== "object") {
+  if (
+    !win.__CONSTANT_HANDLER_MAP ||
+    typeof win.__CONSTANT_HANDLER_MAP !== "object"
+  ) {
     win.__CONSTANT_HANDLER_MAP = {};
   }
 
@@ -48,10 +50,6 @@ export function Providers({ children }: ProvidersProps) {
     return null;
   }
 
-  return (
-    <TDSMobileAITProvider>
-      {children}
-    </TDSMobileAITProvider>
-  );
+  return <>{children}</>;
 }
 

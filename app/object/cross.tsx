@@ -1,13 +1,12 @@
-import Image from "next/image";
+import React from "react";
+import { getBlockAssetPath } from "./constants";
 
 export default function Cross() {
   return (
-    <Image
-      src="/block/cross.png"
+    <img
+      src={getBlockAssetPath("/block/cross.png")}
       alt="Cross"
-      className="w-full h-full object-contain"
-      width={40}
-      height={40}
+      className="w-full h-full object-contain pointer-events-none select-none"
     />
   );
 }

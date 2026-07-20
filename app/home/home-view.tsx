@@ -4,42 +4,151 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { IAP } from "@apps-in-toss/web-framework";
 import type { IapProductListItem } from "@apps-in-toss/web-framework";
-import { Button } from "@toss/tds-mobile";
 import realMap from "../level/real-map.json";
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  color?: "primary" | "dark" | "danger";
+  variant?: "fill" | "weak";
+  display?: "full" | "inline";
+  size?: "small" | "medium" | "large";
+  loading?: boolean;
+}
+
+function Button({
+  color = "primary",
+  variant = "fill",
+  display = "inline",
+  size = "medium",
+  loading = false,
+  className = "",
+  children,
+  disabled,
+  ...props
+}: ButtonProps) {
+  const baseStyles =
+    "font-semibold rounded-2xl transition-all flex items-center justify-center cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none";
+
+  let sizeStyles = "px-4 py-2 text-sm";
+  if (size === "large") sizeStyles = "px-5 py-3.5 text-base font-bold";
+  if (size === "small") sizeStyles = "px-3 py-1.5 text-xs";
+
+  const displayStyles = display === "full" ? "w-full" : "";
+
+  let colorStyles = "";
+  if (color === "primary") {
+    colorStyles =
+      variant === "fill"
+        ? "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30"
+        : "bg-blue-600/10 hover:bg-blue-600/20 text-blue-400";
+  } else if (color === "dark") {
+    colorStyles =
+      variant === "fill"
+        ? "bg-zinc-800 hover:bg-zinc-700 text-white"
+        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800";
+  } else if (color === "danger") {
+    colorStyles =
+      variant === "fill"
+        ? "bg-red-600 hover:bg-red-500 text-white"
+        : "bg-red-600/10 hover:bg-red-600/20 text-red-400";
+  }
+
+  return (
+    <button
+      disabled={disabled || loading}
+      className={`${baseStyles} ${sizeStyles} ${displayStyles} ${colorStyles} ${className}`}
+      {...props}
+    >
+      {loading ? (
+        <span className="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+      ) : null}
+      {children}
+    </button>
+  );
+}
 
 // Modern Volume/Mute Icons
 const VolumeOnIcon = () => (
-  <svg className="w-5 h-5 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M17.95 5.636a9 9 0 010 12.728M12 18.75l-3-3H6.75A2.25 2.25 0 014.5 13.5v-3a2.25 2.25 0 012.25-2.25H9l3-3v13.5z" />
+  <svg
+    className="w-5 h-5 text-zinc-300"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M15.536 8.464a5 5 0 010 7.072M17.95 5.636a9 9 0 010 12.728M12 18.75l-3-3H6.75A2.25 2.25 0 014.5 13.5v-3a2.25 2.25 0 012.25-2.25H9l3-3v13.5z"
+    />
   </svg>
 );
 
 const VolumeOffIcon = () => (
-  <svg className="w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H2.25A.75.75 0 001.5 9.75v4.5c0 .414.336.75.75.75h2.25l2.25 2.25V5.25z" />
+  <svg
+    className="w-5 h-5 text-zinc-500"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H2.25A.75.75 0 001.5 9.75v4.5c0 .414.336.75.75.75h2.25l2.25 2.25V5.25z"
+    />
   </svg>
 );
 
 // Modern Lock Icon
 const LockIcon = () => (
-  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-    <rect x="6" y="11" width="12" height="9" rx="2" fill="currentColor" fillOpacity="0.1" />
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8 11V7a4 4 0 118 0v4" />
+  <svg
+    className="w-4 h-4"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2.5}
+  >
+    <rect
+      x="6"
+      y="11"
+      width="12"
+      height="9"
+      rx="2"
+      fill="currentColor"
+      fillOpacity="0.1"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M8 11V7a4 4 0 118 0v4"
+    />
   </svg>
 );
 
 // Chevron Right Icon for ListRow
 const ChevronRightIcon = () => (
-  <svg className="w-5 h-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+  <svg
+    className="w-5 h-5 text-zinc-500"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth={2}
+  >
     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
   </svg>
 );
 
 // Sound synthesizer using Web Audio API
-const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) => {
+const playSound = (
+  type: "coin" | "select" | "start" | "error",
+  muted: boolean,
+) => {
   if (muted || typeof window === "undefined") return;
   try {
-    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     if (!AudioContextClass) return;
     const ctx = new AudioContextClass();
 
@@ -85,10 +194,10 @@ const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) 
         osc.stop(startTime + duration);
       };
       const now = ctx.currentTime;
-      playTone(523.25, now, 0.08); 
-      playTone(659.25, now + 0.08, 0.08); 
-      playTone(783.99, now + 0.16, 0.08); 
-      playTone(1046.50, now + 0.24, 0.3); 
+      playTone(523.25, now, 0.08);
+      playTone(659.25, now + 0.08, 0.08);
+      playTone(783.99, now + 0.16, 0.08);
+      playTone(1046.5, now + 0.24, 0.3);
     } else if (type === "error") {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -109,7 +218,7 @@ const playSound = (type: "coin" | "select" | "start" | "error", muted: boolean) 
 // Modern Glassmorphism-style Block Components
 const RenderBlock = ({ type }: { type: string }) => {
   switch (type) {
-    case "sphere": 
+    case "sphere":
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -119,11 +228,26 @@ const RenderBlock = ({ type }: { type: string }) => {
               <stop offset="100%" stopColor="#991530" />
             </radialGradient>
           </defs>
-          <circle cx="20" cy="20" r="17" fill="url(#sphereGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
-          <circle cx="15" cy="15" r="4" fill="#ffffff" fillOpacity="0.4" filter="blur(0.5px)" />
+          <circle
+            cx="20"
+            cy="20"
+            r="17"
+            fill="url(#sphereGrad)"
+            stroke="#ffffff"
+            strokeOpacity="0.1"
+            strokeWidth="1"
+          />
+          <circle
+            cx="15"
+            cy="15"
+            r="4"
+            fill="#ffffff"
+            fillOpacity="0.4"
+            filter="blur(0.5px)"
+          />
         </svg>
       );
-    case "diamond": 
+    case "diamond":
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -133,12 +257,34 @@ const RenderBlock = ({ type }: { type: string }) => {
               <stop offset="100%" stopColor="#b37100" />
             </linearGradient>
           </defs>
-          <polygon points="20,3 37,20 20,37 3,20" fill="url(#goldGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
-          <line x1="20" y1="3" x2="20" y2="37" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
-          <line x1="3" y1="20" x2="37" y2="20" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1" />
+          <polygon
+            points="20,3 37,20 20,37 3,20"
+            fill="url(#goldGrad)"
+            stroke="#ffffff"
+            strokeOpacity="0.1"
+            strokeWidth="1"
+          />
+          <line
+            x1="20"
+            y1="3"
+            x2="20"
+            y2="37"
+            stroke="#ffffff"
+            strokeOpacity="0.25"
+            strokeWidth="1"
+          />
+          <line
+            x1="3"
+            y1="20"
+            x2="37"
+            y2="20"
+            stroke="#ffffff"
+            strokeOpacity="0.25"
+            strokeWidth="1"
+          />
         </svg>
       );
-    case "cube": 
+    case "cube":
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -148,11 +294,31 @@ const RenderBlock = ({ type }: { type: string }) => {
               <stop offset="100%" stopColor="#6e0085" />
             </linearGradient>
           </defs>
-          <rect x="4" y="4" width="32" height="32" rx="6" fill="url(#pinkGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
-          <rect x="10" y="10" width="20" height="20" rx="3" fill="none" stroke="#ffffff" strokeWidth="1" strokeOpacity="0.3" />
+          <rect
+            x="4"
+            y="4"
+            width="32"
+            height="32"
+            rx="6"
+            fill="url(#pinkGrad)"
+            stroke="#ffffff"
+            strokeOpacity="0.1"
+            strokeWidth="1"
+          />
+          <rect
+            x="10"
+            y="10"
+            width="20"
+            height="20"
+            rx="3"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="1"
+            strokeOpacity="0.3"
+          />
         </svg>
       );
-    case "cone": 
+    case "cone":
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -162,11 +328,25 @@ const RenderBlock = ({ type }: { type: string }) => {
               <stop offset="100%" stopColor="#018b8c" />
             </linearGradient>
           </defs>
-          <polygon points="20,3 37,35 3,35" fill="url(#cyanGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
-          <line x1="20" y1="3" x2="20" y2="35" stroke="#ffffff" strokeOpacity="0.3" strokeWidth="1" />
+          <polygon
+            points="20,3 37,35 3,35"
+            fill="url(#cyanGrad)"
+            stroke="#ffffff"
+            strokeOpacity="0.1"
+            strokeWidth="1"
+          />
+          <line
+            x1="20"
+            y1="3"
+            x2="20"
+            y2="35"
+            stroke="#ffffff"
+            strokeOpacity="0.3"
+            strokeWidth="1"
+          />
         </svg>
       );
-    case "star": 
+    case "star":
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -176,10 +356,16 @@ const RenderBlock = ({ type }: { type: string }) => {
               <stop offset="100%" stopColor="#5d6a7e" />
             </radialGradient>
           </defs>
-          <polygon points="20,3 25,15 37,15 28,24 32,36 20,29 8,36 12,24 3,15 15,15" fill="url(#silverGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
+          <polygon
+            points="20,3 25,15 37,15 28,24 32,36 20,29 8,36 12,24 3,15 15,15"
+            fill="url(#silverGrad)"
+            stroke="#ffffff"
+            strokeOpacity="0.1"
+            strokeWidth="1"
+          />
         </svg>
       );
-    case "cylinder": 
+    case "cylinder":
       return (
         <svg className="w-full h-full" viewBox="0 0 40 40">
           <defs>
@@ -189,8 +375,23 @@ const RenderBlock = ({ type }: { type: string }) => {
               <stop offset="100%" stopColor="#1e8449" />
             </linearGradient>
           </defs>
-          <path d="M 7,12 A 13,5 0 0,0 33,12 L 33,29 A 13,5 0 0,1 7,29 Z" fill="url(#greenGrad)" stroke="#ffffff" strokeOpacity="0.1" strokeWidth="1" />
-          <ellipse cx="20" cy="12" rx="13" ry="5" fill="#a9dfbf" stroke="#ffffff" strokeOpacity="0.2" strokeWidth="1" />
+          <path
+            d="M 7,12 A 13,5 0 0,0 33,12 L 33,29 A 13,5 0 0,1 7,29 Z"
+            fill="url(#greenGrad)"
+            stroke="#ffffff"
+            strokeOpacity="0.1"
+            strokeWidth="1"
+          />
+          <ellipse
+            cx="20"
+            cy="12"
+            rx="13"
+            ry="5"
+            fill="#a9dfbf"
+            stroke="#ffffff"
+            strokeOpacity="0.2"
+            strokeWidth="1"
+          />
         </svg>
       );
     default:
@@ -230,7 +431,10 @@ export default function HomeView() {
   useEffect(() => {
     async function initIAP() {
       // 브라우저 환경에서는 네이티브 브릿지(ReactNativeWebView)가 없으므로 IAP 초기화를 건너뜁니다.
-      if (typeof window === "undefined" || !(window as unknown as Record<string, unknown>).ReactNativeWebView) {
+      if (
+        typeof window === "undefined" ||
+        !(window as unknown as Record<string, unknown>).ReactNativeWebView
+      ) {
         return;
       }
       try {
@@ -252,7 +456,9 @@ export default function HomeView() {
                 setCredits((prev) => prev + count);
                 playSound("coin", muted);
 
-                await IAP.completeProductGrant({ params: { orderId: order.orderId } });
+                await IAP.completeProductGrant({
+                  params: { orderId: order.orderId },
+                });
               }
             }
           } catch (pendingErr) {
@@ -266,58 +472,97 @@ export default function HomeView() {
     initIAP();
   }, [muted]);
 
-  const handleIapBuy = useCallback((sku: string) => {
-    setIsInserting(true);
-    try {
-      const cleanup = IAP.createOneTimePurchaseOrder({
-        options: {
-          sku,
-          processProductGrant: async ({ orderId }) => {
-            let count = 1;
-            const product = products.find(p => p.sku === sku);
-            if (product) {
-              const match = product.displayName.match(/(\d+)개/);
-              if (match) {
-                count = parseInt(match[1], 10);
+  const handleIapBuy = useCallback(
+    (sku: string) => {
+      setIsInserting(true);
+      try {
+        const cleanup = IAP.createOneTimePurchaseOrder({
+          options: {
+            sku,
+            processProductGrant: async ({ orderId }) => {
+              let count = 1;
+              const product = products.find((p) => p.sku === sku);
+              if (product) {
+                const match = product.displayName.match(/(\d+)개/);
+                if (match) {
+                  count = parseInt(match[1], 10);
+                }
               }
-            }
-            setCredits((prev) => prev + count);
-            playSound("coin", muted);
+              setCredits((prev) => prev + count);
+              playSound("coin", muted);
 
-            try {
-              await IAP.completeProductGrant({ params: { orderId } });
-            } catch (err) {
-              console.error("Failed to complete product grant:", err);
-            }
-            return true;
+              try {
+                await IAP.completeProductGrant({ params: { orderId } });
+              } catch (err) {
+                console.error("Failed to complete product grant:", err);
+              }
+              return true;
+            },
           },
-        },
-        onEvent: (event) => {
-          if (event.type === 'success') {
+          onEvent: (event) => {
+            if (event.type === "success") {
+              setIsInserting(false);
+              setShowChargeModal(false);
+              cleanup();
+            }
+          },
+          onError: (error) => {
+            console.error("IAP error:", error);
             setIsInserting(false);
-            setShowChargeModal(false);
             cleanup();
-          }
-        },
-        onError: (error) => {
-          console.error("IAP error:", error);
-          setIsInserting(false);
-          cleanup();
-        },
-      });
-    } catch (e) {
-      console.error("Failed to initiate purchase:", e);
-      setIsInserting(false);
-    }
-  }, [products, muted]);
+          },
+        });
+      } catch (e) {
+        console.error("Failed to initiate purchase:", e);
+        setIsInserting(false);
+      }
+    },
+    [products, muted],
+  );
 
   const bgBlocks = [
-    { type: "sphere", left: "8%", delay: "0s", duration: "18s", size: "w-8 h-8" },
-    { type: "diamond", left: "22%", delay: "3s", duration: "20s", size: "w-7 h-7" },
-    { type: "cube", left: "38%", delay: "6s", duration: "16s", size: "w-10 h-10" },
-    { type: "cone", left: "58%", delay: "1s", duration: "22s", size: "w-9 h-9" },
-    { type: "star", left: "74%", delay: "4s", duration: "19s", size: "w-10 h-10" },
-    { type: "cylinder", left: "88%", delay: "7s", duration: "17s", size: "w-7 h-7" },
+    {
+      type: "sphere",
+      left: "8%",
+      delay: "0s",
+      duration: "18s",
+      size: "w-8 h-8",
+    },
+    {
+      type: "diamond",
+      left: "22%",
+      delay: "3s",
+      duration: "20s",
+      size: "w-7 h-7",
+    },
+    {
+      type: "cube",
+      left: "38%",
+      delay: "6s",
+      duration: "16s",
+      size: "w-10 h-10",
+    },
+    {
+      type: "cone",
+      left: "58%",
+      delay: "1s",
+      duration: "22s",
+      size: "w-9 h-9",
+    },
+    {
+      type: "star",
+      left: "74%",
+      delay: "4s",
+      duration: "19s",
+      size: "w-10 h-10",
+    },
+    {
+      type: "cylinder",
+      left: "88%",
+      delay: "7s",
+      duration: "17s",
+      size: "w-7 h-7",
+    },
   ];
 
   const insertCoin = useCallback(() => {
@@ -327,37 +572,46 @@ export default function HomeView() {
     setTimeout(() => setIsInserting(false), 300);
   }, [muted]);
 
-  const startGame = useCallback((stageNum: number) => {
-    if (credits > 0) {
-      setCredits((prev) => prev - 1);
-      playSound("start", muted);
-      setTimeout(() => router.push(`/game?stage=${stageNum}`), 400);
-    } else {
-      // Free auto coin-insert effect for seamless mobile layout
-      playSound("coin", muted);
-      setCredits(1);
-      setTimeout(() => {
-        setCredits(0);
+  const startGame = useCallback(
+    (stageNum: number) => {
+      if (credits > 0) {
+        setCredits((prev) => prev - 1);
         playSound("start", muted);
-        router.push(`/game?stage=${stageNum}`);
-      }, 400);
-    }
-  }, [credits, muted, router]);
+        setTimeout(() => router.push(`/game?stage=${stageNum}`), 400);
+      } else {
+        // Free auto coin-insert effect for seamless mobile layout
+        playSound("coin", muted);
+        setCredits(1);
+        setTimeout(() => {
+          setCredits(0);
+          playSound("start", muted);
+          router.push(`/game?stage=${stageNum}`);
+        }, 400);
+      }
+    },
+    [credits, muted, router],
+  );
 
-  const handleStageSelect = useCallback((idx: number) => {
-    if (idx < maxUnlockedStage) {
-      startGame(idx + 1);
-    } else {
-      playSound("error", muted);
-    }
-  }, [maxUnlockedStage, startGame, muted]);
+  const handleStageSelect = useCallback(
+    (idx: number) => {
+      if (idx < maxUnlockedStage) {
+        startGame(idx + 1);
+      } else {
+        playSound("error", muted);
+      }
+    },
+    [maxUnlockedStage, startGame, muted],
+  );
 
-  const handleStageHover = useCallback((idx: number) => {
-    if (selectedStageIndex !== idx) {
-      setSelectedStageIndex(idx);
-      playSound("select", muted);
-    }
-  }, [selectedStageIndex, muted]);
+  const handleStageHover = useCallback(
+    (idx: number) => {
+      if (selectedStageIndex !== idx) {
+        setSelectedStageIndex(idx);
+        playSound("select", muted);
+      }
+    },
+    [selectedStageIndex, muted],
+  );
 
   const totalPages = Math.ceil(realMap.length / 20);
   const pageIndex = Math.floor(selectedStageIndex / 20);
@@ -379,25 +633,31 @@ export default function HomeView() {
     }
   }, [pageIndex, muted]);
 
-  const triggerMenuAction = useCallback((index: number) => {
-    if (index === 0) {
-      playSound("select", muted);
-      setShowStageSelect(true);
-    } else if (index === 1) {
-      playSound("start", muted);
-      setTimeout(() => router.push("/editor"), 400);
-    } else if (index === 2) {
-      playSound("select", muted);
-      setShowHowToPlay(true);
-    }
-  }, [muted, router]);
+  const triggerMenuAction = useCallback(
+    (index: number) => {
+      if (index === 0) {
+        playSound("select", muted);
+        setShowStageSelect(true);
+      } else if (index === 1) {
+        playSound("start", muted);
+        setTimeout(() => router.push("/editor"), 400);
+      } else if (index === 2) {
+        playSound("select", muted);
+        setShowHowToPlay(true);
+      }
+    },
+    [muted, router],
+  );
 
-  const handleMenuHover = useCallback((index: number) => {
-    if (menuIndex !== index) {
-      setMenuIndex(index);
-      playSound("select", muted);
-    }
-  }, [menuIndex, muted]);
+  const handleMenuHover = useCallback(
+    (index: number) => {
+      if (menuIndex !== index) {
+        setMenuIndex(index);
+        playSound("select", muted);
+      }
+    },
+    [menuIndex, muted],
+  );
 
   // Keyboard accessibility
   useEffect(() => {
@@ -502,7 +762,6 @@ export default function HomeView() {
 
   return (
     <div className="flex min-h-full items-center justify-center p-0 md:py-2 md:px-6 bg-[#0f0f10] text-[#f9fafb] overflow-hidden relative font-sans">
-      
       {/* Subtle modern background gradient overlay */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/10 via-zinc-950/20 to-zinc-950 pointer-events-none z-0" />
 
@@ -525,16 +784,17 @@ export default function HomeView() {
 
       {/* Main WebView Container (iPhone 13 Mini Width target: 375px) */}
       <div className="relative z-10 w-full max-w-[375px] min-h-[100vh] md:min-h-[812px] md:max-h-[812px] md:rounded-[36px] bg-[#101012] border-0 md:border-[6px] md:border-zinc-800 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col justify-between select-none">
-        
         {/* Toss Style AppBar / Navigation */}
         <header className="w-full h-14 px-5 flex items-center justify-between sticky top-0 bg-[#101012]/90 backdrop-blur-md z-30 border-b border-zinc-900">
           <div className="flex items-center gap-2">
             <span className="font-bold text-[18px] tracking-tight bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
               Puzznic
             </span>
-            <span className="text-[10px] bg-zinc-800 text-zinc-400 font-semibold px-1.5 py-0.5 rounded">MINI</span>
+            <span className="text-[10px] bg-zinc-800 text-zinc-400 font-semibold px-1.5 py-0.5 rounded">
+              MINI
+            </span>
           </div>
-          
+
           {/* Sound Toggle Button */}
           <button
             onClick={() => setMuted(!muted)}
@@ -546,11 +806,9 @@ export default function HomeView() {
 
         {/* Content Area */}
         <main className="flex-1 flex flex-col justify-between p-5 pb-6 gap-6">
-
           {showStageSelect ? (
             /* Stage Selection Screen */
             <div className="flex-1 flex flex-col justify-between my-auto py-2">
-              
               {/* Header Title */}
               <div className="mb-4">
                 <h2 className="text-[20px] font-bold text-white tracking-tight">
@@ -577,17 +835,22 @@ export default function HomeView() {
                         }
                       }}
                       className={`aspect-square flex flex-col items-center justify-center rounded-2xl text-sm font-semibold transition-all relative cursor-pointer
-                        ${isSelected 
-                          ? "bg-[#3182f6] text-white font-bold scale-105 shadow-[0_4px_12px_rgba(49,130,246,0.35)]" 
-                          : isUnlocked 
-                            ? "bg-[#1c1c1e] border border-zinc-800 text-zinc-200 hover:bg-[#252528] active:scale-95" 
-                            : "bg-[#17171a] border border-transparent text-zinc-700 cursor-not-allowed opacity-40"
+                        ${
+                          isSelected
+                            ? "bg-[#3182f6] text-white font-bold scale-105 shadow-[0_4px_12px_rgba(49,130,246,0.35)]"
+                            : isUnlocked
+                              ? "bg-[#1c1c1e] border border-zinc-800 text-zinc-200 hover:bg-[#252528] active:scale-95"
+                              : "bg-[#17171a] border border-transparent text-zinc-700 cursor-not-allowed opacity-40"
                         }`}
                     >
                       {isUnlocked ? (
                         <span>{globalIdx + 1}</span>
                       ) : (
-                        <div className={isSelected ? "text-white" : "text-zinc-600"}>
+                        <div
+                          className={
+                            isSelected ? "text-white" : "text-zinc-600"
+                          }
+                        >
                           <LockIcon />
                         </div>
                       )}
@@ -598,7 +861,7 @@ export default function HomeView() {
 
               {/* Pagination controls */}
               <div className="flex justify-between items-center w-full px-2 text-[13px] font-medium text-zinc-400 mt-5">
-                <button 
+                <button
                   onClick={prevPage}
                   className={`px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white cursor-pointer transition-colors active:bg-zinc-800 ${pageIndex === 0 ? "opacity-0 pointer-events-none" : ""}`}
                 >
@@ -607,7 +870,7 @@ export default function HomeView() {
                 <div className="text-[12px] text-zinc-500 font-semibold bg-zinc-900/50 px-3 py-1 rounded-full">
                   {pageIndex + 1} / {totalPages}
                 </div>
-                <button 
+                <button
                   onClick={nextPage}
                   className={`px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white cursor-pointer transition-colors active:bg-zinc-800 ${pageIndex === totalPages - 1 ? "opacity-0 pointer-events-none" : ""}`}
                 >
@@ -632,7 +895,6 @@ export default function HomeView() {
           ) : (
             /* Main Menu Screen */
             <div className="flex-1 flex flex-col justify-between py-2">
-              
               {/* Modern Logo Brand Section */}
               <div className="flex flex-col items-center justify-center text-center mt-6 mb-4">
                 {/* Title */}
@@ -646,7 +908,11 @@ export default function HomeView() {
                 {/* Sub-header block row decoration */}
                 <div className="flex gap-2 justify-center py-5">
                   {blockTypes.map((t, idx) => (
-                    <div key={idx} className="w-6 h-6 animate-pulse" style={{ animationDelay: `${idx * 0.15}s` }}>
+                    <div
+                      key={idx}
+                      className="w-6 h-6 animate-pulse"
+                      style={{ animationDelay: `${idx * 0.15}s` }}
+                    >
                       <RenderBlock type={t} />
                     </div>
                   ))}
@@ -656,9 +922,27 @@ export default function HomeView() {
               {/* Toss Style Menu List Container */}
               <div className="flex flex-col gap-2 bg-[#17171c] rounded-[24px] border border-zinc-900 p-2 shadow-inner">
                 {[
-                  { title: "게임 시작하기", desc: credits > 0 ? "도전할 스테이지를 고릅니다" : "무료 게임으로 바로 시작", color: "bg-blue-500/10 text-blue-400", block: "sphere" },
-                  { title: "레벨 에디터", desc: "나만의 퍼즐 스테이지 만들기", color: "bg-yellow-500/10 text-yellow-400", block: "diamond" },
-                  { title: "플레이 방법", desc: "조작키 및 매치 규칙 설명", color: "bg-purple-500/10 text-purple-400", block: "cone" }
+                  {
+                    title: "게임 시작하기",
+                    desc:
+                      credits > 0
+                        ? "도전할 스테이지를 고릅니다"
+                        : "무료 게임으로 바로 시작",
+                    color: "bg-blue-500/10 text-blue-400",
+                    block: "sphere",
+                  },
+                  {
+                    title: "레벨 에디터",
+                    desc: "나만의 퍼즐 스테이지 만들기",
+                    color: "bg-yellow-500/10 text-yellow-400",
+                    block: "diamond",
+                  },
+                  {
+                    title: "플레이 방법",
+                    desc: "조작키 및 매치 규칙 설명",
+                    color: "bg-purple-500/10 text-purple-400",
+                    block: "cone",
+                  },
                 ].map((item, index) => {
                   const isActive = menuIndex === index;
                   return (
@@ -671,18 +955,23 @@ export default function HomeView() {
                         }
                       }}
                       className={`group flex items-center justify-between p-3.5 rounded-2xl transition-all text-left cursor-pointer
-                        ${isActive 
-                          ? "bg-zinc-800/80 shadow-md translate-x-1" 
-                          : "hover:bg-zinc-900/50"
+                        ${
+                          isActive
+                            ? "bg-zinc-800/80 shadow-md translate-x-1"
+                            : "hover:bg-zinc-900/50"
                         }`}
                     >
                       <div className="flex items-center gap-3.5">
                         {/* Custom Block Representation */}
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${item.color} p-1 shadow-sm`}>
+                        <div
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center ${item.color} p-1 shadow-sm`}
+                        >
                           <RenderBlock type={item.block} />
                         </div>
                         <div className="flex flex-col">
-                          <span className={`text-[15px] font-bold transition-colors ${isActive ? "text-[#3182f6]" : "text-zinc-200"}`}>
+                          <span
+                            className={`text-[15px] font-bold transition-colors ${isActive ? "text-[#3182f6]" : "text-zinc-200"}`}
+                          >
                             {item.title}
                           </span>
                           <span className="text-[12px] text-zinc-500 font-normal mt-0.5">
@@ -700,11 +989,19 @@ export default function HomeView() {
               <div className="mt-6 bg-[#17171c] rounded-[24px] border border-zinc-900 p-4.5 flex flex-col gap-3.5 shadow-md">
                 <div className="flex justify-between items-center">
                   <div className="flex flex-col">
-                    <span className="text-[11px] text-zinc-500 font-medium">나의 가상 잔액</span>
-                    <span className="text-[18px] font-bold text-white mt-0.5">보유 크레딧</span>
+                    <span className="text-[11px] text-zinc-500 font-medium">
+                      나의 가상 잔액
+                    </span>
+                    <span className="text-[18px] font-bold text-white mt-0.5">
+                      보유 크레딧
+                    </span>
                   </div>
                   <div className="flex items-baseline gap-1 bg-zinc-900 px-3.5 py-2 rounded-2xl border border-zinc-800">
-                    <span className={`text-xl font-bold ${credits > 0 ? "text-yellow-400" : "text-zinc-400"}`}>{credits}</span>
+                    <span
+                      className={`text-xl font-bold ${credits > 0 ? "text-yellow-400" : "text-zinc-400"}`}
+                    >
+                      {credits}
+                    </span>
                     <span className="text-xs text-zinc-500">개</span>
                   </div>
                 </div>
@@ -721,10 +1018,8 @@ export default function HomeView() {
                   크레딧 충전하기
                 </Button>
               </div>
-
             </div>
           )}
-
         </main>
 
         {/* Toss Style Footer Information */}
@@ -736,23 +1031,24 @@ export default function HomeView() {
         {showHowToPlay && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center md:absolute md:rounded-[36px] overflow-hidden">
             {/* Sheet click background to dismiss */}
-            <div 
-              className="absolute inset-0 cursor-pointer" 
+            <div
+              className="absolute inset-0 cursor-pointer"
               onClick={() => {
                 setShowHowToPlay(false);
                 playSound("select", muted);
               }}
             />
-            
+
             {/* Actual BottomSheet Body */}
             <div className="relative w-full bg-[#1c1c1e] rounded-t-[28px] border-t border-zinc-800 px-6 pt-4 pb-8 z-50 flex flex-col gap-4 animate-slide-up max-h-[80%] overflow-y-auto">
-              
               {/* Header Handle Bar */}
               <div className="w-9 h-1 bg-zinc-700 rounded-full mx-auto mb-3" />
-              
+
               <div className="text-left mb-2">
                 <h3 className="text-lg font-bold text-white">플레이 방법</h3>
-                <p className="text-[12px] text-zinc-500 mt-1">간단한 매치 규칙을 소개합니다.</p>
+                <p className="text-[12px] text-zinc-500 mt-1">
+                  간단한 매치 규칙을 소개합니다.
+                </p>
               </div>
 
               {/* Manual Info list (Toss List style) */}
@@ -760,39 +1056,53 @@ export default function HomeView() {
                 <div className="flex gap-3 bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/40">
                   <span className="text-[#3182f6] font-bold">1.</span>
                   <div>
-                    <strong className="text-white">최종 목표:</strong> 스테이지 안에 있는 모든 블록을 파괴하여 제거해야 합니다.
+                    <strong className="text-white">최종 목표:</strong> 스테이지
+                    안에 있는 모든 블록을 파괴하여 제거해야 합니다.
                   </div>
                 </div>
                 <div className="flex gap-3 bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/40">
                   <span className="text-[#3182f6] font-bold">2.</span>
                   <div>
-                    <strong className="text-white">블록 이동:</strong> 클릭 후 드래그하거나 방향키로 블록을 양옆으로 밀어서 떨어뜨릴 수 있습니다.
+                    <strong className="text-white">블록 이동:</strong> 클릭 후
+                    드래그하거나 방향키로 블록을 양옆으로 밀어서 떨어뜨릴 수
+                    있습니다.
                   </div>
                 </div>
                 <div className="flex gap-3 bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/40">
                   <span className="text-[#3182f6] font-bold">3.</span>
                   <div>
-                    <strong className="text-white">모양 맞추기:</strong> 동일한 아이콘을 가진 블록들이 가로나 세로로 접촉하면 즉시 함께 파괴됩니다.
+                    <strong className="text-white">모양 맞추기:</strong> 동일한
+                    아이콘을 가진 블록들이 가로나 세로로 접촉하면 즉시 함께
+                    파괴됩니다.
                   </div>
                 </div>
                 <div className="flex gap-3 bg-zinc-900/50 p-3 rounded-2xl border border-zinc-800/40">
                   <span className="text-[#3182f6] font-bold">4.</span>
                   <div>
-                    <strong className="text-white">중력 작용:</strong> 아래에 받쳐주는 타일이 없으면 중력에 의해 낙하하므로 낙하 궤적을 예측해보세요.
+                    <strong className="text-white">중력 작용:</strong> 아래에
+                    받쳐주는 타일이 없으면 중력에 의해 낙하하므로 낙하 궤적을
+                    예측해보세요.
                   </div>
                 </div>
               </div>
 
               {/* Block icons dictionary preview */}
               <div className="bg-zinc-900/70 border border-zinc-800 rounded-[20px] p-4.5 mt-2">
-                <p className="text-[11px] text-center text-zinc-500 font-bold mb-3 tracking-wide">퍼즐 블록 종류</p>
+                <p className="text-[11px] text-center text-zinc-500 font-bold mb-3 tracking-wide">
+                  퍼즐 블록 종류
+                </p>
                 <div className="grid grid-cols-6 gap-2 justify-items-center">
                   {blockTypes.map((t, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-1.5">
+                    <div
+                      key={idx}
+                      className="flex flex-col items-center gap-1.5"
+                    >
                       <div className="w-8 h-8 p-0.5">
                         <RenderBlock type={t} />
                       </div>
-                      <span className="text-[9px] font-semibold uppercase text-zinc-500">{t.slice(0, 3)}</span>
+                      <span className="text-[9px] font-semibold uppercase text-zinc-500">
+                        {t.slice(0, 3)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -818,28 +1128,39 @@ export default function HomeView() {
         {showChargeModal && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end justify-center md:absolute md:rounded-[36px] overflow-hidden">
             {/* Sheet click background to dismiss */}
-            <div 
-              className="absolute inset-0 cursor-pointer" 
+            <div
+              className="absolute inset-0 cursor-pointer"
               onClick={() => {
                 setShowChargeModal(false);
                 playSound("select", muted);
               }}
             />
-            
+
             {/* Actual BottomSheet Body */}
             <div className="relative w-full bg-[#1c1c1e] rounded-t-[28px] border-t border-zinc-800 px-6 pt-4 pb-8 z-50 flex flex-col gap-4 animate-slide-up text-center">
-              
               {/* Header Handle Bar */}
               <div className="w-9 h-1 bg-zinc-700 rounded-full mx-auto mb-3" />
 
               <div className="w-16 h-16 mx-auto bg-yellow-500/10 rounded-full flex items-center justify-center p-3 text-yellow-500 animate-bounce mt-2">
-                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-10 h-10"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
 
               <div className="mt-2">
-                <h3 className="text-lg font-bold text-white">가상 크레딧 충전</h3>
+                <h3 className="text-lg font-bold text-white">
+                  가상 크레딧 충전
+                </h3>
                 <p className="text-[13px] text-zinc-400 mt-1.5 leading-relaxed px-4">
                   무료 충전 단추를 눌러 게임 크레딧을 채우세요. <br />
                   실제 비용은 청구되지 않으니 안심하세요!
@@ -891,7 +1212,6 @@ export default function HomeView() {
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

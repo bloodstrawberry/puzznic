@@ -88,7 +88,13 @@ interface BlockRendererProps {
   firedOnce?: Record<string, boolean>;
 }
 
-export default function BlockRenderer({ id, x, y, grid, firedOnce }: BlockRendererProps) {
+export default function BlockRenderer({
+  id,
+  x,
+  y,
+  grid,
+  firedOnce,
+}: BlockRendererProps) {
   const key = `${y},${x}`;
   const isFiredOnce = firedOnce !== undefined && firedOnce[key] === true;
 
@@ -140,7 +146,9 @@ export default function BlockRenderer({ id, x, y, grid, firedOnce }: BlockRender
     case BLOCK_SHOOTER_L:
       return <Shooter direction="left" mode="repeated" isPressed={isPressed} />;
     case BLOCK_SHOOTER_R:
-      return <Shooter direction="right" mode="repeated" isPressed={isPressed} />;
+      return (
+        <Shooter direction="right" mode="repeated" isPressed={isPressed} />
+      );
     case BLOCK_SHOOTER_L_ONCE:
       return <Shooter direction="left" mode="once" isPressed={isPressed} />;
     case BLOCK_SHOOTER_R_ONCE:

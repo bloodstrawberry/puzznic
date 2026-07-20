@@ -6,7 +6,11 @@ interface ShooterProps {
   isPressed?: boolean;
 }
 
-export default function Shooter({ direction, mode, isPressed = false }: ShooterProps) {
+export default function Shooter({
+  direction,
+  mode,
+  isPressed = false,
+}: ShooterProps) {
   return (
     <svg className="w-full h-full" viewBox="0 0 40 40">
       <defs>
@@ -24,7 +28,7 @@ export default function Shooter({ direction, mode, isPressed = false }: ShooterP
           <stop offset="100%" stopColor="#047857" />
         </linearGradient>
       </defs>
-      
+
       {/* Plunger/Button at the top */}
       {isPressed ? (
         <rect
@@ -49,7 +53,7 @@ export default function Shooter({ direction, mode, isPressed = false }: ShooterP
           strokeWidth="1.5"
         />
       )}
-      
+
       {/* Button housing/base */}
       <rect
         x="10"
@@ -60,7 +64,7 @@ export default function Shooter({ direction, mode, isPressed = false }: ShooterP
         stroke="#000000"
         strokeWidth="0.5"
       />
-      
+
       {/* Main Block Body */}
       <rect
         x="4"
@@ -72,17 +76,33 @@ export default function Shooter({ direction, mode, isPressed = false }: ShooterP
         stroke="#111827"
         strokeWidth="2"
       />
-      
+
       {/* Inner highlights (Bevel) */}
-      <line x1="5" y1="9" x2="35" y2="9" stroke="#9ca3af" strokeWidth="1" strokeOpacity="0.4" />
-      <line x1="5" y1="9" x2="5" y2="35" stroke="#9ca3af" strokeWidth="1" strokeOpacity="0.4" />
-      
+      <line
+        x1="5"
+        y1="9"
+        x2="35"
+        y2="9"
+        stroke="#9ca3af"
+        strokeWidth="1"
+        strokeOpacity="0.4"
+      />
+      <line
+        x1="5"
+        y1="9"
+        x2="5"
+        y2="35"
+        stroke="#9ca3af"
+        strokeWidth="1"
+        strokeOpacity="0.4"
+      />
+
       {/* Rivets in corners */}
       <circle cx="8" cy="12" r="1" fill="#9ca3af" fillOpacity="0.6" />
       <circle cx="32" cy="12" r="1" fill="#9ca3af" fillOpacity="0.6" />
       <circle cx="8" cy="32" r="1" fill="#9ca3af" fillOpacity="0.6" />
       <circle cx="32" cy="32" r="1" fill="#9ca3af" fillOpacity="0.6" />
-      
+
       {/* Nozzle/Barrel on left or right */}
       {direction === "left" ? (
         <g>
@@ -98,7 +118,7 @@ export default function Shooter({ direction, mode, isPressed = false }: ShooterP
             strokeWidth="1.5"
           />
           <circle cx="2" cy="21" r="1.5" fill="#111827" />
-          
+
           {/* Arrow pointing Left */}
           {mode === "repeated" ? (
             <path
@@ -134,7 +154,7 @@ export default function Shooter({ direction, mode, isPressed = false }: ShooterP
             strokeWidth="1.5"
           />
           <circle cx="38" cy="21" r="1.5" fill="#111827" />
-          
+
           {/* Arrow pointing Right */}
           {mode === "repeated" ? (
             <path
