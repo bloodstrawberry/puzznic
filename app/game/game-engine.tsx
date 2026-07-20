@@ -257,6 +257,7 @@ export const useGameEngine = (
         cursor: curPos,
         grabbed: curLock,
         flashingBlocks: stateFlashing,
+        isProcessing: curProcessing,
       } = stateRef.current;
       if (!curLock) return;
       const cell = targetGrid[curPos.y]?.[curPos.x];
@@ -265,6 +266,9 @@ export const useGameEngine = (
         cell !== undefined && getBlockProperties(cell, targetGrid)?.canSelect;
 
       if (!isGrabable || curFlashing[`${curPos.y},${curPos.x}`]) {
+        if (curProcessing && !curFlashing[`${curPos.y},${curPos.x}`]) {
+          return;
+        }
         updateGrabbed(false);
       }
     },
@@ -455,13 +459,15 @@ export const useGameEngine = (
           if (stateRef.current?.grabbed) {
             const { cursor: curCursor } = stateRef.current;
             const oldCell = currentGrid[curCursor.y]?.[curCursor.x];
-            const newCell = gravityResult.grid[curCursor.y + 1]?.[curCursor.x];
-            const oldCellNowEmpty =
-              gravityResult.grid[curCursor.y]?.[curCursor.x] === BLOCK_EMPTY;
+            const wasEmptyBelow =
+              currentGrid[curCursor.y + 1]?.[curCursor.x] === BLOCK_EMPTY;
+            const newCellBelow =
+              gravityResult.grid[curCursor.y + 1]?.[curCursor.x];
             if (
+              oldCell !== undefined &&
               getBlockProperties(oldCell, currentGrid)?.canFall &&
-              newCell === oldCell &&
-              oldCellNowEmpty
+              wasEmptyBelow &&
+              newCellBelow === oldCell
             ) {
               const nextCursor = { x: curCursor.x, y: curCursor.y + 1 };
               updateCursor(nextCursor);

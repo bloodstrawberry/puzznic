@@ -408,7 +408,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
         return;
       }
 
-      if (curActiveEditor || curGameOver) return;
+      if (curActiveEditor || curGameOver || curProcessing) return;
 
       // 1. Grab/Deselect action with Space
       if (e.code === "Space" || e.key === " ") {
@@ -549,7 +549,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
 
   // Click handler on cells
   const handleCellClick = (x: number, y: number) => {
-    if (activeEditor) return;
+    if (activeEditor || isProcessing) return;
     const cell = grid[y]?.[x];
     const isPuzzleBlock =
       cell !== undefined && getBlockProperties(cell, grid)?.canSelect;
