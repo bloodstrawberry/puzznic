@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useGameEngine, CellType, BUILTIN_LEVELS } from "./game-engine";
+import { findInitialCursor } from "./types";
 import GameStageView from "./game-stage-view";
 import Link from "next/link";
 import { useEditorHotkeys, ALL_PAINT_TOOLS } from "./hot-key";
@@ -628,15 +629,18 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
 
   // Switch to Play Test Mode using editor grid
   const togglePlayTest = () => {
-    setGrabbed(false);
     if (playTestMode) {
+      setGrabbed(false);
       setPlayTestMode(false);
       editorRestoreLevel();
     } else {
       setPlayTestMode(true);
-      const cols = grid[0]?.length || 8;
-      const rows = grid.length || 8;
-      setCursor({ x: Math.floor(cols / 2), y: rows - 1 });
+      const initCursor = findInitialCursor(grid);
+      setCursor(initCursor);
+      const cell = grid[initCursor.y]?.[initCursor.x];
+      const isPuzzleBlock =
+        cell !== undefined && getBlockProperties(cell, grid)?.canSelect;
+      setGrabbed(!!isPuzzleBlock);
     }
     playSound("start", muted);
   };

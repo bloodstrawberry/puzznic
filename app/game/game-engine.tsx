@@ -91,7 +91,16 @@ export const useGameEngine = (
   const [isLevelCleared, setIsLevelCleared] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [muted, setMuted] = useState<boolean>(false);
-  const [grabbed, setGrabbed] = useState<boolean>(false);
+  const [grabbed, setGrabbed] = useState<boolean>(() => {
+    if (isEditorMode) return false;
+    const levelGrid = BUILTIN_LEVELS[initialLevelIndex]?.grid;
+    if (!levelGrid) return false;
+    const initialCursor = findInitialCursor(levelGrid);
+    const cell = levelGrid[initialCursor.y]?.[initialCursor.x];
+    return (
+      cell !== undefined && !!getBlockProperties(cell, levelGrid)?.canSelect
+    );
+  });
   const [hasMovedFirstBlock, setHasMovedFirstBlock] = useState<boolean>(false);
   const [flashingBlocks, setFlashingBlocks] = useState<Record<string, boolean>>(
     {},
@@ -342,8 +351,13 @@ export const useGameEngine = (
       setIsGameOver(false);
       setIsLevelCleared(false);
       setIsProcessing(false);
-      updateCursor(findInitialCursor(level.grid));
-      updateGrabbed(false);
+      const initialPos = findInitialCursor(level.grid);
+      updateCursor(initialPos);
+      const cellAtInit = level.grid[initialPos.y]?.[initialPos.x];
+      const shouldGrab =
+        cellAtInit !== undefined &&
+        !!getBlockProperties(cellAtInit, level.grid)?.canSelect;
+      updateGrabbed(shouldGrab);
       setFlashingBlocks({});
       if (stateRef.current) stateRef.current.flashingBlocks = {};
       setBullets([]);
