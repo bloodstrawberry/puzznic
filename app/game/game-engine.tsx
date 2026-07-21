@@ -801,8 +801,8 @@ export const useGameEngine = (
         flashingBlocks: curFlashingBlocks = {},
       } = stateRef.current;
 
-      // Skip this tick if the game is over or cleared
-      if (curGameOver || curLevelCleared) return;
+      // Skip this tick if the game is over, cleared, or processing physics
+      if (curGameOver || curLevelCleared || curProcessing) return;
 
       let moved = false;
       let nextCursor = { ...curCursor };
@@ -972,22 +972,20 @@ export const useGameEngine = (
               ? autoWallDelays.current[dirKey]
               : 0;
 
-            // Helper to get stack based on direction
-            const getVStack = (currentDy: number): Position[] => {
+            // Helper to get stack sitting on top of this auto-wall
+            const getVStack = (): Position[] => {
               const s: Position[] = [{ x, y }];
-              if (currentDy === -1) {
-                let ky = y - 1;
-                while (ky >= 0) {
-                  const above = nextGrid[ky][x];
-                  if (
-                    above === BLOCK_EMPTY ||
-                    !getBlockProperties(above, nextGrid)?.canSelect
-                  ) {
-                    break;
-                  }
-                  s.push({ x, y: ky });
-                  ky--;
+              let ky = y - 1;
+              while (ky >= 0) {
+                const above = nextGrid[ky][x];
+                if (
+                  above === BLOCK_EMPTY ||
+                  !getBlockProperties(above, nextGrid)?.canSelect
+                ) {
+                  break;
                 }
+                s.push({ x, y: ky });
+                ky--;
               }
               return s;
             };
@@ -1012,7 +1010,7 @@ export const useGameEngine = (
               return true;
             };
 
-            let stack = getVStack(dy);
+            let stack = getVStack();
 
             const hasFlashing = stack.some(
               (item) => curFlashingBlocks[`${item.y},${item.x}`],
@@ -1039,7 +1037,7 @@ export const useGameEngine = (
               } else {
                 // Reverse direction and try again
                 dy = -dy;
-                stack = getVStack(dy);
+                stack = getVStack();
                 canMove = checkCanMove(stack, dy);
               }
             }
