@@ -550,10 +550,21 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
 
   // Click handler on cells
   const handleCellClick = (x: number, y: number) => {
-    if (activeEditor || isProcessing) return;
+    if (activeEditor) return;
     const cell = grid[y]?.[x];
     const isPuzzleBlock =
-      cell !== undefined && getBlockProperties(cell, grid)?.canSelect;
+      cell !== undefined &&
+      getBlockProperties(cell, grid)?.canSelect &&
+      !flashingBlocks[`${y},${x}`];
+
+    if (isProcessing) {
+      if (isPuzzleBlock) {
+        setCursor({ x, y });
+        setGrabbed(true);
+        playSound("select", muted);
+      }
+      return;
+    }
 
     if (grabbed) {
       if (isPuzzleBlock) {

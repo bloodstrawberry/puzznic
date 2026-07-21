@@ -1220,7 +1220,7 @@ export const useGameEngine = (
     grid,
     setGrid,
     cursor,
-    setCursor,
+    setCursor: updateCursor,
     timeLeft,
     setTimeLeft,
     isGameOver,
