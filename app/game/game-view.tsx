@@ -1045,6 +1045,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
               activeEditor={activeEditor}
               playTestMode={playTestMode}
               grabbed={grabbed}
+              isProcessing={isProcessing}
               flashingBlocks={flashingBlocks}
               bullets={bullets}
               firedOnce={firedOnce}

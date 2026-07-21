@@ -19,6 +19,7 @@ import BlockRenderer, {
   BLOCK_SPIKE_R,
   STAGE_BLOCK_SIZE_PERCENT,
   STAGE_GRID_GAP_REM,
+  getBlockProperties,
 } from "../object";
 import {
   CellType,
@@ -83,6 +84,7 @@ interface GameStageViewProps {
   activeEditor: boolean;
   playTestMode: boolean;
   grabbed: boolean;
+  isProcessing?: boolean;
   flashingBlocks: Record<string, boolean>;
   bullets: BulletType[];
   firedOnce?: Record<string, boolean>;
@@ -120,6 +122,7 @@ export default function GameStageView({
   activeEditor,
   playTestMode,
   grabbed,
+  isProcessing = false,
   flashingBlocks,
   bullets,
   firedOnce,
@@ -313,30 +316,48 @@ export default function GameStageView({
                       </div>
                     )}
 
-                    {/* Render Cursor Selector outline (Pulsating green if grabbed, blue if free) */}
-                    {isCursor && (
-                      <div
-                        className={`absolute inset-0 border-2 rounded-[22%] pointer-events-none z-20 animate-pulse ${
-                          grabbed
-                            ? "border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-bounce"
-                            : "border-[#3182f6] shadow-[0_0_10px_rgba(49,130,246,0.7)]"
-                        }`}
-                      >
-                        {/* Glowing corner anchors */}
-                        <span
-                          className={`absolute top-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`}
-                        />
-                        <span
-                          className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`}
-                        />
-                        <span
-                          className={`absolute bottom-0 left-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`}
-                        />
-                        <span
-                          className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-sm ${grabbed ? "bg-emerald-400" : "bg-[#3182f6]"}`}
-                        />
-                      </div>
-                    )}
+                    {/* Render Cursor Selector outline */}
+                    {isCursor && (() => {
+                      const cellAtCursor = grid[cursor.y]?.[cursor.x];
+                      const isUnsupported =
+                        cellAtCursor !== undefined &&
+                        getBlockProperties(cellAtCursor, grid)?.canFall &&
+                        cursor.y < grid.length - 1 &&
+                        grid[cursor.y + 1]?.[cursor.x] === BLOCK_EMPTY;
+                      const isUnmovable = isProcessing || isUnsupported;
+
+                      const colorClasses = isUnmovable
+                        ? "border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]"
+                        : grabbed
+                        ? "border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-bounce"
+                        : "border-[#3182f6] shadow-[0_0_10px_rgba(49,130,246,0.7)]";
+
+                      const anchorColor = isUnmovable
+                        ? "bg-red-500"
+                        : grabbed
+                        ? "bg-emerald-400"
+                        : "bg-[#3182f6]";
+
+                      return (
+                        <div
+                          className={`absolute inset-0 border-2 rounded-[22%] pointer-events-none z-20 animate-pulse ${colorClasses}`}
+                        >
+                          {/* Glowing corner anchors */}
+                          <span
+                            className={`absolute top-0 left-0 w-1.5 h-1.5 rounded-sm ${anchorColor}`}
+                          />
+                          <span
+                            className={`absolute top-0 right-0 w-1.5 h-1.5 rounded-sm ${anchorColor}`}
+                          />
+                          <span
+                            className={`absolute bottom-0 left-0 w-1.5 h-1.5 rounded-sm ${anchorColor}`}
+                          />
+                          <span
+                            className={`absolute bottom-0 right-0 w-1.5 h-1.5 rounded-sm ${anchorColor}`}
+                          />
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               }),
