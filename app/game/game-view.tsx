@@ -557,7 +557,7 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
     if (grabbed) {
       if (isPuzzleBlock) {
         if (cursor.x === x && cursor.y === y) {
-          setGrabbed(false);
+          // 마우스 클릭이나 터치 시 lock 해제 방지
           playSound("select", muted);
         } else {
           setCursor({ x, y });
@@ -565,30 +565,28 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
           playSound("select", muted);
         }
       } else {
-        // 빈 곳이나 벽 등 선택 불가능한 셀 클릭 시 -> 이동 명령
+        const grabbedCell = grid[cursor.y]?.[cursor.x];
+        const isVertWall =
+          grabbedCell === BLOCK_WALL_V || grabbedCell === BLOCK_AUTO_WALL_V;
+
         if (x > cursor.x) {
-          const grabbedCell = grid[cursor.y]?.[cursor.x];
-          if (
-            grabbedCell === BLOCK_WALL_V ||
-            grabbedCell === BLOCK_AUTO_WALL_V
-          ) {
+          if (isVertWall) {
             moveBlock(cursor.x, cursor.y, 0, 1);
           } else {
             moveBlock(cursor.x, cursor.y, 1, 0);
           }
         } else if (x < cursor.x) {
-          const grabbedCell = grid[cursor.y]?.[cursor.x];
-          if (
-            grabbedCell === BLOCK_WALL_V ||
-            grabbedCell === BLOCK_AUTO_WALL_V
-          ) {
+          if (isVertWall) {
             moveBlock(cursor.x, cursor.y, 0, -1);
           } else {
             moveBlock(cursor.x, cursor.y, -1, 0);
           }
+        } else if (y > cursor.y && isVertWall) {
+          moveBlock(cursor.x, cursor.y, 0, 1);
+        } else if (y < cursor.y && isVertWall) {
+          moveBlock(cursor.x, cursor.y, 0, -1);
         } else {
-          // 같은 열 클릭 시 -> 잡기 해제
-          setGrabbed(false);
+          // 마우스 클릭이나 터치 시 lock 해제 하지 않음
           playSound("select", muted);
         }
       }
