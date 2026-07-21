@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { preloadAllBlockImages } from "./object/preload";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -43,6 +44,7 @@ export function Providers({ children }: ProvidersProps) {
 
   useEffect(() => {
     setupConstantHandlerFallbacks();
+    preloadAllBlockImages();
     setTimeout(() => setIsMounted(true), 0);
   }, []);
 

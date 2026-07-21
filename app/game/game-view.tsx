@@ -36,6 +36,7 @@ import BlockRenderer, {
   BLOCK_SPIKE_L,
   BLOCK_SPIKE_R,
   getBlockProperties,
+  useBlockImagesPreloader,
 } from "../object";
 
 // Retro sound synthesizer proxy
@@ -1544,10 +1545,29 @@ function GameContent({ isEditor = false, onFullReset }: GameContentProps) {
 
 export default function GameView({ isEditor = false }: GameViewProps) {
   const [resetKey, setResetKey] = useState(0);
+  const isLoaded = useBlockImagesPreloader();
 
   const handleFullReset = () => {
     setResetKey((prev) => prev + 1);
   };
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 select-none">
+        <div className="flex flex-col items-center gap-4 bg-zinc-900/80 border border-zinc-800 rounded-3xl p-8 shadow-2xl backdrop-blur-md">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="text-center">
+            <h2 className="text-lg font-bold text-zinc-100 mb-1">
+              게임 그래픽 로딩 중...
+            </h2>
+            <p className="text-xs text-zinc-400">
+              모든 블록 리소스를 준비하고 있습니다
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <GameContent

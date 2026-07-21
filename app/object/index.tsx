@@ -79,6 +79,7 @@ export { default as Spike } from "./spike";
 export { default as NumBlock } from "./num-block";
 export { default as LetterBlock } from "./letter-block";
 export * from "./constants";
+export * from "./preload";
 
 interface BlockRendererProps {
   id: number;
