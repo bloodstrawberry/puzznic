@@ -163,7 +163,13 @@ export const clearMatches = (
     const [yStr, xStr] = key.split(",");
     const y = parseInt(yStr, 10);
     const x = parseInt(xStr, 10);
-    nextGrid[y][x] = BLOCK_EMPTY;
+    const cell = nextGrid[y]?.[x];
+    if (
+      cell !== undefined &&
+      getBlockProperties(cell, nextGrid)?.canBeDestroyedByShooter
+    ) {
+      nextGrid[y][x] = BLOCK_EMPTY;
+    }
   });
   return nextGrid;
 };

@@ -801,8 +801,8 @@ export const useGameEngine = (
         flashingBlocks: curFlashingBlocks = {},
       } = stateRef.current;
 
-      // Skip this tick if the game is over, cleared, or processing physics
-      if (curGameOver || curLevelCleared || curProcessing) return;
+      // Skip this tick if the game is over or cleared
+      if (curGameOver || curLevelCleared) return;
 
       let moved = false;
       let nextCursor = { ...curCursor };
@@ -862,7 +862,12 @@ export const useGameEngine = (
             let moveCount = 0;
             const w0 = stack[0];
             const nx0 = w0.x + dx;
-            if (nx0 >= 0 && nx0 < W && nextGrid[w0.y][nx0] === BLOCK_EMPTY) {
+            if (
+              nx0 >= 0 &&
+              nx0 < W &&
+              nextGrid[w0.y][nx0] === BLOCK_EMPTY &&
+              !curFlashingBlocks[`${w0.y},${nx0}`]
+            ) {
               moveCount = 1;
               for (let i = 1; i < stack.length; i++) {
                 const item = stack[i];
@@ -870,7 +875,10 @@ export const useGameEngine = (
                 const ny = item.y;
                 if (nx >= 0 && nx < W) {
                   const destCell = nextGrid[ny][nx];
-                  if (destCell === BLOCK_EMPTY) {
+                  if (
+                    destCell === BLOCK_EMPTY &&
+                    !curFlashingBlocks[`${ny},${nx}`]
+                  ) {
                     moveCount++;
                   } else {
                     break;
@@ -897,7 +905,8 @@ export const useGameEngine = (
                 if (
                   rnx0 >= 0 &&
                   rnx0 < W &&
-                  nextGrid[w0.y][rnx0] === BLOCK_EMPTY
+                  nextGrid[w0.y][rnx0] === BLOCK_EMPTY &&
+                  !curFlashingBlocks[`${w0.y},${rnx0}`]
                 ) {
                   moveCount = 1;
                   for (let i = 1; i < stack.length; i++) {
@@ -906,7 +915,10 @@ export const useGameEngine = (
                     const ny = item.y;
                     if (nx >= 0 && nx < W) {
                       const destCell = nextGrid[ny][nx];
-                      if (destCell === BLOCK_EMPTY) {
+                      if (
+                        destCell === BLOCK_EMPTY &&
+                        !curFlashingBlocks[`${ny},${nx}`]
+                      ) {
                         moveCount++;
                       } else {
                         break;
@@ -1004,6 +1016,9 @@ export const useGameEngine = (
                 const destCell = nextGrid[ny][nx];
                 const isSelf = s.some((pos) => pos.x === nx && pos.y === ny);
                 if (destCell !== BLOCK_EMPTY && !isSelf) {
+                  return false;
+                }
+                if (curFlashingBlocks[`${ny},${nx}`]) {
                   return false;
                 }
               }
